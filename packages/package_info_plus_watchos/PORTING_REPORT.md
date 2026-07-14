@@ -8,7 +8,7 @@
 | watchOS capability | Full |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ◐ partial — official `fromPlatform` passes; the `example` widget test is a phone-UI sweep the ~200px watch screen can't materialise |
-| Unified demo (`demo/plugins_demo`) | ✅ included |
+| Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 

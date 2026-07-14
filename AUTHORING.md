@@ -151,7 +151,7 @@ whole repo is graded the same way:
 | watchOS capability | `Full`, or `Partial — <what is dropped and why>` |
 | Host unit tests | `✅ pass` (FFI bindings faked) |
 | Upstream integration test | see marking below |
-| Unified demo | `✅ included` in `demo/plugins_demo` |
+| Unified demo | `✅ included` in our internal test app |
 
 Marking: **✅** full / passes verbatim · **◐** partial — an official test that is
 viewport- or mobile-UI-bound and can't be driven on a ~200 px watch screen (give

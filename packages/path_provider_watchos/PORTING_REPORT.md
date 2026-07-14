@@ -8,7 +8,7 @@
 | watchOS capability | Partial — no Downloads / Android external dirs (throw `UnimplementedError`) |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim |
-| Unified demo (`demo/plugins_demo`) | ✅ included |
+| Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 

@@ -8,7 +8,7 @@
 | watchOS capability | Partial — baseline Keychain; no Secure Enclave / biometric-gated options |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ◐ partial — official `app_test` is a phone-UI page-object sweep (viewport); Keychain round-trip proven by host tests + demo |
-| Unified demo (`demo/plugins_demo`) | ✅ included |
+| Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 

@@ -8,7 +8,7 @@
 | watchOS capability | Full API — no motion samples on the Simulator (needs a device) |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim |
-| Unified demo (`demo/plugins_demo`) | ✅ included |
+| Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 

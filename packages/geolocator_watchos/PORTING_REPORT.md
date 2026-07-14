@@ -8,7 +8,7 @@
 | watchOS capability | Full — query, permission, and position stream |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ○ none upstream (Baseflow manual demo) — verified by building + running the example on-sim |
-| Unified demo (`demo/plugins_demo`) | ✅ included |
+| Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 

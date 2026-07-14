@@ -72,13 +72,6 @@ they are simply out of scope for now (large surface or partial support):
 `wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
 general idle-timer disable), and the Firebase family.
 
-## Demo
-
-[`demo/plugins_demo`](../demo/plugins_demo) is a single standalone watch app
-that exercises **every** plugin here live — one screen per plugin — and carries
-an `integration_test` that drives all of them on the watch simulator in one
-run. It is the quickest way to see the whole set working together.
-
 ## Examples & tests
 
 Each package ships the **upstream plugin's own example** (its demo `lib/` and
