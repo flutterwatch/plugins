@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_secure_storage: ^10.0.0
+  flutter_secure_storage_platform_interface: any
   flutter_secure_storage_watchos:
     path: ../
 

@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   network_info_plus: any
+  network_info_plus_platform_interface: any
   network_info_plus_watchos:
     path: ../
 
