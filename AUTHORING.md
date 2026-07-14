@@ -75,6 +75,37 @@ And, unlike tvOS, these DO work — don't stub them reflexively:
 The porter's `PORTING_REPORT.md` lists exactly which handlers hit which of
 these — trust it as the checklist.
 
+## 2b. Streams and async native APIs — poll, don't call back
+
+FFI has no zero-setup way to invoke Dart from a native callback thread, so
+this repo bridges asynchronous CoreMotion / CoreLocation / LocalAuthentication
+work with a **cache-and-poll** pattern instead of `NativeCallable`:
+
+- Native starts updates and stores the *latest* value (a struct guarded by an
+  `os_unfair_lock`, or a `dispatch_once`-cached one-shot); it exposes a
+  `read_*` that copies the current value into a caller buffer and returns
+  whether one is available.
+- Dart exposes the interface `Stream` via a broadcast `StreamController` that,
+  on first listen, calls the native `start_*` and a `Timer.periodic` reading
+  the cache; on cancel it stops updates. One-shot async calls (e.g.
+  `evaluatePolicy`, `getCurrentPosition`) `await Future.delayed` between polls
+  until the native state flips or a deadline passes.
+
+See `sensors_plus_watchos` (streams), `geolocator_watchos` (permission +
+stream + one-shot) and `local_auth_watchos` (async poll) for worked examples.
+
+Two watchOS gotchas these surfaced:
+
+- **Some iOS enum constants do not exist on watchOS** and cannot even be
+  *referenced* — e.g. `LAPolicyDeviceOwnerAuthenticationWithBiometrics`. Guard
+  the capability in Dart and never name the constant in the `.m`, or the build
+  fails with "unavailable: not available on watchOS".
+- **The Simulator has no motion hardware and no enrolled passcode/location**,
+  so sensor streams emit nothing and interactive prompts block. Keep on-sim
+  integration tests to the non-interactive query paths; assert the interactive
+  paths on a physical watch. Also gate the interactive test cases so they can't
+  hang the suite (they present system UI with no one to answer).
+
 ## 3. Verify
 
 ```sh
@@ -91,6 +122,22 @@ nm build/watchos/Debug-watchsimulator/Runner.app/Runner | grep <name>_watchos_
 
 Every `ffiSymbols` entry must appear (type `T`). If one is missing, it was
 dead-stripped — check the pubspec list and the `used` attribute.
+
+Finally, run the real native code end-to-end on the simulator. Add an
+`example/integration_test/<name>_test.dart` (using
+`IntegrationTestWidgetsFlutterBinding`) plus an
+`example/test_driver/integration_test.dart` that calls `integrationDriver()`,
+then:
+
+```sh
+cd example
+flutter-watchos drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/<name>_test.dart -d <watch-sim-id>
+```
+
+(The "integration_test plugin was not detected" warning is benign — results
+are still captured over the VM service.)
 
 ## 4. Versioning & publishing
 
