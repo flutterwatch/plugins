@@ -1,0 +1,35 @@
+name: shared_preferences_watchos
+description: "watchOS implementation of shared_preferences (FFI over NSUserDefaults)."
+version: 0.1.0
+homepage: https://github.com/flutterwatch/plugins
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  flutter:
+    sdk: flutter
+  shared_preferences_platform_interface: ^2.4.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: shared_preferences
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a static
+        # archive force-loaded into the watch binary; Dart resolves the
+        # exported symbols via DynamicLibrary.process(). Method-channel
+        # plugins are not supported on watchOS; FFI is the plugin model.
+        ffiPlugin: true
+        dartPluginClass: SharedPreferencesWatchos
+        ffiSymbols:
+          - shared_preferences_watchos_load
+          - shared_preferences_watchos_save
+          - shared_preferences_watchos_free

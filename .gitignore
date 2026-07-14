@@ -1,0 +1,9 @@
+# Dart / Flutter tooling
+.dart_tool/
+build/
+pubspec.lock
+
+# IDE / OS noise
+.idea/
+*.iml
+.DS_Store

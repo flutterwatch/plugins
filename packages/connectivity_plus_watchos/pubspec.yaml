@@ -1,0 +1,32 @@
+name: connectivity_plus_watchos
+description: "watchOS implementation of connectivity_plus (FFI over NWPathMonitor)."
+version: 0.1.0
+homepage: https://github.com/flutterwatch/plugins
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  connectivity_plus_platform_interface: ^2.0.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: connectivity_plus
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a static
+        # archive force-loaded into the watch binary; Dart resolves the
+        # exported symbol via DynamicLibrary.process(). Method-channel
+        # plugins are not supported on watchOS; FFI is the plugin model.
+        ffiPlugin: true
+        dartPluginClass: ConnectivityPlusWatchos
+        ffiSymbols:
+          - connectivity_plus_watchos_current

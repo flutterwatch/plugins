@@ -1,0 +1,33 @@
+name: device_info_plus_watchos
+description: "watchOS implementation of device_info_plus (FFI over WKInterfaceDevice)."
+version: 0.1.0
+homepage: https://github.com/flutterwatch/plugins
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  device_info_plus_platform_interface: ^8.0.0
+  ffi: ^2.1.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: device_info_plus
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a static
+        # archive force-loaded into the watch binary; Dart resolves the
+        # exported symbol via DynamicLibrary.process(). Method-channel
+        # plugins are not supported on watchOS; FFI is the plugin model.
+        ffiPlugin: true
+        dartPluginClass: DeviceInfoWatchos
+        ffiSymbols:
+          - device_info_plus_watchos_info_json
