@@ -1,5 +1,5 @@
-name: path_provider_example
-description: "watchOS example for path_provider_watchos."
+name: flutter_secure_storage_example
+description: "A watchOS example app for flutter_secure_storage_example."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  path_provider: any
-  path_provider_watchos:
+  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage_watchos:
     path: ../
 
 dev_dependencies:

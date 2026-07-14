@@ -1,5 +1,5 @@
-name: path_provider_example
-description: "watchOS example for path_provider_watchos."
+name: sensors_plus_example
+description: "A watchOS example app for sensors_plus_example."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  path_provider: any
-  path_provider_watchos:
+  sensors_plus: any
+  sensors_plus_watchos:
     path: ../
 
 dev_dependencies:

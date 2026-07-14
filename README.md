@@ -35,6 +35,11 @@ Because of that, packages here come in two states:
 | [`device_info_plus_watchos`](packages/device_info_plus_watchos) | [`device_info_plus`](https://pub.dev/packages/device_info_plus) | ✅ Working (FFI) |
 | [`battery_plus_watchos`](packages/battery_plus_watchos) | [`battery_plus`](https://pub.dev/packages/battery_plus) | ✅ Working (FFI) |
 | [`connectivity_plus_watchos`](packages/connectivity_plus_watchos) | [`connectivity_plus`](https://pub.dev/packages/connectivity_plus) | ✅ Working (FFI) |
+| [`flutter_secure_storage_watchos`](packages/flutter_secure_storage_watchos) | [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) | ✅ Working (Keychain) |
+| [`network_info_plus_watchos`](packages/network_info_plus_watchos) | [`network_info_plus`](https://pub.dev/packages/network_info_plus) | ✅ Working (IP only) |
+| [`sensors_plus_watchos`](packages/sensors_plus_watchos) | [`sensors_plus`](https://pub.dev/packages/sensors_plus) | ✅ Working (CoreMotion) |
+| [`local_auth_watchos`](packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | ✅ Working (passcode) |
+| [`geolocator_watchos`](packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | ✅ Working (CoreLocation) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
@@ -53,10 +58,26 @@ published package would be misleading:
 | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | No GoogleSignIn watchOS SDK; sign-in is delegated to the paired iPhone |
 | [`image_picker`](https://pub.dev/packages/image_picker) | No camera and no photo-picker UI on the watch |
 | [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | Platform views are not supported by the watch embedder |
+| [`video_player`](https://pub.dev/packages/video_player) | Renders through a platform view, which the watch embedder does not support |
 
 Note the difference from tvOS: **CoreLocation, HealthKit, CoreMotion,
 StoreKit purchasing, and (watchOS 9+) LocalAuthentication all exist on the
 watch** — plugins built on those are portable, not excluded.
+
+### Feasible but not yet ported
+
+These have a watchOS-viable native backend and are good future additions;
+they are simply out of scope for now (large surface or partial support):
+`sqflite` (SQLite), `audioplayers` / `flutter_tts` (AVFoundation),
+`wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
+general idle-timer disable), and the Firebase family.
+
+## Demo
+
+[`demo/plugins_demo`](../demo/plugins_demo) is a single standalone watch app
+that exercises **every** plugin here live — one screen per plugin — and carries
+an `integration_test` that drives all of them on the watch simulator in one
+run. It is the quickest way to see the whole set working together.
 
 ## Usage
 

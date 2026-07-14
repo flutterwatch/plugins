@@ -1,5 +1,5 @@
-name: path_provider_example
-description: "watchOS example for path_provider_watchos."
+name: geolocator_example
+description: "A watchOS example app for geolocator_example."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,8 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  path_provider: any
-  path_provider_watchos:
+  geolocator: any
+  geolocator_platform_interface: any
+  geolocator_watchos:
     path: ../
 
 dev_dependencies:

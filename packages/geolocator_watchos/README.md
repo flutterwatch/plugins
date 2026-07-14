@@ -1,0 +1,59 @@
+# geolocator_watchos
+
+The watchOS implementation of [`geolocator`](https://pub.dev/packages/geolocator).
+
+Location comes from **CoreLocation** (`CLLocationManager`) over dart:ffi: a
+delegate caches the latest fix and the Dart side polls it.
+
+> Scaffolded by [`flutter-watchos plugin port`](https://github.com/flutterwatch/flutter-watchos)
+> from `geolocator_apple`, then implemented and verified by hand.
+
+## Usage
+
+This is a federated plugin implementation. Apps that already depend on
+`geolocator` and target watchOS only need to add this package alongside it:
+
+```yaml
+dependencies:
+  geolocator: ^<latest>
+  geolocator_watchos: ^0.0.1
+```
+
+The plugin registers automatically via Flutter's federated registry — no
+explicit imports required from app code.
+
+Add a location usage description to the watch app's `Info.plist`:
+
+```xml
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Explain why your app needs location.</string>
+```
+
+## Behaviour on watchOS
+
+| Method | watchOS |
+|---|---|
+| `checkPermission` / `requestPermission` | supported (when-in-use) |
+| `isLocationServiceEnabled` | supported |
+| `getCurrentPosition` / `getPositionStream` | supported |
+| `getLastKnownPosition` | supported (last cached fix) |
+| `openAppSettings` / `openLocationSettings` | not available on watchOS |
+| `getServiceStatusStream` | not implemented |
+
+The watch has no *Always* background-location entitlement flow that iOS has;
+authorization is when-in-use.
+
+## Status
+
+| Platform | Implemented |
+|----------|-------------|
+| Apple Watch (`watchos`) | yes |
+| Watch simulator (`watchsimulator`) | query methods verified; live fixes need a simulated location |
+
+The non-interactive methods are verified on the simulator
+(`example/integration_test`); the interactive permission prompt and live
+position updates are verified on a physical Apple Watch.
+
+## License
+
+The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.
