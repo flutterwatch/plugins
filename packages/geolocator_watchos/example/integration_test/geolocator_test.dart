@@ -12,15 +12,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geolocator_watchos/geolocator_watchos.dart';
 import 'package:integration_test/integration_test.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('watchOS implementation is registered', (WidgetTester _) async {
-    expect(GeolocatorPlatform.instance, isA<GeolocatorWatchos>());
-  });
 
   testWidgets('isLocationServiceEnabled resolves to a bool',
       (WidgetTester _) async {

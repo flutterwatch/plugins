@@ -79,6 +79,31 @@ that exercises **every** plugin here live — one screen per plugin — and carr
 an `integration_test` that drives all of them on the watch simulator in one
 run. It is the quickest way to see the whole set working together.
 
+## Examples & tests
+
+Each package has an `example/` app ported from the **upstream plugin's own
+example** (via `flutter-watchos plugin port --include-example`) with a watchOS
+runner, plus a host-side unit test. The example imports only the app-facing
+plugin — the `*_watchos` implementation registers federatedly with no client
+code changes — and is verified on the watch simulator:
+
+```sh
+cd packages/<plugin>_watchos/example
+flutter-watchos drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/<plugin>_test.dart -d <watch-sim>
+```
+
+Where the upstream plugin's **official** `integration_test/` is watch-runnable
+it is kept verbatim (path_provider, network_info_plus, sensors_plus,
+local_auth, device_info_plus, battery_plus, connectivity_plus — some cases
+self-skip on non-Android, as upstream intends). Where the official test is
+coupled to a mobile-only UI, exact example-bundle values, dedicated hardware,
+or advanced async semantics not present on the watch (flutter_secure_storage,
+package_info_plus, shared_preferences, geolocator), the package ships the real
+upstream example demo plus a watch-appropriate integration test, with the
+reason noted at the top of the test file.
+
 ## Usage
 
 The upstream plugins do **not** endorse a watchOS implementation, so add

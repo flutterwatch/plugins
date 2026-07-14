@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   geolocator: any
-  geolocator_platform_interface: any
   geolocator_watchos:
     path: ../
 

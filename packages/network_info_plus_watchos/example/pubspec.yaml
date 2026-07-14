@@ -1,5 +1,5 @@
 name: network_info_plus_example
-description: "A watchOS example app for network_info_plus_example."
+description: "watchOS example for network_info_plus_watchos."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,9 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   network_info_plus: any
-  network_info_plus_platform_interface: any
   network_info_plus_watchos:
     path: ../
+  permission_handler: ^12.0.0+1
 
 dev_dependencies:
   flutter_test:

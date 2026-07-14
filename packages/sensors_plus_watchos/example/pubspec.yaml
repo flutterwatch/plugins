@@ -1,5 +1,5 @@
 name: sensors_plus_example
-description: "A watchOS example app for sensors_plus_example."
+description: "watchOS example for sensors_plus_watchos."
 publish_to: 'none'
 version: 1.0.0+1
 

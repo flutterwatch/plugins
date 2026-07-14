@@ -1,5 +1,5 @@
 name: local_auth_example
-description: "A watchOS example app for local_auth_example."
+description: "watchOS example for local_auth_watchos."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,9 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   local_auth: any
-  local_auth_platform_interface: any
   local_auth_watchos:
     path: ../
+  local_auth_android: ^2.0.0
+  local_auth_darwin: ^2.0.0
 
 dev_dependencies:
   flutter_test:

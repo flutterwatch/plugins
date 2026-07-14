@@ -1,0 +1,29 @@
+name: shared_preferences_example
+description: "watchOS example for shared_preferences_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: any
+  shared_preferences_watchos:
+    path: ../
+  shared_preferences_android: ^2.4.0
+  shared_preferences_foundation: ^2.5.3
+  shared_preferences_linux: ^2.4.1
+  shared_preferences_platform_interface: ^2.4.0
+  shared_preferences_windows: ^2.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

@@ -70,9 +70,14 @@ base class NetworkInfoPlusWatchos extends NetworkInfoPlatform {
   @override
   Future<String?> getWifiBroadcast() async => _b.wifiBroadcast();
 
-  // getWifiGatewayIP falls through to the base UnimplementedError: reading the
-  // default route needs sysctl/PF_ROUTE plumbing with no watchOS story, and
-  // the upstream iOS implementation does not provide it either.
+  @override
+  Future<String?> getWifiGatewayIP() async {
+    // Reading the default route needs sysctl/PF_ROUTE plumbing with no watchOS
+    // story. Returning null (rather than the base UnimplementedError) matches
+    // how iOS reports an unavailable value, so app code that reads it — like
+    // the upstream example — degrades gracefully.
+    return null;
+  }
 }
 
 typedef _StringNative = Pointer<Utf8> Function();

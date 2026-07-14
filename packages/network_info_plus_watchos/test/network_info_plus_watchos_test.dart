@@ -49,7 +49,8 @@ void main() {
     expect(await info.getWifiBSSID(), isNull);
   });
 
-  test('getWifiGatewayIP is unimplemented on watchOS', () {
-    expect(() => info.getWifiGatewayIP(), throwsA(isA<UnimplementedError>()));
+  test('getWifiGatewayIP returns null on watchOS (matches iOS unavailable)',
+      () async {
+    expect(await info.getWifiGatewayIP(), isNull);
   });
 }
