@@ -46,6 +46,18 @@ class PackageInfoWatchosBindings {
       .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'package_info_plus_watchos_build_number');
 
+  late final Pointer<Utf8> Function() _installerStore = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'package_info_plus_watchos_installer_store');
+
+  late final Pointer<Utf8> Function() _installTime = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'package_info_plus_watchos_install_time');
+
+  late final Pointer<Utf8> Function() _updateTime = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'package_info_plus_watchos_update_time');
+
   String _string(Pointer<Utf8> Function() f) {
     final Pointer<Utf8> p = f();
     // Native pointers are cached per-process and owned by the plugin.
@@ -63,6 +75,22 @@ class PackageInfoWatchosBindings {
 
   /// `CFBundleVersion`.
   String get buildNumber => _string(_buildNumber);
+
+  /// The installer source (`com.apple.simulator` on the simulator).
+  String get installerStore => _string(_installerStore);
+
+  /// Install time in milliseconds since epoch, or `null` if unavailable.
+  DateTime? get installTime => _dateFromMillis(_string(_installTime));
+
+  /// Update time in milliseconds since epoch, or `null` if unavailable.
+  DateTime? get updateTime => _dateFromMillis(_string(_updateTime));
+
+  static DateTime? _dateFromMillis(String millis) {
+    final int? value = int.tryParse(millis);
+    return value == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(value);
+  }
 }
 
 /// watchOS implementation of [PackageInfoPlatform].
@@ -88,11 +116,12 @@ class PackageInfoWatchos extends PackageInfoPlatform {
       packageName: _b.packageName,
       version: _b.version,
       buildNumber: _b.buildNumber,
-      // watchOS has no App Store installer-source or install/update
-      // timestamps API; these stay null, as they do on iOS when
-      // unavailable.
+      // Code-signing details are not exposed to the app; iOS reports this
+      // empty too.
       buildSignature: '',
-      installerStore: null,
+      installerStore: _b.installerStore,
+      installTime: _b.installTime,
+      updateTime: _b.updateTime,
     );
   }
 }

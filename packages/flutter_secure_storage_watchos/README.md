@@ -39,7 +39,14 @@ explicit imports required from app code.
 | Apple Watch (`watchos`) | yes |
 | Watch simulator (`watchsimulator`) | yes |
 
-Verified end-to-end on the watch simulator (`example/integration_test`).
+The Keychain round-trip (read / write / delete / readAll / containsKey) is
+verified by the host-side unit tests and the unified demo on the watch
+simulator. The example ships flutter_secure_storage's own upstream
+`integration_test/app_test.dart` verbatim; it is a phone-shaped page-object
+sweep (tapping a floating action button to add list rows, driving popup menus)
+whose widgets a ~200 px watch screen never materialises, so most of its cases
+cannot be driven on the watch — a viewport limitation of that test, not of the
+Keychain implementation.
 
 ## License
 

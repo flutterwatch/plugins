@@ -30,4 +30,17 @@ PACKAGE_INFO_PLUS_WATCHOS_EXPORT const char* package_info_plus_watchos_version(v
 /// `CFBundleVersion` (the build number).
 PACKAGE_INFO_PLUS_WATCHOS_EXPORT const char* package_info_plus_watchos_build_number(void);
 
+/// The installer source, derived from the App Store receipt path exactly as
+/// upstream package_info_plus does: `com.apple.simulator` under the simulator,
+/// `com.apple.testflight` for a sandbox receipt, else `com.apple`.
+PACKAGE_INFO_PLUS_WATCHOS_EXPORT const char* package_info_plus_watchos_installer_store(void);
+
+/// Install time as milliseconds-since-epoch (decimal string), from the
+/// Documents directory's creation date. Empty string if unavailable.
+PACKAGE_INFO_PLUS_WATCHOS_EXPORT const char* package_info_plus_watchos_install_time(void);
+
+/// Update time as milliseconds-since-epoch (decimal string), from the app
+/// bundle's modification date. Empty string if unavailable.
+PACKAGE_INFO_PLUS_WATCHOS_EXPORT const char* package_info_plus_watchos_update_time(void);
+
 #endif  // PACKAGE_INFO_PLUS_WATCHOS_FFI_H

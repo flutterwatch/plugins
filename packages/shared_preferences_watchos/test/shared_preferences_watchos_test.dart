@@ -40,10 +40,17 @@ void main() {
       expect(await prefs.getStringList('l', _options), <String>['a', 'b']);
     });
 
-    test('type-mismatched reads return null, not a crash', () async {
+    test('type-mismatched reads throw a TypeError, matching other platforms',
+        () async {
       await prefs.setInt('i', 7, _options);
-      expect(await prefs.getString('i', _options), isNull);
-      expect(await prefs.getBool('i', _options), isNull);
+      expect(() => prefs.getString('i', _options), throwsA(isA<TypeError>()));
+      expect(() => prefs.getBool('i', _options), throwsA(isA<TypeError>()));
+    });
+
+    test('reads of an absent key return null', () async {
+      expect(await prefs.getString('missing', _options), isNull);
+      expect(await prefs.getBool('missing', _options), isNull);
+      expect(await prefs.getStringList('missing', _options), isNull);
     });
 
     test('getKeys / getPreferences honour the allowList filter', () async {

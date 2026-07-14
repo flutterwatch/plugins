@@ -17,6 +17,9 @@ extern void package_info_plus_watchos_app_name(void);
 extern void package_info_plus_watchos_package_name(void);
 extern void package_info_plus_watchos_version(void);
 extern void package_info_plus_watchos_build_number(void);
+extern void package_info_plus_watchos_installer_store(void);
+extern void package_info_plus_watchos_install_time(void);
+extern void package_info_plus_watchos_update_time(void);
 
 @implementation GeneratedPluginRegistrant
 
@@ -29,6 +32,9 @@ extern void package_info_plus_watchos_build_number(void);
     (const void *)&package_info_plus_watchos_package_name,
     (const void *)&package_info_plus_watchos_version,
     (const void *)&package_info_plus_watchos_build_number,
+    (const void *)&package_info_plus_watchos_installer_store,
+    (const void *)&package_info_plus_watchos_install_time,
+    (const void *)&package_info_plus_watchos_update_time,
   };
   for (unsigned long _i = 0;
        _i < sizeof(_flutterWatchosFfiForcedReferences) / sizeof(_flutterWatchosFfiForcedReferences[0]);

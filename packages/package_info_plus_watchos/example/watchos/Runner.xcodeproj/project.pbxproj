@@ -299,7 +299,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Flutter";
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.example.packageInfoPlusExample.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.flutter.plugins.packageInfoExample";
 				PRODUCT_NAME = Runner;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -346,7 +346,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Flutter";
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.example.packageInfoPlusExample.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.flutter.plugins.packageInfoExample";
 				PRODUCT_NAME = Runner;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;

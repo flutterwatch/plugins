@@ -36,3 +36,6 @@ flutter:
           - package_info_plus_watchos_package_name
           - package_info_plus_watchos_version
           - package_info_plus_watchos_build_number
+          - package_info_plus_watchos_installer_store
+          - package_info_plus_watchos_install_time
+          - package_info_plus_watchos_update_time

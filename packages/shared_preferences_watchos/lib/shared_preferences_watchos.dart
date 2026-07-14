@@ -93,9 +93,15 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
     SharedPreferencesAsyncPlatform.instance = SharedPreferencesAsyncWatchos();
   }
 
+  // A hard cast (not `value is T ? value : null`) so that reading a key with
+  // the wrong-typed getter throws a `TypeError`, matching every other
+  // shared_preferences platform implementation. An absent key stays null.
   T? _typed<T>(String key) {
     final Object? value = _store.read(key);
-    return value is T ? value : null;
+    if (value == null) {
+      return null;
+    }
+    return value as T;
   }
 
   @override
@@ -141,8 +147,12 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
   @override
   Future<List<String>?> getStringList(String key, SharedPreferencesOptions options) async {
     final Object? value = _store.read(key);
-    // JSON restores a stored list as List<dynamic>; re-type it.
-    return value is List ? value.cast<String>() : null;
+    if (value == null) {
+      return null;
+    }
+    // A hard cast so a wrong-typed read throws `TypeError`; JSON restores a
+    // stored list as `List<dynamic>`, so re-type it to `List<String>`.
+    return (value as List).cast<String>();
   }
 
   @override

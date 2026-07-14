@@ -81,28 +81,38 @@ run. It is the quickest way to see the whole set working together.
 
 ## Examples & tests
 
-Each package has an `example/` app ported from the **upstream plugin's own
-example** (via `flutter-watchos plugin port --include-example`) with a watchOS
-runner, plus a host-side unit test. The example imports only the app-facing
-plugin — the `*_watchos` implementation registers federatedly with no client
-code changes — and is verified on the watch simulator:
+Each package ships the **upstream plugin's own example** (its demo `lib/` and
+its official `integration_test/`) ported verbatim by `flutter-watchos plugin
+port --include-example` with a watchOS runner on top, plus a host-side unit
+test. The examples and tests are **unmodified** — the example imports only the
+app-facing plugin, and the `*_watchos` implementation registers federatedly
+with no client code changes. Each is verified on the watch simulator:
 
 ```sh
 cd packages/<plugin>_watchos/example
 flutter-watchos drive \
   --driver=test_driver/integration_test.dart \
-  --target=integration_test/<plugin>_test.dart -d <watch-sim>
+  --target=integration_test/<test-file> -d <watch-sim>
 ```
 
-Where the upstream plugin's **official** `integration_test/` is watch-runnable
-it is kept verbatim (path_provider, network_info_plus, sensors_plus,
-local_auth, device_info_plus, battery_plus, connectivity_plus — some cases
-self-skip on non-Android, as upstream intends). Where the official test is
-coupled to a mobile-only UI, exact example-bundle values, dedicated hardware,
-or advanced async semantics not present on the watch (flutter_secure_storage,
-package_info_plus, shared_preferences, geolocator), the package ships the real
-upstream example demo plus a watch-appropriate integration test, with the
-reason noted at the top of the test file.
+The official integration tests **pass on the watch** for path_provider,
+network_info_plus, sensors_plus, local_auth, device_info_plus, battery_plus,
+connectivity_plus, shared_preferences (64/64), and package_info_plus's
+plugin-level `fromPlatform` case — some cases self-skip on non-Android, as
+upstream intends. Two upstream tests are written as **phone-UI sweeps** that
+pump the demo's scrolling list and find widgets that a ~200 px watch screen
+never materialises: package_info_plus's `example` test and
+flutter_secure_storage's page-object `app_test`. Those fail on the watch for
+viewport reasons, not plugin defects — the FFI implementations are proven by
+the plugin-level cases, the host unit tests, and the unified demo. geolocator's
+upstream example has **no** `integration_test/` (its Baseflow demo is manual),
+so that package is verified by building and running the example on the sim.
+
+Where an official test surfaced a genuine behavioural gap, the fix went into the
+**implementation, not the test** — e.g. `shared_preferences_watchos` now throws
+`TypeError` on a wrong-typed read (matching every other platform), and
+`package_info_plus_watchos` now returns `installerStore` / `installTime` /
+`updateTime` natively.
 
 ## Usage
 

@@ -50,9 +50,10 @@ authorization is when-in-use.
 | Apple Watch (`watchos`) | yes |
 | Watch simulator (`watchsimulator`) | query methods verified; live fixes need a simulated location |
 
-The non-interactive methods are verified on the simulator
-(`example/integration_test`); the interactive permission prompt and live
-position updates are verified on a physical Apple Watch.
+The example is geolocator's own upstream Baseflow demo, ported verbatim. That
+demo ships no `integration_test/`, so this package is verified by building and
+running the example on the watch simulator; the interactive permission prompt
+and live position updates are verified on a physical Apple Watch.
 
 ## License
 
