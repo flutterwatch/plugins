@@ -123,21 +123,42 @@ nm build/watchos/Debug-watchsimulator/Runner.app/Runner | grep <name>_watchos_
 Every `ffiSymbols` entry must appear (type `T`). If one is missing, it was
 dead-stripped — check the pubspec list and the `used` attribute.
 
-Finally, run the real native code end-to-end on the simulator. Add an
-`example/integration_test/<name>_test.dart` (using
-`IntegrationTestWidgetsFlutterBinding`) plus an
-`example/test_driver/integration_test.dart` that calls `integrationDriver()`,
-then:
+Finally, run the real native code end-to-end on the simulator. Ship the
+**upstream plugin's own example and its official `integration_test` verbatim** —
+`flutter-watchos plugin port --include-example` ports both, unmodified, with a
+watchOS runner on top. Do **not** hand-write a substitute test: if an official
+test surfaces a real behavioural gap, fix the **implementation**, not the test.
+Then:
 
 ```sh
 cd example
 flutter-watchos drive \
   --driver=test_driver/integration_test.dart \
-  --target=integration_test/<name>_test.dart -d <watch-sim-id>
+  --target=integration_test/<official-test-file> -d <watch-sim-id>
 ```
 
 (The "integration_test plugin was not detected" warning is benign — results
 are still captured over the VM service.)
+
+### Verification-status standard
+
+Every `PORTING_REPORT.md` opens with a `## Verification status` table so the
+whole repo is graded the same way:
+
+| Aspect | What it records |
+|---|---|
+| Implementation | `✅ Working (<backend> FFI)` once the scaffold is finished |
+| watchOS capability | `Full`, or `Partial — <what is dropped and why>` |
+| Host unit tests | `✅ pass` (FFI bindings faked) |
+| Upstream integration test | see marking below |
+| Unified demo | `✅ included` in `demo/plugins_demo` |
+
+Marking: **✅** full / passes verbatim · **◐** partial — an official test that is
+viewport- or mobile-UI-bound and can't be driven on a ~200 px watch screen (give
+the reason; plugin correctness is still covered by host tests + demo) · **○** no
+upstream integration test exists (verify by build + run) · **✗** unsupported on
+watchOS. Keep the table honest — a red official test stays red and is marked
+`◐`, never quietly skipped or replaced.
 
 ## 4. Versioning & publishing
 

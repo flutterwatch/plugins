@@ -1,5 +1,17 @@
 # connectivity_plus_watchos — porting report
 
+## Verification status
+
+| Aspect | Result |
+|---|---|
+| Implementation | ✅ Working (FFI) |
+| watchOS capability | Full |
+| Host unit tests (`flutter-watchos test`) | ✅ pass |
+| Upstream integration test | ✅ passes verbatim |
+| Unified demo (`demo/plugins_demo`) | ✅ included |
+
+Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
+
 Scaffolded by `flutter-watchos plugin port --from-pub connectivity_plus`
 (Swift, `NWPathMonitor`-based). The upstream Apple implementation already
 uses the Network framework, so no APIs were flagged — but it is a

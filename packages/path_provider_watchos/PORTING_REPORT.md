@@ -1,5 +1,17 @@
 # path_provider_watchos — porting report
 
+## Verification status
+
+| Aspect | Result |
+|---|---|
+| Implementation | ✅ Working (FFI) |
+| watchOS capability | Partial — no Downloads / Android external dirs (throw `UnimplementedError`) |
+| Host unit tests (`flutter-watchos test`) | ✅ pass |
+| Upstream integration test | ✅ passes verbatim |
+| Unified demo (`demo/plugins_demo`) | ✅ included |
+
+Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
+
 Source `path_provider_foundation` is a dart:ffi / native-assets plugin, so
 `flutter-watchos plugin port` generated a federated skeleton; this package
 is that skeleton **finished by hand** as a working FFI implementation.

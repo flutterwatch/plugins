@@ -1,5 +1,17 @@
 # battery_plus_watchos — porting report
 
+## Verification status
+
+| Aspect | Result |
+|---|---|
+| Implementation | ✅ Working (FFI) |
+| watchOS capability | Full (the Simulator reports no battery hardware) |
+| Host unit tests (`flutter-watchos test`) | ✅ pass |
+| Upstream integration test | ✅ passes verbatim |
+| Unified demo (`demo/plugins_demo`) | ✅ included |
+
+Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
+
 Scaffolded by `flutter-watchos plugin port --from-pub battery_plus`. The
 porter flagged four `UIDevice` regions (battery level/state and the battery
 notifications) as disabled on watchOS — `UIDevice` does not exist on the

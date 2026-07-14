@@ -1,5 +1,17 @@
 # shared_preferences_watchos — porting report
 
+## Verification status
+
+| Aspect | Result |
+|---|---|
+| Implementation | ✅ Working (FFI) |
+| watchOS capability | Full |
+| Host unit tests (`flutter-watchos test`) | ✅ pass |
+| Upstream integration test | ✅ passes verbatim (64/64) |
+| Unified demo (`demo/plugins_demo`) | ✅ included |
+
+Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
+
 Scaffolded by `flutter-watchos plugin port --from-pub shared_preferences_foundation`
 (Swift + Pigeon method-channel plugin), then rewritten by hand as an FFI
 implementation — method-channel plugins are not supported on watchOS.

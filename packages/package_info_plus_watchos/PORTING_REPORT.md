@@ -1,5 +1,17 @@
 # package_info_plus_watchos — porting report
 
+## Verification status
+
+| Aspect | Result |
+|---|---|
+| Implementation | ✅ Working (FFI) |
+| watchOS capability | Full |
+| Host unit tests (`flutter-watchos test`) | ✅ pass |
+| Upstream integration test | ◐ partial — official `fromPlatform` passes; the `example` widget test is a phone-UI sweep the ~200px watch screen can't materialise |
+| Unified demo (`demo/plugins_demo`) | ✅ included |
+
+Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
+
 Scaffolded by `flutter-watchos plugin port --from-pub package_info_plus`
 (Objective-C method-channel plugin), then rewritten by hand as an FFI
 implementation — method-channel plugins are not supported on watchOS.
