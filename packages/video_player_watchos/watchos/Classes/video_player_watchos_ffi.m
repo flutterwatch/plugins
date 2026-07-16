@@ -11,6 +11,24 @@
 
 #define VPW_EXPORT __attribute__((visibility("default"))) __attribute__((used))
 
+/// Runs `block` on the main thread (inline when already there).
+///
+/// Every AVPlayer MUTATION must go through this: the FFI entry points are
+/// called on the Flutter UI thread, and once the AVKit `VideoPlayer` view is
+/// attached to the player, mutating it opens CATransactions on the calling
+/// thread — whose run-loop flush then performs UIKit layout off the main
+/// thread and aborts in _AssertAutoLayoutOnAllowedThreadsOnly. Reads
+/// (state snapshot, currentTime) stay lock-guarded and thread-safe.
+/// dispatch_async (never sync) also makes the main queue the serial order
+/// for create → control → dispose.
+static void VPWOnMain(dispatch_block_t block) {
+  if (NSThread.isMainThread) {
+    block();
+  } else {
+    dispatch_async(dispatch_get_main_queue(), block);
+  }
+}
+
 #pragma mark - Player wrapper
 
 /// Wraps one AVPlayer with the KVO/notification observers that keep a
@@ -84,8 +102,13 @@
   } @catch (NSException *e) {
     // Observers already removed — nothing to do.
   }
-  [_player pause];
-  [_player replaceCurrentItemWithPlayerItem:nil];
+  // Player mutations on main; captures the player (not self) so this is
+  // safe from dealloc too.
+  AVPlayer *player = _player;
+  VPWOnMain(^{
+    [player pause];
+    [player replaceCurrentItemWithPlayerItem:nil];
+  });
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
@@ -137,16 +160,24 @@
 
 - (void)itemDidPlayToEnd:(NSNotification *)note {
   if (_looping) {
+    // The notification arrives on the posting thread; the seek + resume are
+    // player mutations, so hop to main.
     __weak VPWPlayer *weakSelf = self;
-    [_player seekToTime:kCMTimeZero
-        toleranceBefore:kCMTimeZero
-         toleranceAfter:kCMTimeZero
-      completionHandler:^(BOOL finished) {
-        VPWPlayer *strongSelf = weakSelf;
-        if (strongSelf != nil) {
-          [strongSelf play];
-        }
-      }];
+    VPWOnMain(^{
+      VPWPlayer *strongSelf = weakSelf;
+      if (strongSelf == nil) {
+        return;
+      }
+      [strongSelf.player seekToTime:kCMTimeZero
+                    toleranceBefore:kCMTimeZero
+                     toleranceAfter:kCMTimeZero
+                  completionHandler:^(BOOL finished) {
+                    VPWPlayer *inner = weakSelf;
+                    if (inner != nil) {
+                      [inner play];
+                    }
+                  }];
+    });
     return;
   }
   os_unfair_lock_lock(&_lock);
@@ -172,28 +203,41 @@
 }
 
 - (void)play {
-  // setRate: both starts playback and applies the requested speed.
-  [_player setRate:(float)_rate];
+  VPWOnMain(^{
+    // setRate: both starts playback and applies the requested speed.
+    [self.player setRate:(float)self->_rate];
+  });
 }
 
 - (void)pause {
-  [_player pause];
+  VPWOnMain(^{
+    [self.player pause];
+  });
 }
 
 - (void)seekToMs:(int64_t)ms {
+  // The pending marker is set synchronously so a position read immediately
+  // after seeking already reports the target; only the AVPlayer mutation
+  // hops to main.
   os_unfair_lock_lock(&_lock);
   _pendingSeekMs = ms;
   os_unfair_lock_unlock(&_lock);
   __weak VPWPlayer *weakSelf = self;
-  [_player seekToTime:CMTimeMakeWithSeconds((double)ms / 1000.0, NSEC_PER_SEC)
-      toleranceBefore:kCMTimeZero
-       toleranceAfter:kCMTimeZero
-    completionHandler:^(BOOL finished) {
-      VPWPlayer *strongSelf = weakSelf;
-      if (strongSelf != nil) {
-        [strongSelf clearPendingSeek:ms];
-      }
-    }];
+  VPWOnMain(^{
+    VPWPlayer *strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return;
+    }
+    [strongSelf.player seekToTime:CMTimeMakeWithSeconds((double)ms / 1000.0, NSEC_PER_SEC)
+                  toleranceBefore:kCMTimeZero
+                   toleranceAfter:kCMTimeZero
+                completionHandler:^(BOOL finished) {
+                  VPWPlayer *inner = weakSelf;
+                  if (inner != nil) {
+                    [inner clearPendingSeek:ms];
+                  }
+                }];
+  });
 }
 
 - (void)clearPendingSeek:(int64_t)ms {
@@ -206,10 +250,12 @@
 
 - (void)setSpeed:(double)speed {
   _rate = speed;
-  // Match upstream: apply immediately when playing, remember otherwise.
-  if (_player.timeControlStatus != AVPlayerTimeControlStatusPaused) {
-    [_player setRate:(float)speed];
-  }
+  VPWOnMain(^{
+    // Match upstream: apply immediately when playing, remember otherwise.
+    if (self.player.timeControlStatus != AVPlayerTimeControlStatusPaused) {
+      [self.player setRate:(float)speed];
+    }
+  });
 }
 
 - (void)setLooping:(bool)looping {
@@ -264,53 +310,82 @@ int64_t video_player_watchos_create(const char *uri, int32_t source_type) {
   if (url == nil) {
     return -1;
   }
-  VPWPlayer *player = [[VPWPlayer alloc] initWithURL:url];
+  // Allocate the id synchronously; construct on the main thread (AVKit's
+  // view will drive this player from main, and the serial main queue also
+  // orders creation before any later control/dispose call, which all hop
+  // to main too). Reads before construction completes simply report
+  // "no state yet".
   os_unfair_lock_lock(&g_registry_lock);
   if (g_players == nil) {
     g_players = [NSMutableDictionary dictionary];
   }
   int64_t player_id = g_next_id++;
-  g_players[@(player_id)] = player;
   os_unfair_lock_unlock(&g_registry_lock);
+  VPWOnMain(^{
+    VPWPlayer *player = [[VPWPlayer alloc] initWithURL:url];
+    os_unfair_lock_lock(&g_registry_lock);
+    g_players[@(player_id)] = player;
+    os_unfair_lock_unlock(&g_registry_lock);
+  });
   return player_id;
 }
 
+// Control calls hop to main with the lookup INSIDE the block: the serial
+// main queue guarantees they run after the (also main-queued) construction,
+// so a control call racing creation (e.g. setLooping before initialize
+// completes) is never lost.
+
 VPW_EXPORT
 void video_player_watchos_dispose(int64_t player_id) {
-  os_unfair_lock_lock(&g_registry_lock);
-  VPWPlayer *player = g_players[@(player_id)];
-  [g_players removeObjectForKey:@(player_id)];
-  os_unfair_lock_unlock(&g_registry_lock);
-  [player teardown];
+  VPWOnMain(^{
+    os_unfair_lock_lock(&g_registry_lock);
+    VPWPlayer *player = g_players[@(player_id)];
+    [g_players removeObjectForKey:@(player_id)];
+    os_unfair_lock_unlock(&g_registry_lock);
+    [player teardown];
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_play(int64_t player_id) {
-  [VPWGet(player_id) play];
+  VPWOnMain(^{
+    [VPWGet(player_id) play];
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_pause(int64_t player_id) {
-  [VPWGet(player_id) pause];
+  VPWOnMain(^{
+    [VPWGet(player_id) pause];
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_set_volume(int64_t player_id, double volume) {
-  VPWGet(player_id).player.volume = (float)MAX(0.0, MIN(1.0, volume));
+  VPWOnMain(^{
+    VPWGet(player_id).player.volume = (float)MAX(0.0, MIN(1.0, volume));
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_set_looping(int64_t player_id, bool looping) {
-  [VPWGet(player_id) setLooping:looping];
+  VPWOnMain(^{
+    [VPWGet(player_id) setLooping:looping];
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_set_speed(int64_t player_id, double speed) {
-  [VPWGet(player_id) setSpeed:speed];
+  VPWOnMain(^{
+    [VPWGet(player_id) setSpeed:speed];
+  });
 }
 
 VPW_EXPORT
 void video_player_watchos_seek(int64_t player_id, int64_t position_ms) {
+  // Synchronous when the player already exists so the pending-seek marker
+  // is visible to an immediate position read (seeks only happen after
+  // initialize, so the player is always constructed by now).
   [VPWGet(player_id) seekToMs:position_ms];
 }
 
