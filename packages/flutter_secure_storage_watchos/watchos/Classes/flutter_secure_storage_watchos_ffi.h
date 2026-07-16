@@ -34,29 +34,34 @@ int flutter_secure_storage_watchos_write(const char* key, const char* value,
 // `flutter_secure_storage_watchos_free`, or NULL if the key is absent.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 char* flutter_secure_storage_watchos_read(const char* key, const char* service,
-                                          const char* access_group);
+                                          const char* access_group,
+                                          bool synchronizable);
 
 // Returns 1 if the key exists, 0 otherwise.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 int flutter_secure_storage_watchos_contains(const char* key,
                                             const char* service,
-                                            const char* access_group);
+                                            const char* access_group,
+                                            bool synchronizable);
 
 // Deletes one key. Returns 0 on success or if the key was already absent.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 int flutter_secure_storage_watchos_delete(const char* key, const char* service,
-                                          const char* access_group);
+                                          const char* access_group,
+                                          bool synchronizable);
 
 // Returns a malloc'd JSON object string of every key/value pair for the
 // service (the caller frees it), or NULL on error. "{}" when empty.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 char* flutter_secure_storage_watchos_read_all(const char* service,
-                                              const char* access_group);
+                                              const char* access_group,
+                                              bool synchronizable);
 
 // Deletes every item for the service. Returns 0 on success.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 int flutter_secure_storage_watchos_delete_all(const char* service,
-                                              const char* access_group);
+                                              const char* access_group,
+                                              bool synchronizable);
 
 // Releases a pointer returned by read / read_all.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT

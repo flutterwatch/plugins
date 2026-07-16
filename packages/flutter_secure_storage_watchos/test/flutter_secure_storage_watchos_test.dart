@@ -27,25 +27,29 @@ class _FakeBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  String? read(String key, String? service, String? accessGroup) =>
+  String? read(String key, String? service, String? accessGroup,
+          bool synchronizable) =>
       _bucket(service)[key];
 
   @override
-  bool contains(String key, String? service, String? accessGroup) =>
+  bool contains(String key, String? service, String? accessGroup,
+          bool synchronizable) =>
       _bucket(service).containsKey(key);
 
   @override
-  int delete(String key, String? service, String? accessGroup) {
+  int delete(String key, String? service, String? accessGroup,
+      bool synchronizable) {
     _bucket(service).remove(key);
     return 0;
   }
 
   @override
-  Map<String, String> readAll(String? service, String? accessGroup) =>
+  Map<String, String> readAll(
+          String? service, String? accessGroup, bool synchronizable) =>
       Map<String, String>.from(_bucket(service));
 
   @override
-  int deleteAll(String? service, String? accessGroup) {
+  int deleteAll(String? service, String? accessGroup, bool synchronizable) {
     _bucket(service).clear();
     return 0;
   }

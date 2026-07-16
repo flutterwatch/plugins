@@ -38,9 +38,14 @@ static CFStringRef _accessible(const char* accessibility) {
     return kSecAttrAccessibleWhenUnlocked;
 }
 
-// Base query shared by every operation: class + service (+ access group).
+// Base query shared by every operation: class + service (+ access group)
+// + the synchronizable attribute. The attribute must be part of EVERY query
+// — a Keychain query without it matches non-synchronizable items only, so
+// items written with synchronizable=true would be invisible to reads.
+// Mirrors the upstream darwin plugin's base query.
 static NSMutableDictionary* _baseQuery(const char* service,
-                                       const char* access_group) {
+                                       const char* access_group,
+                                       bool synchronizable) {
     NSMutableDictionary* query = [NSMutableDictionary dictionary];
     query[(__bridge id)kSecClass] = (__bridge id)kSecClassGenericPassword;
     NSString* svc = _nonempty(service)
@@ -50,6 +55,8 @@ static NSMutableDictionary* _baseQuery(const char* service,
     if (_nonempty(access_group)) {
         query[(__bridge id)kSecAttrAccessGroup] = _nsstr(access_group);
     }
+    query[(__bridge id)kSecAttrSynchronizable] =
+        (__bridge id)(synchronizable ? kCFBooleanTrue : kCFBooleanFalse);
     return query;
 }
 
@@ -76,7 +83,7 @@ int flutter_secure_storage_watchos_write(const char* key, const char* value,
         NSData* data =
             [_nsstr(value) dataUsingEncoding:NSUTF8StringEncoding] ?: [NSData data];
 
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         query[(__bridge id)kSecAttrAccount] = _nsstr(key);
 
         // Update if present, otherwise add — matching the darwin plugin, so a
@@ -94,9 +101,6 @@ int flutter_secure_storage_watchos_write(const char* key, const char* value,
         } else if (status == errSecItemNotFound) {
             NSMutableDictionary* add = [query mutableCopy];
             [add addEntriesFromDictionary:attrs];
-            if (synchronizable) {
-                add[(__bridge id)kSecAttrSynchronizable] = (__bridge id)kCFBooleanTrue;
-            }
             status = SecItemAdd((__bridge CFDictionaryRef)add, NULL);
         }
         return status == errSecSuccess ? 0 : (int)status;
@@ -104,12 +108,13 @@ int flutter_secure_storage_watchos_write(const char* key, const char* value,
 }
 
 char* flutter_secure_storage_watchos_read(const char* key, const char* service,
-                                          const char* access_group) {
+                                          const char* access_group,
+                                          bool synchronizable) {
     @autoreleasepool {
         if (!_nonempty(key)) {
             return NULL;
         }
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         query[(__bridge id)kSecAttrAccount] = _nsstr(key);
         query[(__bridge id)kSecReturnData] = (__bridge id)kCFBooleanTrue;
         query[(__bridge id)kSecMatchLimit] = (__bridge id)kSecMatchLimitOne;
@@ -129,12 +134,13 @@ char* flutter_secure_storage_watchos_read(const char* key, const char* service,
 
 int flutter_secure_storage_watchos_contains(const char* key,
                                             const char* service,
-                                            const char* access_group) {
+                                            const char* access_group,
+                                            bool synchronizable) {
     @autoreleasepool {
         if (!_nonempty(key)) {
             return 0;
         }
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         query[(__bridge id)kSecAttrAccount] = _nsstr(key);
         OSStatus status =
             SecItemCopyMatching((__bridge CFDictionaryRef)query, NULL);
@@ -143,12 +149,13 @@ int flutter_secure_storage_watchos_contains(const char* key,
 }
 
 int flutter_secure_storage_watchos_delete(const char* key, const char* service,
-                                          const char* access_group) {
+                                          const char* access_group,
+                                          bool synchronizable) {
     @autoreleasepool {
         if (!_nonempty(key)) {
             return -1;
         }
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         query[(__bridge id)kSecAttrAccount] = _nsstr(key);
         OSStatus status = SecItemDelete((__bridge CFDictionaryRef)query);
         if (status == errSecSuccess || status == errSecItemNotFound) {
@@ -159,9 +166,10 @@ int flutter_secure_storage_watchos_delete(const char* key, const char* service,
 }
 
 char* flutter_secure_storage_watchos_read_all(const char* service,
-                                              const char* access_group) {
+                                              const char* access_group,
+                                              bool synchronizable) {
     @autoreleasepool {
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         query[(__bridge id)kSecReturnData] = (__bridge id)kCFBooleanTrue;
         query[(__bridge id)kSecReturnAttributes] = (__bridge id)kCFBooleanTrue;
         query[(__bridge id)kSecMatchLimit] = (__bridge id)kSecMatchLimitAll;
@@ -203,9 +211,10 @@ char* flutter_secure_storage_watchos_read_all(const char* service,
 }
 
 int flutter_secure_storage_watchos_delete_all(const char* service,
-                                              const char* access_group) {
+                                              const char* access_group,
+                                              bool synchronizable) {
     @autoreleasepool {
-        NSMutableDictionary* query = _baseQuery(service, access_group);
+        NSMutableDictionary* query = _baseQuery(service, access_group, synchronizable);
         OSStatus status = SecItemDelete((__bridge CFDictionaryRef)query);
         if (status == errSecSuccess || status == errSecItemNotFound) {
             return 0;

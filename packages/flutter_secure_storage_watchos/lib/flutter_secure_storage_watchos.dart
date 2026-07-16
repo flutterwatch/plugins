@@ -26,19 +26,23 @@ abstract class FlutterSecureStorageWatchosBackend {
       String? accessibility, bool synchronizable);
 
   /// Reads [key], or null if absent.
-  String? read(String key, String? service, String? accessGroup);
+  String? read(
+      String key, String? service, String? accessGroup, bool synchronizable);
 
   /// Whether [key] exists.
-  bool contains(String key, String? service, String? accessGroup);
+  bool contains(
+      String key, String? service, String? accessGroup, bool synchronizable);
 
   /// Deletes [key]; returns 0 on success (or if already absent).
-  int delete(String key, String? service, String? accessGroup);
+  int delete(
+      String key, String? service, String? accessGroup, bool synchronizable);
 
   /// Every key/value pair for the service.
-  Map<String, String> readAll(String? service, String? accessGroup);
+  Map<String, String> readAll(
+      String? service, String? accessGroup, bool synchronizable);
 
   /// Deletes every item for the service; returns 0 on success.
-  int deleteAll(String? service, String? accessGroup);
+  int deleteAll(String? service, String? accessGroup, bool synchronizable);
 }
 
 /// watchOS implementation of [FlutterSecureStoragePlatform].
@@ -59,6 +63,11 @@ base class FlutterSecureStorageWatchos extends FlutterSecureStoragePlatform {
 
   String? _service(Map<String, String> options) => options['accountName'];
   String? _group(Map<String, String> options) => options['groupId'];
+
+  // The synchronizable attribute is part of every Keychain query, not just
+  // writes — a query without it matches non-synchronizable items only, so
+  // reads would miss items written with synchronizable=true.
+  bool _sync(Map<String, String> options) => options['synchronizable'] == 'true';
 
   @override
   Future<void> write({
@@ -84,21 +93,22 @@ base class FlutterSecureStorageWatchos extends FlutterSecureStoragePlatform {
     required String key,
     required Map<String, String> options,
   }) async =>
-      _b.read(key, _service(options), _group(options));
+      _b.read(key, _service(options), _group(options), _sync(options));
 
   @override
   Future<bool> containsKey({
     required String key,
     required Map<String, String> options,
   }) async =>
-      _b.contains(key, _service(options), _group(options));
+      _b.contains(key, _service(options), _group(options), _sync(options));
 
   @override
   Future<void> delete({
     required String key,
     required Map<String, String> options,
   }) async {
-    final int status = _b.delete(key, _service(options), _group(options));
+    final int status =
+        _b.delete(key, _service(options), _group(options), _sync(options));
     if (status != 0) {
       throw Exception('Keychain delete failed (OSStatus $status)');
     }
@@ -108,13 +118,14 @@ base class FlutterSecureStorageWatchos extends FlutterSecureStoragePlatform {
   Future<Map<String, String>> readAll({
     required Map<String, String> options,
   }) async =>
-      _b.readAll(_service(options), _group(options));
+      _b.readAll(_service(options), _group(options), _sync(options));
 
   @override
   Future<void> deleteAll({
     required Map<String, String> options,
   }) async {
-    final int status = _b.deleteAll(_service(options), _group(options));
+    final int status =
+        _b.deleteAll(_service(options), _group(options), _sync(options));
     if (status != 0) {
       throw Exception('Keychain deleteAll failed (OSStatus $status)');
     }
@@ -126,16 +137,17 @@ typedef _WriteNative = Int32 Function(Pointer<Utf8>, Pointer<Utf8>,
 typedef _WriteDart = int Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
     Pointer<Utf8>, Pointer<Utf8>, bool);
 typedef _Read3Native = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Bool);
 typedef _Read3Dart = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, bool);
 typedef _Int3Native = Int32 Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef _Int3Dart = int Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef _Read2Native = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef _Read2Dart = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef _Int2Native = Int32 Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef _Int2Dart = int Function(Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Bool);
+typedef _Int3Dart = int Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, bool);
+typedef _Read2Native = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Bool);
+typedef _Read2Dart = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, bool);
+typedef _Int2Native = Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool);
+typedef _Int2Dart = int Function(Pointer<Utf8>, Pointer<Utf8>, bool);
 typedef _FreeNative = Void Function(Pointer<Utf8>);
 typedef _FreeDart = void Function(Pointer<Utf8>);
 
@@ -197,10 +209,11 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  String? read(String key, String? service, String? accessGroup) {
+  String? read(
+      String key, String? service, String? accessGroup, bool synchronizable) {
     final Pointer<Utf8> k = _c(key), s = _c(service), g = _c(accessGroup);
     try {
-      return _take(_read(k, s, g));
+      return _take(_read(k, s, g, synchronizable));
     } finally {
       malloc
         ..free(k)
@@ -210,10 +223,11 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  bool contains(String key, String? service, String? accessGroup) {
+  bool contains(
+      String key, String? service, String? accessGroup, bool synchronizable) {
     final Pointer<Utf8> k = _c(key), s = _c(service), g = _c(accessGroup);
     try {
-      return _contains(k, s, g) == 1;
+      return _contains(k, s, g, synchronizable) == 1;
     } finally {
       malloc
         ..free(k)
@@ -223,10 +237,11 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  int delete(String key, String? service, String? accessGroup) {
+  int delete(
+      String key, String? service, String? accessGroup, bool synchronizable) {
     final Pointer<Utf8> k = _c(key), s = _c(service), g = _c(accessGroup);
     try {
-      return _delete(k, s, g);
+      return _delete(k, s, g, synchronizable);
     } finally {
       malloc
         ..free(k)
@@ -236,10 +251,11 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  Map<String, String> readAll(String? service, String? accessGroup) {
+  Map<String, String> readAll(
+      String? service, String? accessGroup, bool synchronizable) {
     final Pointer<Utf8> s = _c(service), g = _c(accessGroup);
     try {
-      final String? json = _take(_readAll(s, g));
+      final String? json = _take(_readAll(s, g, synchronizable));
       if (json == null || json.isEmpty) {
         return <String, String>{};
       }
@@ -255,10 +271,10 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   }
 
   @override
-  int deleteAll(String? service, String? accessGroup) {
+  int deleteAll(String? service, String? accessGroup, bool synchronizable) {
     final Pointer<Utf8> s = _c(service), g = _c(accessGroup);
     try {
-      return _deleteAll(s, g);
+      return _deleteAll(s, g, synchronizable);
     } finally {
       malloc
         ..free(s)
