@@ -7,7 +7,7 @@
 | Implementation | ✅ Working (Keychain FFI) |
 | watchOS capability | Partial — baseline Keychain; no Secure Enclave / biometric-gated options |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
-| Upstream integration test | ◐ partial — official `app_test` is a phone-UI page-object sweep (viewport); Keychain round-trip proven by host tests + demo |
+| Upstream integration test | ◐ 12 of 16 non-skipped cases pass verbatim (`FlutterWatchOSContentScale` = 0.4 + the synchronizable query fix); 3 blocked by `tester.enterText` not landing on the watch text-input path (under investigation, test-harness interplay — manual entry works); 1 needs Secure Enclave-gated storage (not implemented) |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.

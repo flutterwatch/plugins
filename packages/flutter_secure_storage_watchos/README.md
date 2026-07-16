@@ -48,6 +48,22 @@ whose widgets a ~200 px watch screen never materialises, so most of its cases
 cannot be driven on the watch — a viewport limitation of that test, not of the
 Keychain implementation.
 
+## Example on the watch screen
+
+The package ships the **upstream example app and its official integration
+test verbatim**. The upstream UI is phone-designed and does not fit a watch
+screen at native density, so the example's runner opts into the
+flutter-watchos content scale (`watchos/Runner/Info.plist`):
+
+```xml
+<key>FlutterWatchOSContentScale</key>
+<real>0.4</real>
+```
+
+This lays the app out in a proportionally larger logical space rendered
+smaller — same layout, smaller components — without touching the example's
+Dart code.
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

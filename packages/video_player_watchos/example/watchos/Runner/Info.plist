@@ -20,6 +20,8 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>FlutterWatchOSContentScale</key>
+	<real>0.60000002384185791</real>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKWatchOnly</key>
