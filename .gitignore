@@ -7,3 +7,6 @@ pubspec.lock
 .idea/
 *.iml
 .DS_Store
+
+# Local development overrides (path deps into the monorepo)
+pubspec_overrides.yaml

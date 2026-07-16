@@ -94,6 +94,42 @@ work with a **cache-and-poll** pattern instead of `NativeCallable`:
 See `sensors_plus_watchos` (streams), `geolocator_watchos` (permission +
 stream + one-shot) and `local_auth_watchos` (async poll) for worked examples.
 
+## 2c. Native SwiftUI platform views
+
+A plugin whose feature needs a native rendering surface (video, maps, …) can
+ship **SwiftUI view sources** alongside its FFI classes — no pubspec keys,
+discovery is by shape, like the `.m` sources:
+
+1. **Swift** — put the views under `watchos/Views/*.swift`. Expose a
+   C-callable registration entry point that registers a factory per view
+   type with the CLI-provided `FlutterWatchOSPluginViews` API:
+
+   ```swift
+   @_cdecl("<name>_register_views")
+   public func registerViews() {
+       FlutterWatchOSPluginViews.register("<view-type>") { params in
+           AnyView(MyNativeView(params: params))
+       }
+   }
+   ```
+
+   The factory runs on the main thread; `params` is the Dart widget's
+   `creationParams` string. To reach the plugin's own C functions from
+   Swift, declare them with `@_silgen_name` (see `video_player_watchos`).
+2. **Pubspec** — list the registration symbol under `ffiSymbols` so it
+   survives the static link.
+3. **Dart** — call the registration symbol from `registerWith()`, and embed
+   the view with `WatchPlatformView` from `package:flutter_watchos`
+   (≥ 0.1.0-beta.5). Pick the layer deliberately: `belowFlutter` when
+   Flutter content must draw over the view and gestures stay in Dart (what
+   `video_player_watchos` does), the default overlay when the native view
+   itself is interactive.
+
+Constraints to document in your README: the view rect is axis-aligned (no
+`Transform` of the native surface), and scene snapshots (golden tests)
+don't capture native pixels. On an app created by an older flutter-watchos
+the views simply don't render (`WatchPlatformView.isSupported`).
+
 Two watchOS gotchas these surfaced:
 
 - **Some iOS enum constants do not exist on watchOS** and cannot even be

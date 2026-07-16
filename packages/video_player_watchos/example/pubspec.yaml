@@ -1,0 +1,35 @@
+name: video_player_example
+description: Demonstrates how to use the video_player plugin.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  video_player: any
+  video_player_watchos:
+    path: ../
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  # The official integration test writes a downloaded file via path_provider.
+  path_provider: any
+  path_provider_watchos:
+    path: ../../path_provider_watchos
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/flutter-mark-square-64.png
+    - assets/Butterfly-209.mp4
+    - assets/Butterfly-209.webm
+    - assets/bumble_bee_captions.srt
+    - assets/bumble_bee_captions.vtt
+    - assets/Audio.mp3

@@ -1,0 +1,52 @@
+name: video_player_watchos
+description: "watchOS implementation of video_player (dart:ffi + a native platform view)."
+version: 0.0.1
+homepage: https://github.com/flutterwatch/plugins
+# License holder: The FlutterWatch Authors
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  flutter:
+    sdk: flutter
+  # WatchPlatformView: embeds the native AVKit video surface.
+  flutter_watchos: ^0.1.0-beta.5
+  video_player_platform_interface: ^6.7.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: video_player
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m — and the SwiftUI
+        # platform-view sources in watchos/Views/ — into a static archive
+        # force-loaded into the watch binary; Dart resolves the exported
+        # symbols via DynamicLibrary.process(). Method-channel plugins are
+        # not supported on watchOS, so this is the supported plugin model.
+        ffiPlugin: true
+        dartPluginClass: VideoPlayerWatchos
+        # C symbols exported for dart:ffi lookup. The CLI emits a forced
+        # reference for each so they survive the static link.
+        ffiSymbols:
+          - video_player_watchos_create
+          - video_player_watchos_dispose
+          - video_player_watchos_play
+          - video_player_watchos_pause
+          - video_player_watchos_set_volume
+          - video_player_watchos_set_looping
+          - video_player_watchos_set_speed
+          - video_player_watchos_seek
+          - video_player_watchos_position
+          - video_player_watchos_read_state
+          - video_player_watchos_error
+          - video_player_watchos_set_mix_with_others
+          - video_player_watchos_copy_player
+          - video_player_watchos_register_views

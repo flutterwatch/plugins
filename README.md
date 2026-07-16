@@ -14,8 +14,11 @@ watchOS plugins ship native code via **dart:ffi**: the package exports C
 symbols from `watchos/Classes/*.m`, declares them under
 `flutter.plugin.platforms.watchos.ffiSymbols`, and the `flutter-watchos`
 CLI statically links them into the watch binary where Dart resolves them
-with `DynamicLibrary.process()`. Method-channel plugins are **not
-supported** on watchOS — a package whose `watchos:` block declares only
+with `DynamicLibrary.process()`. A plugin can additionally ship **native
+SwiftUI platform views** (`watchos/Views/*.swift`) that the CLI compiles
+into the app and the plugin embeds with `WatchPlatformView`
+(package:flutter_watchos) — see `video_player_watchos`. Method-channel
+plugins are **not supported** on watchOS — a package whose `watchos:` block declares only
 `pluginClass:` will build but its channel calls throw
 `MissingPluginException` (the CLI warns about this at build time).
 
@@ -40,6 +43,7 @@ Because of that, packages here come in two states:
 | [`sensors_plus_watchos`](packages/sensors_plus_watchos) | [`sensors_plus`](https://pub.dev/packages/sensors_plus) | ✅ Working (CoreMotion) |
 | [`local_auth_watchos`](packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | ✅ Working (passcode) |
 | [`geolocator_watchos`](packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | ✅ Working (CoreLocation) |
+| [`video_player_watchos`](packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | ✅ Working (AVFoundation + platform view) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
@@ -57,8 +61,7 @@ published package would be misleading:
 | [`url_launcher`](https://pub.dev/packages/url_launcher) | No generic URL launching; only system `tel:`/`sms:` handoff exists |
 | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | No GoogleSignIn watchOS SDK; sign-in is delegated to the paired iPhone |
 | [`image_picker`](https://pub.dev/packages/image_picker) | No camera and no photo-picker UI on the watch |
-| [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | Platform views are not supported by the watch embedder |
-| [`video_player`](https://pub.dev/packages/video_player) | Renders through a platform view, which the watch embedder does not support |
+| [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | No Google Maps SDK for watchOS (an Apple MapKit backend would not honestly implement the interface) |
 
 Note the difference from tvOS: **CoreLocation, HealthKit, CoreMotion,
 StoreKit purchasing, and (watchOS 9+) LocalAuthentication all exist on the
