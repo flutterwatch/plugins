@@ -44,6 +44,7 @@ Because of that, packages here come in two states:
 | [`local_auth_watchos`](packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | ✅ Working (passcode) |
 | [`geolocator_watchos`](packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | ✅ Working (CoreLocation) |
 | [`video_player_watchos`](packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | ✅ Working (AVFoundation + platform view) |
+| [`audioplayers_watchos`](packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | ✅ Working (AVFoundation) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
@@ -71,7 +72,7 @@ watch** — plugins built on those are portable, not excluded.
 
 These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
-`sqflite` (SQLite), `audioplayers` / `flutter_tts` (AVFoundation),
+`sqflite` (SQLite), `flutter_tts` (AVFoundation),
 `wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
 general idle-timer disable), and the Firebase family.
 
