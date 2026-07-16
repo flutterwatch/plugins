@@ -130,6 +130,18 @@ Constraints to document in your README: the view rect is axis-aligned (no
 don't capture native pixels. On an app created by an older flutter-watchos
 the views simply don't render (`WatchPlatformView.isSupported`).
 
+**Threading rule:** FFI entry points run on the Flutter UI thread, not the
+main thread. Any native object your platform view displays (an `AVPlayer`
+attached to AVKit's `VideoPlayer`, a map camera, …) must only be **mutated
+on the main queue** — mutating it from the FFI thread opens CATransactions
+there, whose run-loop flush performs UIKit layout off-main and aborts in
+`_AssertAutoLayoutOnAllowedThreadsOnly`. Hop mutations with
+`dispatch_async(dispatch_get_main_queue(), …)` (the serial main queue also
+orders create → control → dispose); keep reads lock-guarded on the calling
+thread. See `video_player_watchos_ffi.m` (`VPWOnMain`) for the pattern —
+and note this class of bug can pass integration tests by timing luck, so
+soak the example interactively too.
+
 Two watchOS gotchas these surfaced:
 
 - **Some iOS enum constants do not exist on watchOS** and cannot even be
