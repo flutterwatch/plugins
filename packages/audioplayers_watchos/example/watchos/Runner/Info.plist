@@ -22,6 +22,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>FlutterWatchOSContentScale</key>
 	<real>0.5</real>
+	<!-- Upstream's example allows cleartext HTTP so the integration tests can
+	     use the bundled local server (USE_LOCAL_SERVER). -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKWatchOnly</key>

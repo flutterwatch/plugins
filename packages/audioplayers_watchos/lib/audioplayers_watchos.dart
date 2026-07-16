@@ -35,6 +35,8 @@ final class _NativeState extends Struct {
   external int seekCompleteCount;
   @Int32()
   external int completeCount;
+  @Int32()
+  external int hasItem;
   @Int64()
   external int durationMs;
   @Int64()
@@ -50,6 +52,7 @@ class WatchosAudioState {
     required this.preparedCount,
     required this.seekCompleteCount,
     required this.completeCount,
+    required this.hasItem,
     required this.durationMs,
     required this.positionMs,
   });
@@ -68,6 +71,10 @@ class WatchosAudioState {
 
   /// Increments each play-to-end (non-loop).
   final int completeCount;
+
+  /// Whether a source is loaded (false once released/unloaded — position
+  /// reads null then, matching upstream).
+  final bool hasItem;
 
   /// Media duration in ms; -1 unknown / indefinite (live).
   final int durationMs;
@@ -98,9 +105,10 @@ class AudioplayersWatchosBindings {
       .lookupFunction<Void Function(Pointer<Utf8>),
           void Function(Pointer<Utf8>)>('audioplayers_watchos_dispose');
 
-  late final int Function(Pointer<Utf8>, Pointer<Utf8>, bool) _setSourceUrl =
-      _lib!.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool),
-              int Function(Pointer<Utf8>, Pointer<Utf8>, bool)>(
+  late final int Function(Pointer<Utf8>, Pointer<Utf8>, bool, Pointer<Utf8>)
+      _setSourceUrl = _lib!.lookupFunction<
+              Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool, Pointer<Utf8>),
+              int Function(Pointer<Utf8>, Pointer<Utf8>, bool, Pointer<Utf8>)>(
           'audioplayers_watchos_set_source_url');
 
   late final int Function(Pointer<Utf8>, Pointer<Uint8>, int, Pointer<Utf8>)
@@ -109,38 +117,38 @@ class AudioplayersWatchosBindings {
               int Function(Pointer<Utf8>, Pointer<Uint8>, int, Pointer<Utf8>)>(
           'audioplayers_watchos_set_source_bytes');
 
-  late final void Function(Pointer<Utf8>) _resume = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_resume');
+  late final bool Function(Pointer<Utf8>) _resume = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>),
+          bool Function(Pointer<Utf8>)>('audioplayers_watchos_resume');
 
-  late final void Function(Pointer<Utf8>) _pause = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_pause');
+  late final bool Function(Pointer<Utf8>) _pause = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>),
+          bool Function(Pointer<Utf8>)>('audioplayers_watchos_pause');
 
-  late final void Function(Pointer<Utf8>) _stop = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_stop');
+  late final bool Function(Pointer<Utf8>) _stop = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>),
+          bool Function(Pointer<Utf8>)>('audioplayers_watchos_stop');
 
-  late final void Function(Pointer<Utf8>) _release = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_release');
+  late final bool Function(Pointer<Utf8>) _release = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>),
+          bool Function(Pointer<Utf8>)>('audioplayers_watchos_release');
 
-  late final void Function(Pointer<Utf8>, int) _seek = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>, Int64),
-          void Function(Pointer<Utf8>, int)>('audioplayers_watchos_seek');
+  late final bool Function(Pointer<Utf8>, int) _seek = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>, Int64),
+          bool Function(Pointer<Utf8>, int)>('audioplayers_watchos_seek');
 
-  late final void Function(Pointer<Utf8>, double) _setVolume = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>, Double),
-              void Function(Pointer<Utf8>, double)>(
+  late final bool Function(Pointer<Utf8>, double) _setVolume = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>, Double),
+              bool Function(Pointer<Utf8>, double)>(
           'audioplayers_watchos_set_volume');
 
-  late final void Function(Pointer<Utf8>, double) _setRate = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>, Double),
-          void Function(Pointer<Utf8>, double)>('audioplayers_watchos_set_rate');
+  late final bool Function(Pointer<Utf8>, double) _setRate = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>, Double),
+          bool Function(Pointer<Utf8>, double)>('audioplayers_watchos_set_rate');
 
-  late final void Function(Pointer<Utf8>, int) _setReleaseMode = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>, Int32),
-              void Function(Pointer<Utf8>, int)>(
+  late final bool Function(Pointer<Utf8>, int) _setReleaseMode = _lib!
+      .lookupFunction<Bool Function(Pointer<Utf8>, Int32),
+              bool Function(Pointer<Utf8>, int)>(
           'audioplayers_watchos_set_release_mode');
 
   late final bool Function(Pointer<Utf8>, Pointer<_NativeState>) _readState =
@@ -173,10 +181,16 @@ class AudioplayersWatchosBindings {
   /// Tears the native player down.
   void dispose(String playerId) => _withUtf8(playerId, _dispose);
 
-  /// Loads a URL/path source; returns 0 on success.
-  int setSourceUrl(String playerId, String url, bool isLocal) =>
-      _withUtf8(playerId,
-          (Pointer<Utf8> p) => _withUtf8(url, (Pointer<Utf8> u) => _setSourceUrl(p, u, isLocal)));
+  /// Loads a URL/path source; returns 0 on success. [mimeType] (may be
+  /// empty) overrides container sniffing for extension-less sources.
+  int setSourceUrl(String playerId, String url, bool isLocal,
+          String mimeType) =>
+      _withUtf8(
+          playerId,
+          (Pointer<Utf8> p) => _withUtf8(
+              url,
+              (Pointer<Utf8> u) => _withUtf8(mimeType,
+                  (Pointer<Utf8> m) => _setSourceUrl(p, u, isLocal, m))));
 
   /// Loads a bytes source (spooled to a temp file natively).
   int setSourceBytes(String playerId, Uint8List bytes, String extensionHint) {
@@ -193,31 +207,33 @@ class AudioplayersWatchosBindings {
   }
 
   /// Starts (or resumes) playback at the requested rate.
-  void resume(String playerId) => _withUtf8(playerId, _resume);
+  /// Returns false for an unknown/disposed player.
+  bool resume(String playerId) => _withUtf8(playerId, _resume);
 
   /// Pauses playback, keeping the position.
-  void pause(String playerId) => _withUtf8(playerId, _pause);
+  bool pause(String playerId) => _withUtf8(playerId, _pause);
 
-  /// Pauses and rewinds to zero, keeping the source.
-  void stop(String playerId) => _withUtf8(playerId, _stop);
+  /// Pauses and rewinds to zero, keeping the source (releases under
+  /// ReleaseMode.release, like upstream).
+  bool stop(String playerId) => _withUtf8(playerId, _stop);
 
   /// Unloads the source.
-  void release(String playerId) => _withUtf8(playerId, _release);
+  bool release(String playerId) => _withUtf8(playerId, _release);
 
   /// Seeks to [positionMs] (async natively; an edge counter reports landing).
-  void seek(String playerId, int positionMs) =>
+  bool seek(String playerId, int positionMs) =>
       _withUtf8(playerId, (Pointer<Utf8> p) => _seek(p, positionMs));
 
   /// Sets the volume (0.0–1.0).
-  void setVolume(String playerId, double volume) =>
+  bool setVolume(String playerId, double volume) =>
       _withUtf8(playerId, (Pointer<Utf8> p) => _setVolume(p, volume));
 
   /// Sets the playback rate.
-  void setRate(String playerId, double rate) =>
+  bool setRate(String playerId, double rate) =>
       _withUtf8(playerId, (Pointer<Utf8> p) => _setRate(p, rate));
 
   /// Sets the release mode (ReleaseMode.index).
-  void setReleaseMode(String playerId, int mode) =>
+  bool setReleaseMode(String playerId, int mode) =>
       _withUtf8(playerId, (Pointer<Utf8> p) => _setReleaseMode(p, mode));
 
   /// Copies the player's current state snapshot; null for unknown ids.
@@ -236,6 +252,7 @@ class AudioplayersWatchosBindings {
         preparedCount: s.preparedCount,
         seekCompleteCount: s.seekCompleteCount,
         completeCount: s.completeCount,
+        hasItem: s.hasItem != 0,
         durationMs: s.durationMs,
         positionMs: s.positionMs,
       );
@@ -253,6 +270,12 @@ class AudioplayersWatchosBindings {
       _withUtf8(category,
           (Pointer<Utf8> c) => _setAudioContext(c, mixWithOthers, duckOthers));
 }
+
+/// Upstream darwin's source-failure message — the official suites assert
+/// this prefix, so it is part of the platform contract.
+const String _kSetSourceFailure = 'Failed to set source. For troubleshooting,'
+    ' see https://github.com/bluefireteam/audioplayers/blob/main/'
+    'troubleshooting.md';
 
 /// Per-player poll loop state for [AudioplayersWatchos.getEventStream].
 class _PlayerEvents {
@@ -288,8 +311,14 @@ class _PlayerEvents {
     if (state.status == 2) {
       if (!_errorSent) {
         _errorSent = true;
+        // Message matches upstream darwin's source-failure contract; the
+        // AVFoundation description travels in details.
         controller.addError(PlatformException(
-            code: 'WatchosAudioError', message: bindings.error(playerId)));
+          code: 'WatchosAudioError',
+          message: _kSetSourceFailure,
+          details:
+              'AVPlayerItem.Status.failed: ${bindings.error(playerId)}',
+        ));
       }
       _last = state;
       return;
@@ -352,6 +381,20 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   _PlayerEvents _eventsFor(String playerId) => _events.putIfAbsent(
       playerId, () => _PlayerEvents(playerId, _b));
 
+  /// Upstream's exact message when a player-scoped call arrives for an id
+  /// that was never created or has been disposed.
+  static Never _throwDisposed() => throw PlatformException(
+        code: 'WatchosAudioError',
+        message:
+            'Player has not yet been created or has already been disposed.',
+      );
+
+  static void _ensure(bool found) {
+    if (!found) {
+      _throwDisposed();
+    }
+  }
+
   @override
   Future<void> create(String playerId) async {
     _b.create(playerId);
@@ -365,20 +408,21 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   }
 
   @override
-  Future<void> resume(String playerId) async => _b.resume(playerId);
+  Future<void> resume(String playerId) async => _ensure(_b.resume(playerId));
 
   @override
-  Future<void> pause(String playerId) async => _b.pause(playerId);
+  Future<void> pause(String playerId) async => _ensure(_b.pause(playerId));
 
   @override
-  Future<void> stop(String playerId) async => _b.stop(playerId);
+  Future<void> stop(String playerId) async => _ensure(_b.stop(playerId));
 
   @override
-  Future<void> release(String playerId) async => _b.release(playerId);
+  Future<void> release(String playerId) async =>
+      _ensure(_b.release(playerId));
 
   @override
   Future<void> seek(String playerId, Duration position) async =>
-      _b.seek(playerId, position.inMilliseconds);
+      _ensure(_b.seek(playerId, position.inMilliseconds));
 
   @override
   Future<void> setBalance(String playerId, double balance) async {
@@ -391,16 +435,16 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
 
   @override
   Future<void> setVolume(String playerId, double volume) async =>
-      _b.setVolume(playerId, volume);
+      _ensure(_b.setVolume(playerId, volume));
 
   @override
   Future<void> setReleaseMode(
           String playerId, ReleaseMode releaseMode) async =>
-      _b.setReleaseMode(playerId, releaseMode.index);
+      _ensure(_b.setReleaseMode(playerId, releaseMode.index));
 
   @override
   Future<void> setPlaybackRate(String playerId, double playbackRate) async =>
-      _b.setRate(playerId, playbackRate);
+      _ensure(_b.setRate(playerId, playbackRate));
 
   @override
   Future<void> setSourceUrl(
@@ -409,10 +453,17 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
     bool? isLocal,
     String? mimeType,
   }) async {
-    final int status = _b.setSourceUrl(playerId, url, isLocal ?? false);
+    final int status =
+        _b.setSourceUrl(playerId, url, isLocal ?? false, mimeType ?? '');
+    if (status == -2) {
+      _throwDisposed();
+    }
     if (status != 0) {
       throw PlatformException(
-          code: 'WatchosAudioError', message: 'Invalid source url: $url');
+        code: 'WatchosAudioError',
+        message: _kSetSourceFailure,
+        details: 'Invalid source url: $url',
+      );
     }
   }
 
@@ -424,9 +475,15 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   }) async {
     final int status =
         _b.setSourceBytes(playerId, bytes, _extensionForMime(mimeType));
+    if (status == -2) {
+      _throwDisposed();
+    }
     if (status != 0) {
       throw PlatformException(
-          code: 'WatchosAudioError', message: 'Could not load bytes source');
+        code: 'WatchosAudioError',
+        message: _kSetSourceFailure,
+        details: 'Could not load bytes source',
+      );
     }
   }
 
@@ -470,7 +527,8 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   @override
   Future<int?> getCurrentPosition(String playerId) async {
     final WatchosAudioState? state = _b.readState(playerId);
-    if (state == null || state.status != 1) {
+    // Upstream returns null once no source is loaded (released/unloaded).
+    if (state == null || !state.hasItem) {
       return null;
     }
     return state.positionMs;

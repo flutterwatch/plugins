@@ -29,8 +29,8 @@ class _FakeBindings extends AudioplayersWatchosBindings {
   @override
   void dispose(String playerId) => calls.add('dispose($playerId)');
   @override
-  int setSourceUrl(String playerId, String url, bool isLocal) {
-    calls.add('setSourceUrl($playerId, $url, $isLocal)');
+  int setSourceUrl(String playerId, String url, bool isLocal, String mimeType) {
+    calls.add('setSourceUrl($playerId, $url, $isLocal, $mimeType)');
     return sourceResult;
   }
 
@@ -40,26 +40,56 @@ class _FakeBindings extends AudioplayersWatchosBindings {
     return sourceResult;
   }
 
+  /// Result served by every control call — false simulates a disposed id.
+  bool controlResult = true;
+
   @override
-  void resume(String playerId) => calls.add('resume($playerId)');
+  bool resume(String playerId) {
+    calls.add('resume($playerId)');
+    return controlResult;
+  }
+
   @override
-  void pause(String playerId) => calls.add('pause($playerId)');
+  bool pause(String playerId) {
+    calls.add('pause($playerId)');
+    return controlResult;
+  }
+
   @override
-  void stop(String playerId) => calls.add('stop($playerId)');
+  bool stop(String playerId) {
+    calls.add('stop($playerId)');
+    return controlResult;
+  }
+
   @override
-  void release(String playerId) => calls.add('release($playerId)');
+  bool release(String playerId) {
+    calls.add('release($playerId)');
+    return controlResult;
+  }
+
   @override
-  void seek(String playerId, int positionMs) =>
-      calls.add('seek($playerId, $positionMs)');
+  bool seek(String playerId, int positionMs) {
+    calls.add('seek($playerId, $positionMs)');
+    return controlResult;
+  }
+
   @override
-  void setVolume(String playerId, double volume) =>
-      calls.add('setVolume($playerId, $volume)');
+  bool setVolume(String playerId, double volume) {
+    calls.add('setVolume($playerId, $volume)');
+    return controlResult;
+  }
+
   @override
-  void setRate(String playerId, double rate) =>
-      calls.add('setRate($playerId, $rate)');
+  bool setRate(String playerId, double rate) {
+    calls.add('setRate($playerId, $rate)');
+    return controlResult;
+  }
+
   @override
-  void setReleaseMode(String playerId, int mode) =>
-      calls.add('setReleaseMode($playerId, $mode)');
+  bool setReleaseMode(String playerId, int mode) {
+    calls.add('setReleaseMode($playerId, $mode)');
+    return controlResult;
+  }
   @override
   WatchosAudioState? readState(String playerId) => state;
   @override
@@ -77,6 +107,7 @@ WatchosAudioState _state({
   int preparedCount = 1,
   int seekCompleteCount = 0,
   int completeCount = 0,
+  bool hasItem = true,
   int durationMs = 30000,
   int positionMs = 0,
 }) {
@@ -86,6 +117,7 @@ WatchosAudioState _state({
     preparedCount: preparedCount,
     seekCompleteCount: seekCompleteCount,
     completeCount: completeCount,
+    hasItem: hasItem,
     durationMs: durationMs,
     positionMs: positionMs,
   );
@@ -143,13 +175,15 @@ void main() {
   });
 
   group('sources', () {
-    test('setSourceUrl passes the url and locality through', () async {
+    test('setSourceUrl passes url, locality, and mime type through', () async {
       await player.setSourceUrl('p1', 'https://example.com/a.mp3');
-      await player
-          .setSourceUrl('p1', '/tmp/b.mp3', isLocal: true);
+      await player.setSourceUrl('p1', '/tmp/b.mp3', isLocal: true);
+      await player.setSourceUrl('p1', '/tmp/noext',
+          isLocal: true, mimeType: 'audio/wav');
       expect(fake.calls, <String>[
-        'setSourceUrl(p1, https://example.com/a.mp3, false)',
-        'setSourceUrl(p1, /tmp/b.mp3, true)',
+        'setSourceUrl(p1, https://example.com/a.mp3, false, )',
+        'setSourceUrl(p1, /tmp/b.mp3, true, )',
+        'setSourceUrl(p1, /tmp/noext, true, audio/wav)',
       ]);
     });
 
@@ -175,11 +209,25 @@ void main() {
       expect(await player.getDuration('p1'), 45000);
     });
 
-    test('getCurrentPosition is null before prepared', () async {
-      fake.state = _state(status: 0, preparedCount: 0);
+    test('getCurrentPosition is null once no source is loaded', () async {
+      // Mirrors upstream: position is null when no item is loaded (never
+      // set, or unloaded by release), and real once one is.
+      fake.state = _state(status: 0, preparedCount: 0, hasItem: false);
       expect(await player.getCurrentPosition('p1'), isNull);
       fake.state = _state(positionMs: 1234);
       expect(await player.getCurrentPosition('p1'), 1234);
+    });
+
+    test('controls on a disposed player throw the upstream message', () async {
+      fake.controlResult = false;
+      await expectLater(
+        () => player.stop('p1'),
+        throwsA(isA<PlatformException>().having(
+          (PlatformException e) => e.message,
+          'message',
+          'Player has not yet been created or has already been disposed.',
+        )),
+      );
     });
   });
 
@@ -212,14 +260,18 @@ void main() {
       expect(duration.duration, const Duration(seconds: 30));
     });
 
-    test('surfaces a native failure as a PlatformException error', () async {
+    test('surfaces a native failure with the upstream message contract',
+        () async {
       await player.create('p1');
       fake.state = _state(status: 2, preparedCount: 0);
       fake.errorMessage = 'boom';
       await expectLater(
         player.getEventStream('p1').first,
         throwsA(isA<PlatformException>()
-            .having((PlatformException e) => e.message, 'message', 'boom')),
+            .having((PlatformException e) => e.message, 'message',
+                startsWith('Failed to set source.'))
+            .having((PlatformException e) => '${e.details}', 'details',
+                contains('boom'))),
       );
     });
 

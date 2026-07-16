@@ -11,8 +11,10 @@ then written against `audioplayers_platform_interface` 7.x.
 |---|---|
 | Implementation | ✅ Working (FFI, AVPlayer) |
 | watchOS capability | Partial — no balance, no low-latency player mode |
-| Host unit tests (`flutter-watchos test`) | ✅ 12/12 pass |
-| Upstream integration tests | ◐ verification in progress on the watch simulator |
+| Host unit tests (`flutter-watchos test`) | ✅ 13/13 pass |
+| Upstream `lib_test.dart` | ✅ passes verbatim (15 + 4 platform-skipped, local fixture server) |
+| Upstream `platform_test.dart` | ✅ passes verbatim (39) |
+| Upstream `app_test.dart` | ✅ passes verbatim (3, content scale 0.5) |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -58,13 +60,27 @@ Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable
 
 ## Platform notes
 
-- The upstream example app and its official integration suites ship
-  verbatim; the example runner opts into `FlutterWatchOSContentScale`
-  (0.5) because the upstream UI is phone-designed.
+- The upstream example app, its official integration suites, and its
+  `server/` fixture server ship verbatim; the example runner opts into
+  `FlutterWatchOSContentScale` (0.5) because the upstream UI is
+  phone-designed. The suites are run against the local server
+  (`--dart-define=USE_LOCAL_SERVER=true`) like upstream CI — upstream's
+  remote fixture host is missing files (e.g. the special-character wav),
+  so only the local-server run is hermetic.
 - `audioplayers`' asset support (`AudioCache`) uses `path_provider`, so
   the example depends on `path_provider_watchos` from this repo.
 - On watchOS the platform reports `TargetPlatform.iOS`, so the upstream
   suites apply their iOS feature set (no bytes/dataUri/balance tests).
+- Error contract matches upstream darwin, as asserted by
+  `platform_test.dart`: source failures throw message
+  `Failed to set source. …/troubleshooting.md` with the AVFoundation
+  description in `details`; player-scoped calls on a disposed id throw
+  `Player has not yet been created or has already been disposed.`
+- Threading model: registry membership (create/dispose) and state
+  publication (stop's position-0, release's unload) are synchronous on
+  the calling FFI thread — the official suites assert their effects
+  immediately after the call returns — while every AVPlayer mutation is
+  marshaled to the main queue (repo threading rule).
 
 ---
 

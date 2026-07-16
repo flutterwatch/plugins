@@ -35,13 +35,14 @@ static void APWOnMain(dispatch_block_t block) {
 @property(nonatomic, strong) AVPlayer *player;
 @property(nonatomic, strong) AVPlayerItem *item;
 @property(nonatomic, copy) NSString *errorDescription;
-- (void)setSourceURL:(NSURL *)url;
+- (void)setSourceURL:(NSURL *)url mimeType:(NSString *)mimeType;
 - (void)readState:(AudioplayersWatchosState *)out;
 - (void)resume;
 - (void)pause;
-- (void)stop;
-- (void)releaseSource;
-- (void)seekToMs:(int64_t)ms;
+- (void)stopSync;
+- (void)markUnloadedSync;
+- (void)unloadOnMain;
+- (void)beginSeekToMs:(int64_t)ms;
 - (void)setVolume:(double)volume;
 - (void)setRate:(double)rate;
 - (void)setReleaseMode:(int32_t)mode;
@@ -55,6 +56,9 @@ static void APWOnMain(dispatch_block_t block) {
   double _rate;             // requested playback rate
   double _volume;
   int64_t _pendingSeekMs;   // -1 when no seek is in flight
+  BOOL _itemActive;         // gates KVO writes: an unload (which happens
+                            // synchronously on the FFI thread) must win over
+                            // stragglers from AVFoundation's queues
 }
 
 - (instancetype)init {
@@ -93,7 +97,9 @@ static void APWOnMain(dispatch_block_t block) {
 }
 
 /// Main thread. Loads a new item, resetting the prepared/duration state.
-- (void)setSourceURL:(NSURL *)url {
+/// `mimeType` (may be nil) overrides container sniffing for extension-less
+/// sources — same AVURLAsset option upstream darwin uses.
+- (void)setSourceURL:(NSURL *)url mimeType:(NSString *)mimeType {
   os_unfair_lock_lock(&_lock);
   [self detachItemLocked];
   _state.status = 0;
@@ -102,8 +108,27 @@ static void APWOnMain(dispatch_block_t block) {
   self.errorDescription = @"";
   os_unfair_lock_unlock(&_lock);
 
-  AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
+  AVPlayerItem *item;
+  if (mimeType.length > 0) {
+    NSDictionary<NSString *, id> *options;
+    if (@available(watchOS 10.0, *)) {
+      options = @{AVURLAssetOverrideMIMETypeKey : mimeType};
+    } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+      options = @{@"AVURLAssetOutOfBandMIMETypeKey" : mimeType};
+#pragma clang diagnostic pop
+    }
+    AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:options];
+    item = [AVPlayerItem playerItemWithAsset:asset];
+  } else {
+    item = [AVPlayerItem playerItemWithURL:url];
+  }
+  os_unfair_lock_lock(&_lock);
   _item = item;
+  _itemActive = YES;
+  _state.has_item = 1;
+  os_unfair_lock_unlock(&_lock);
   [item addObserver:self
          forKeyPath:@"status"
             options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionInitial
@@ -136,6 +161,12 @@ static void APWOnMain(dispatch_block_t block) {
   os_unfair_lock_lock(&_lock);
   if ([keyPath isEqualToString:@"status"]) {
     AVPlayerItem *item = (AVPlayerItem *)object;
+    if (!_itemActive || item != _item) {
+      // Stale callback from an item that was unloaded or replaced — the
+      // synchronous unload already published the cleared state.
+      os_unfair_lock_unlock(&_lock);
+      return;
+    }
     if (item.status == AVPlayerItemStatusFailed) {
       _state.status = 2;
       self.errorDescription =
@@ -159,6 +190,9 @@ static void APWOnMain(dispatch_block_t block) {
 - (void)itemDidPlayToEnd:(NSNotification *)note {
   os_unfair_lock_lock(&_lock);
   int32_t mode = _releaseMode;
+  if (mode != 1) {
+    _state.complete_count += 1;
+  }
   os_unfair_lock_unlock(&_lock);
   if (mode == 1) {  // loop: replay without emitting complete
     __weak APWPlayer *weakSelf = self;
@@ -173,16 +207,11 @@ static void APWOnMain(dispatch_block_t block) {
       }];
     return;
   }
-  os_unfair_lock_lock(&_lock);
-  _state.complete_count += 1;
-  os_unfair_lock_unlock(&_lock);
-  // Non-loop completion rewinds (upstream stop semantics; release
-  // additionally unloads).
-  [_player seekToTime:kCMTimeZero
-      toleranceBefore:kCMTimeZero
-       toleranceAfter:kCMTimeZero];
-  if (mode == 0) {  // release
-    [self releaseSource];
+  if (mode == 0) {  // release: unload — duration/position read null upstream
+    [self markUnloadedSync];
+    [self unloadOnMain];  // already on the main thread here
+  } else {  // stop: rewind, keeping the source loaded
+    [self rewindReportingZero];
   }
 }
 
@@ -209,31 +238,87 @@ static void APWOnMain(dispatch_block_t block) {
   [_player pause];
 }
 
-- (void)stop {
-  [_player pause];
-  [_player seekToTime:kCMTimeZero
-      toleranceBefore:kCMTimeZero
-       toleranceAfter:kCMTimeZero];
+/// Called on the FFI thread. State must be observable as soon as this
+/// returns (upstream awaits stop); AVPlayer mutations still go to main.
+- (void)stopSync {
   os_unfair_lock_lock(&_lock);
+  int32_t mode = _releaseMode;
+  os_unfair_lock_unlock(&_lock);
+  if (mode == 0) {  // release mode: upstream stop releases
+    [self markUnloadedSync];
+    APWOnMain(^{
+      [self unloadOnMain];
+    });
+    return;
+  }
+  os_unfair_lock_lock(&_lock);
+  _pendingSeekMs = 0;  // position reads 0 immediately
+  os_unfair_lock_unlock(&_lock);
+  APWOnMain(^{
+    [self->_player pause];
+    [self rewindReportingZero];
+  });
+}
+
+/// Called on the FFI thread: publishes the unloaded state synchronously so
+/// getDuration/getCurrentPosition read null the moment release returns.
+- (void)markUnloadedSync {
+  os_unfair_lock_lock(&_lock);
+  _itemActive = NO;
+  _state.status = 0;
+  _state.has_item = 0;
+  _state.duration_ms = -1;
   _pendingSeekMs = -1;
   os_unfair_lock_unlock(&_lock);
 }
 
-- (void)releaseSource {
+/// Main thread: detaches the item and unloads the AVPlayer.
+- (void)unloadOnMain {
   [_player pause];
   os_unfair_lock_lock(&_lock);
   [self detachItemLocked];
-  _state.status = 0;
-  _state.duration_ms = -1;
-  _pendingSeekMs = -1;
   os_unfair_lock_unlock(&_lock);
   [_player replaceCurrentItemWithPlayerItem:nil];
 }
 
-- (void)seekToMs:(int64_t)ms {
+/// Rewinds to zero, reporting position 0 immediately (upstream awaits the
+/// rewind before returning from stop, so position reads must not expose the
+/// in-flight seek). Does NOT count as a seek — no seekComplete event.
+- (void)rewindReportingZero {
   os_unfair_lock_lock(&_lock);
-  _pendingSeekMs = ms;
+  _pendingSeekMs = 0;
   os_unfair_lock_unlock(&_lock);
+  __weak APWPlayer *weakSelf = self;
+  [_player seekToTime:kCMTimeZero
+      toleranceBefore:kCMTimeZero
+       toleranceAfter:kCMTimeZero
+    completionHandler:^(__unused BOOL finished) {
+      APWPlayer *strongSelf = weakSelf;
+      if (strongSelf != nil) {
+        [strongSelf finishSilentRewind];
+      }
+    }];
+}
+
+- (void)finishSilentRewind {
+  os_unfair_lock_lock(&_lock);
+  if (_pendingSeekMs == 0) {
+    _pendingSeekMs = -1;
+  }
+  os_unfair_lock_unlock(&_lock);
+}
+
+/// Called on the FFI thread; the AVPlayer seek itself runs on main.
+- (void)beginSeekToMs:(int64_t)ms {
+  os_unfair_lock_lock(&_lock);
+  _pendingSeekMs = ms;  // position reports the target while in flight
+  os_unfair_lock_unlock(&_lock);
+  APWOnMain(^{
+    [self seekOnMainToMs:ms];
+  });
+}
+
+- (void)seekOnMainToMs:(int64_t)ms {
   __weak APWPlayer *weakSelf = self;
   [_player seekToTime:CMTimeMakeWithSeconds((double)ms / 1000.0, NSEC_PER_SEC)
       toleranceBefore:kCMTimeZero
@@ -308,21 +393,18 @@ void audioplayers_watchos_create(const char *player_id) {
   if (key == nil) {
     return;
   }
-  APWOnMain(^{
-    os_unfair_lock_lock(&g_registry_lock);
-    if (g_players == nil) {
-      g_players = [NSMutableDictionary dictionary];
-    }
-    BOOL exists = g_players[key] != nil;
-    os_unfair_lock_unlock(&g_registry_lock);
-    if (exists) {
-      return;
-    }
-    APWPlayer *player = [[APWPlayer alloc] init];
-    os_unfair_lock_lock(&g_registry_lock);
-    g_players[key] = player;
-    os_unfair_lock_unlock(&g_registry_lock);
-  });
+  // Registry membership is synchronous: the very next FFI call (setSource,
+  // readState) must observe the new player, and Dart's poller must never
+  // baseline against a previous player that shared this id. Only playback
+  // mutations go to the main queue.
+  os_unfair_lock_lock(&g_registry_lock);
+  if (g_players == nil) {
+    g_players = [NSMutableDictionary dictionary];
+  }
+  if (g_players[key] == nil) {
+    g_players[key] = [[APWPlayer alloc] init];
+  }
+  os_unfair_lock_unlock(&g_registry_lock);
 }
 
 APW_EXPORT
@@ -331,18 +413,23 @@ void audioplayers_watchos_dispose(const char *player_id) {
   if (key == nil) {
     return;
   }
-  APWOnMain(^{
-    os_unfair_lock_lock(&g_registry_lock);
-    APWPlayer *player = g_players[key];
-    [g_players removeObjectForKey:key];
-    os_unfair_lock_unlock(&g_registry_lock);
-    [player teardown];
-  });
+  // Remove synchronously (readState must return false immediately); tear
+  // the AVPlayer down on the main queue like every other mutation.
+  os_unfair_lock_lock(&g_registry_lock);
+  APWPlayer *player = g_players[key];
+  [g_players removeObjectForKey:key];
+  os_unfair_lock_unlock(&g_registry_lock);
+  if (player != nil) {
+    APWOnMain(^{
+      [player teardown];
+    });
+  }
 }
 
 APW_EXPORT
 int audioplayers_watchos_set_source_url(const char *player_id, const char *url,
-                                        bool is_local) {
+                                        bool is_local,
+                                        const char *mime_type) {
   if (url == NULL) {
     return -1;
   }
@@ -361,10 +448,13 @@ int audioplayers_watchos_set_source_url(const char *player_id, const char *url,
   }
   APWPlayer *player = APWGet(player_id);
   if (player == nil) {
-    return -1;
+    return -2;
   }
+  NSString *mime = (mime_type != NULL && mime_type[0] != '\0')
+      ? [NSString stringWithUTF8String:mime_type]
+      : nil;
   APWOnMain(^{
-    [player setSourceURL:nsurl];
+    [player setSourceURL:nsurl mimeType:mime];
   });
   return 0;
 }
@@ -378,7 +468,7 @@ int audioplayers_watchos_set_source_bytes(const char *player_id,
   }
   APWPlayer *player = APWGet(player_id);
   if (player == nil) {
-    return -1;
+    return -2;
   }
   // AVPlayer needs a URL: spool the bytes to a temp file. The extension lets
   // AVFoundation sniff the container.
@@ -394,71 +484,101 @@ int audioplayers_watchos_set_source_bytes(const char *player_id,
     return -1;
   }
   APWOnMain(^{
-    [player setSourceURL:fileURL];
+    [player setSourceURL:fileURL mimeType:nil];
   });
   return 0;
 }
 
 APW_EXPORT
-void audioplayers_watchos_resume(const char *player_id) {
+bool audioplayers_watchos_resume(const char *player_id) {
   APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
   APWOnMain(^{
     [player resume];
   });
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_pause(const char *player_id) {
+bool audioplayers_watchos_pause(const char *player_id) {
   APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
   APWOnMain(^{
     [player pause];
   });
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_stop(const char *player_id) {
+bool audioplayers_watchos_stop(const char *player_id) {
   APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
+  [player stopSync];
+  return true;
+}
+
+APW_EXPORT
+bool audioplayers_watchos_release(const char *player_id) {
+  APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
+  [player markUnloadedSync];
   APWOnMain(^{
-    [player stop];
+    [player unloadOnMain];
   });
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_release(const char *player_id) {
+bool audioplayers_watchos_seek(const char *player_id, int64_t position_ms) {
   APWPlayer *player = APWGet(player_id);
-  APWOnMain(^{
-    [player releaseSource];
-  });
+  if (player == nil) {
+    return false;
+  }
+  [player beginSeekToMs:position_ms];
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_seek(const char *player_id, int64_t position_ms) {
+bool audioplayers_watchos_set_volume(const char *player_id, double volume) {
   APWPlayer *player = APWGet(player_id);
-  APWOnMain(^{
-    [player seekToMs:position_ms];
-  });
-}
-
-APW_EXPORT
-void audioplayers_watchos_set_volume(const char *player_id, double volume) {
-  APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
   APWOnMain(^{
     [player setVolume:volume];
   });
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_set_rate(const char *player_id, double rate) {
+bool audioplayers_watchos_set_rate(const char *player_id, double rate) {
   APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
   APWOnMain(^{
     [player setRate:rate];
   });
+  return true;
 }
 
 APW_EXPORT
-void audioplayers_watchos_set_release_mode(const char *player_id,
+bool audioplayers_watchos_set_release_mode(const char *player_id,
                                            int32_t mode) {
-  [APWGet(player_id) setReleaseMode:mode];
+  APWPlayer *player = APWGet(player_id);
+  if (player == nil) {
+    return false;
+  }
+  [player setReleaseMode:mode];
+  return true;
 }
 
 APW_EXPORT
