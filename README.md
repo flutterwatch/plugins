@@ -48,6 +48,8 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
+| [`firebase_core_watchos`](packages/firebase_core_watchos) [![pub](https://img.shields.io/pub/v/firebase_core_watchos.svg)](https://pub.dev/packages/firebase_core_watchos) | [`firebase_core`](https://pub.dev/packages/firebase_core) | Firebase Apple SDK (`FirebaseCore`) |
+| [`firebase_auth_watchos`](packages/firebase_auth_watchos) [![pub](https://img.shields.io/pub/v/firebase_auth_watchos.svg)](https://pub.dev/packages/firebase_auth_watchos) | [`firebase_auth`](https://pub.dev/packages/firebase_auth) | Firebase Apple SDK (`FirebaseAuth`) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in

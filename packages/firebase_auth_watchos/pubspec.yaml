@@ -1,0 +1,51 @@
+name: firebase_auth_watchos
+description: "watchOS implementation of firebase_auth, bridging the Firebase Apple SDK (FirebaseAuth) over dart:ffi for email, anonymous, and token sign-in."
+version: 0.0.1-beta.1
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - firebase
+  - authentication
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  firebase_auth_platform_interface: ^9.0.5
+  firebase_core: ^4.0.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: firebase_auth
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a
+        # static archive force-loaded into the watch binary; Dart
+        # resolves the exported symbols via DynamicLibrary.process().
+        # Method-channel plugins are not supported on watchOS,
+        # so this is the supported plugin model.
+        ffiPlugin: true
+        dartPluginClass: FirebaseAuthWatchos
+        # C symbols exported for dart:ffi lookup. The CLI emits a
+        # forced reference for each so they survive the static link.
+        ffiSymbols:
+          - firebase_auth_watchos_begin
+          - firebase_auth_watchos_poll
+          - firebase_auth_watchos_current_user
+          - firebase_auth_watchos_sign_out
+          - firebase_auth_watchos_set_language_code
+          - firebase_auth_watchos_use_emulator
+          - firebase_auth_watchos_is_sign_in_link
+          - firebase_auth_watchos_free
