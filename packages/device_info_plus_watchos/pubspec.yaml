@@ -1,7 +1,13 @@
 name: device_info_plus_watchos
-description: "watchOS implementation of device_info_plus (FFI over WKInterfaceDevice)."
+description: "watchOS implementation of the device_info_plus plugin, exposing WKInterfaceDevice model, system name, and version details via dart:ffi."
 version: 0.1.0
-homepage: https://github.com/flutterwatch/plugins
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - device-info
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

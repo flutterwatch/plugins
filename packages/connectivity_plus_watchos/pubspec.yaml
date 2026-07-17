@@ -1,7 +1,14 @@
 name: connectivity_plus_watchos
-description: "watchOS implementation of connectivity_plus (FFI over NWPathMonitor)."
+description: "watchOS implementation of the connectivity_plus plugin, reporting network reachability (wifi, cellular, or none) from NWPathMonitor via dart:ffi."
 version: 0.1.0
-homepage: https://github.com/flutterwatch/plugins
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - connectivity
+  - network
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

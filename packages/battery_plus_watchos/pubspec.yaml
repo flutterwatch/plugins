@@ -1,7 +1,13 @@
 name: battery_plus_watchos
-description: "watchOS implementation of battery_plus (FFI over WKInterfaceDevice)."
+description: "watchOS implementation of the battery_plus plugin, reporting battery level, charging state, and low-power mode from WKInterfaceDevice via dart:ffi."
 version: 0.1.0
-homepage: https://github.com/flutterwatch/plugins
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - battery
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

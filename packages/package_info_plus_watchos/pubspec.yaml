@@ -1,7 +1,13 @@
 name: package_info_plus_watchos
-description: "watchOS implementation of package_info_plus (FFI over NSBundle)."
+description: "watchOS implementation of the package_info_plus plugin, reading app name, version, build number, and install metadata from NSBundle via dart:ffi."
 version: 0.1.0
-homepage: https://github.com/flutterwatch/plugins
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - package-info
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
