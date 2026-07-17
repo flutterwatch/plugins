@@ -1,0 +1,50 @@
+name: firebase_storage_watchos
+description: "watchOS implementation of firebase_storage, bridging the Firebase Apple SDK (FirebaseStorage) over dart:ffi for uploads, downloads, and metadata."
+version: 0.0.1-beta.1
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - firebase
+  - cloud-storage
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  firebase_core: ^4.0.0
+  firebase_storage_platform_interface: ^6.0.3
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: firebase_storage
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a
+        # static archive force-loaded into the watch binary; Dart
+        # resolves the exported symbols via DynamicLibrary.process().
+        # Method-channel plugins are not supported on watchOS,
+        # so this is the supported plugin model.
+        ffiPlugin: true
+        dartPluginClass: FirebaseStorageWatchos
+        # C symbols exported for dart:ffi lookup. The CLI emits a
+        # forced reference for each so they survive the static link.
+        ffiSymbols:
+          - firebase_storage_watchos_begin
+          - firebase_storage_watchos_poll
+          - firebase_storage_watchos_task_start
+          - firebase_storage_watchos_task_snapshot
+          - firebase_storage_watchos_task_control
+          - firebase_storage_watchos_configure
+          - firebase_storage_watchos_free

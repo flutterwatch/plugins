@@ -50,6 +50,7 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
 | [`firebase_core_watchos`](packages/firebase_core_watchos) [![pub](https://img.shields.io/pub/v/firebase_core_watchos.svg)](https://pub.dev/packages/firebase_core_watchos) | [`firebase_core`](https://pub.dev/packages/firebase_core) | Firebase Apple SDK (`FirebaseCore`) |
 | [`firebase_auth_watchos`](packages/firebase_auth_watchos) [![pub](https://img.shields.io/pub/v/firebase_auth_watchos.svg)](https://pub.dev/packages/firebase_auth_watchos) | [`firebase_auth`](https://pub.dev/packages/firebase_auth) | Firebase Apple SDK (`FirebaseAuth`) |
+| [`firebase_storage_watchos`](packages/firebase_storage_watchos) [![pub](https://img.shields.io/pub/v/firebase_storage_watchos.svg)](https://pub.dev/packages/firebase_storage_watchos) | [`firebase_storage`](https://pub.dev/packages/firebase_storage) | Firebase Apple SDK (`FirebaseStorage`) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
