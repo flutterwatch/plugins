@@ -54,6 +54,7 @@ static void VPWOnMain(dispatch_block_t block) {
   os_unfair_lock _lock;
   VideoPlayerWatchosState _state;
   bool _looping;
+  bool _completed;          // played to end (non-looping); cleared on play/seek
   double _rate;             // requested playback speed
   int64_t _pendingSeekMs;   // -1 when no seek is in flight
   // Holds the last audio-tracks JSON so its UTF-8 bytes stay valid until the
@@ -187,6 +188,10 @@ static void VPWOnMain(dispatch_block_t block) {
   }
   os_unfair_lock_lock(&_lock);
   _state.completed_count += 1;
+  // Report the position as pinned to the end so the Dart position poll marks
+  // the controller `isCompleted` (matching iOS, where currentTime == duration
+  // at end); cleared on the next play/seek.
+  _completed = true;
   os_unfair_lock_unlock(&_lock);
 }
 
@@ -199,15 +204,25 @@ static void VPWOnMain(dispatch_block_t block) {
 - (int64_t)positionMs {
   os_unfair_lock_lock(&_lock);
   int64_t pending = _pendingSeekMs;
+  bool completed = _completed;
+  int64_t durationMs = _state.duration_ms;
   os_unfair_lock_unlock(&_lock);
   if (pending >= 0) {
     return pending;
+  }
+  if (completed && durationMs > 0) {
+    // Pin to the exact duration at end so the controller's position poll sees
+    // position == duration and sets isCompleted before playback stops.
+    return durationMs;
   }
   CMTime time = _player.currentTime;
   return CMTIME_IS_NUMERIC(time) ? (int64_t)(CMTimeGetSeconds(time) * 1000.0) : 0;
 }
 
 - (void)play {
+  os_unfair_lock_lock(&_lock);
+  _completed = false;
+  os_unfair_lock_unlock(&_lock);
   VPWOnMain(^{
     // setRate: both starts playback and applies the requested speed.
     [self.player setRate:(float)self->_rate];
@@ -226,6 +241,7 @@ static void VPWOnMain(dispatch_block_t block) {
   // hops to main.
   os_unfair_lock_lock(&_lock);
   _pendingSeekMs = ms;
+  _completed = false;
   os_unfair_lock_unlock(&_lock);
   __weak VPWPlayer *weakSelf = self;
   VPWOnMain(^{

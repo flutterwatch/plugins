@@ -223,7 +223,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       fake.state =
           _state(isPlaying: false, bufferedMs: 5000, completedCount: 1);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      // `completed` is deferred a short window past play-to-end (so the
+      // controller's position poll marks isCompleted first — see
+      // VideoPlayerWatchos.videoEventsFor); wait it out before cancelling.
+      await Future<void>.delayed(const Duration(milliseconds: 250));
       await sub.cancel();
 
       expect(

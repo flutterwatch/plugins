@@ -318,6 +318,35 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
     return playerId;
   }
 
+  /// A snapshot copy with [isPlaying] overridden — used to keep reporting the
+  /// pre-completion play state during the completion hold window.
+  static WatchosVideoState _heldPlaying(
+          WatchosVideoState s, bool isPlaying) =>
+      WatchosVideoState(
+        status: s.status,
+        isPlaying: isPlaying,
+        bufferingStartCount: s.bufferingStartCount,
+        bufferingEndCount: s.bufferingEndCount,
+        completedCount: s.completedCount,
+        durationMs: s.durationMs,
+        bufferedMs: s.bufferedMs,
+        width: s.width,
+        height: s.height,
+      );
+
+  /// How many poll ticks to hold "playing" after play-to-end so the
+  /// controller's ~100ms position poll marks isCompleted before `completed`
+  /// is delivered. Covers ≥ ~150ms regardless of [pollInterval] (min 2 ticks).
+  static int _completedHoldTicks(Duration pollInterval) {
+    final int p = pollInterval.inMicroseconds;
+    if (p <= 0) {
+      return 2;
+    }
+    const int targetMicros = 150000;
+    final int ticks = (targetMicros + p - 1) ~/ p;
+    return ticks < 2 ? 2 : ticks;
+  }
+
   @override
   Stream<VideoEvent> videoEventsFor(int playerId) {
     // Diff successive native snapshots into events. Polling runs only while
@@ -326,6 +355,10 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
     Timer? timer;
     bool initializedSent = false;
     bool errorSent = false;
+    // Ticks to keep reporting "playing" after play-to-end before delivering
+    // `completed` (see the note at the completion branch below).
+    int completedHold = 0;
+    final int holdTicks = _completedHoldTicks(pollInterval);
     WatchosVideoState? last;
 
     void tick() {
@@ -353,12 +386,9 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
         ));
       }
       final WatchosVideoState? previous = last;
-      last = state;
       if (previous == null) {
+        last = state;
         return;
-      }
-      if (state.completedCount > previous.completedCount) {
-        controller.add(VideoEvent(eventType: VideoEventType.completed));
       }
       // Replay buffering edges from the native counters (interleaved
       // start/end, starts first) so stalls shorter than one poll interval
@@ -382,12 +412,41 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
           ],
         ));
       }
+      final bool justCompleted =
+          state.completedCount > previous.completedCount;
+      // At play-to-end, defer `completed` and keep reporting the pre-completion
+      // play state for a short window. video_player's `completed` handler
+      // (pause() + seekTo) notifies its listeners more than once; the auto-pop
+      // example (`_PlayerVideoAndPopPage`) then calls Navigator.pop from that
+      // listener. Unless the controller's position timer — which runs only
+      // while isPlaying is true and polls every ~100ms — has already observed
+      // position == duration and set isCompleted, that redundant notification
+      // re-enters the Navigator ("Bad state: No element"). Holding the play
+      // state "playing" across the window keeps the position timer running so
+      // isCompleted is set first, then completion is delivered. Mirrors iOS,
+      // where currentTime == duration at end so isCompleted is already set.
+      if (justCompleted) {
+        completedHold = holdTicks;
+        last = _heldPlaying(state, previous.isPlaying);
+        return;
+      }
+      if (completedHold > 0) {
+        completedHold--;
+        if (completedHold > 0) {
+          // Still within the hold window: keep the position timer running.
+          last = _heldPlaying(state, previous.isPlaying);
+          return;
+        }
+        controller.add(VideoEvent(eventType: VideoEventType.completed));
+        // Fall through so the now-stopped play state is reported below.
+      }
       if (state.isPlaying != previous.isPlaying) {
         controller.add(VideoEvent(
           eventType: VideoEventType.isPlayingStateUpdate,
           isPlaying: state.isPlaying,
         ));
       }
+      last = state;
     }
 
     controller = StreamController<VideoEvent>.broadcast(
