@@ -6,6 +6,7 @@
   `GoogleService-Info.plist`), the app registry (`Firebase.apps`/`app`), and
   per-app options, automatic-data-collection, and delete.
 * Scaffolded with `flutter-watchos plugin port`, then hand-finished.
-* Pre-release: on-device linking is pending `flutter-watchos` toolchain support
-  for resolving external SwiftPM package dependencies. Host unit tests pass;
-  see PORTING_REPORT.md.
+* Links the Firebase Apple SDK via the CLI's external-SwiftPM-dependency
+  support. Verified on the watch simulator: host unit tests (8/8) and an
+  on-simulator smoke test that initializes the default and a named app.
+  Not yet verified on physical watch hardware; published as a pre-release.

@@ -14,10 +14,11 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseCore`)
 | Implementation (Dart + FFI + native) | ✅ complete |
 | watchOS capability | ◐ FirebaseCore supports watchOS 8+; SPM manifest allows `.watchOS(.v7)` |
 | Host unit tests | ✅ 8/8 pass (native FirebaseCore faked) |
-| On-device build / link | ✗ **blocked** — see below |
-| Upstream integration test | ○ none in the firebase_core pub example |
+| On-simulator build + link + run | ✅ links the Firebase Apple SDK; smoke test passes |
+| Physical watch hardware | ○ not yet verified |
+| Upstream integration test | ○ none in the firebase_core pub example (smoke test added) |
 
-## Blocked: the toolchain links system frameworks only
+## Links an external native SDK (the first in this repo)
 
 Unlike every other package in this repo, `firebase_core_watchos` links an
 **external native SDK** (the Firebase Apple SDK), not just system frameworks.
@@ -28,19 +29,16 @@ Unlike every other package in this repo, `firebase_core_watchos` links an
 // target dependency: .product(name: "FirebaseCore", package: "firebase-ios-sdk")
 ```
 
-But the `flutter-watchos` build compiles each plugin's `watchos/Classes/*.m`
-directly with `clang -fmodules` and force-loads the resulting static archive,
-linking only the `.linkedFramework(...)` (system) frameworks it parses out of
-`Package.swift`. It does **not** resolve a plugin's `.package(url:)` SwiftPM
-dependencies. So `@import FirebaseCore;` fails with `module 'FirebaseCore' not
-found`, and FirebaseCore's libraries are never linked.
-
-Making this package (and any external-native-SDK plugin) build requires a
-toolchain change: resolve a plugin's external SwiftPM package graph, put the
-built modules on the plugin clang `-fmodules` search path, and link the
-resulting static libraries (for FirebaseCore: `FirebaseCore`,
-`FirebaseCoreInternal`, `GoogleUtilities`, `nanopb`, `FBLPromises`) into
-Runner.
+The `flutter-watchos` CLI supports this: when a plugin's `Package.swift`
+declares an external SwiftPM package, the CLI builds that package with
+xcodebuild's SwiftPM for the active watch SDK (compiling the plugin's `.m`
+with the `FirebaseCore` module available), harvests every resulting object
+(the plugin plus `FirebaseCore`, `FirebaseCoreInternal`, `GoogleUtilities`,
+…), and force-loads them into Runner — force-load being required anyway so the
+SDK's `+load` component registration and the FFI exports survive. The system
+frameworks/libraries the SDK needs are declared via `.linkedFramework` /
+`.linkedLibrary` in the plugin manifest (`Security`, `libz`, `libc++`;
+`SystemConfiguration` is **not** linked — it does not exist on watchOS).
 
 ## What is implemented
 

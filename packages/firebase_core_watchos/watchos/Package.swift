@@ -37,7 +37,12 @@ let package = Package(
                 .headerSearchPath("."),
             ],
             linkerSettings: [
+                // The flutter-watchos CLI links these into Runner alongside the
+                // harvested FirebaseCore/GoogleUtilities objects.
                 .linkedFramework("Foundation"),
+                .linkedFramework("Security"),
+                .linkedLibrary("z"),
+                .linkedLibrary("c++"),
             ]
         ),
     ]
