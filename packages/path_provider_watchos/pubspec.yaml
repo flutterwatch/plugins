@@ -22,6 +22,7 @@ dev_dependencies:
 
 flutter:
   plugin:
+    implements: path_provider
     platforms:
       watchos:
         # FFI plugin: the CLI compiles watchos/Classes/*.m into a static
