@@ -5,7 +5,7 @@
 | Aspect | Result |
 |---|---|
 | Implementation | ✅ Working (FFI + native platform view) |
-| watchOS capability | Partial — no content URIs (Android-only), no embedded audio-track selection |
+| watchOS capability | Partial — no content URIs (Android-only) |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim (`video_player_test.dart` on the watch simulator) |
 | Internal unified demo | ✅ included |
@@ -49,7 +49,7 @@ flutter-watchos provides.
 | `videoEventsFor` | ✅ initialized / completed / bufferingStart / bufferingEnd / bufferingUpdate / isPlayingStateUpdate, poll-derived |
 | `buildView` / `buildViewWithOptions` | ✅ `WatchPlatformView` underlay |
 | `setMixWithOthers` | ✅ `AVAudioSession` category options |
-| `getAudioTracks` / `selectAudioTrack` | ✗ not implemented (interface default throws) |
+| `getAudioTracks` / `selectAudioTrack` / `isAudioTrackSupportAvailable` | ✅ via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS, same as the upstream Apple impl (the item-level read is unavailable on watchOS, so it goes through `currentMediaSelection`) |
 
 ## Platform notes
 

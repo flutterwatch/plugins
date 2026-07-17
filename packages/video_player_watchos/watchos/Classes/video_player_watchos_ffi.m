@@ -45,6 +45,8 @@ static void VPWOnMain(dispatch_block_t block) {
 - (void)seekToMs:(int64_t)ms;
 - (void)setSpeed:(double)speed;
 - (void)setLooping:(bool)looping;
+- (NSString *)audioTracksJSON;
+- (BOOL)selectAudioTrack:(NSString *)trackId;
 - (void)teardown;
 @end
 
@@ -54,6 +56,9 @@ static void VPWOnMain(dispatch_block_t block) {
   bool _looping;
   double _rate;             // requested playback speed
   int64_t _pendingSeekMs;   // -1 when no seek is in flight
+  // Holds the last audio-tracks JSON so its UTF-8 bytes stay valid until the
+  // next `audioTracksJSON` call (mirrors how errorDescription backs error()).
+  NSString *_cachedAudioTracksJSON;
 }
 
 - (instancetype)initWithURL:(NSURL *)url {
@@ -262,6 +267,65 @@ static void VPWOnMain(dispatch_block_t block) {
   _looping = looping;
 }
 
+/// The item's audible media-selection group, or nil (regular MP4s have none).
+- (AVMediaSelectionGroup *)audibleGroup {
+  AVAsset *asset = _item.asset;
+  if (asset == nil) {
+    return nil;
+  }
+  return [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
+}
+
+/// Reads the current audible tracks and caches the JSON so its bytes outlive
+/// the C call. A read (safe on the caller thread); only selection mutates.
+- (NSString *)audioTracksJSON {
+  NSMutableArray<NSDictionary<NSString *, id> *> *tracks = [NSMutableArray array];
+  AVMediaSelectionGroup *group = [self audibleGroup];
+  if (group != nil) {
+    // The item-level read is unavailable on watchOS; go through the current
+    // AVMediaSelection instead.
+    AVMediaSelectionOption *current =
+        [_item.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:group];
+    NSInteger index = 0;
+    for (AVMediaSelectionOption *option in group.options) {
+      NSString *language =
+          option.locale.localeIdentifier ?: option.extendedLanguageTag ?: @"";
+      [tracks addObject:@{
+        @"id" : [NSString stringWithFormat:@"%ld", (long)index],
+        @"label" : option.displayName ?: @"",
+        @"language" : language,
+        @"isSelected" : @([option isEqual:current]),
+      }];
+      index++;
+    }
+  }
+  NSData *data = [NSJSONSerialization dataWithJSONObject:tracks options:0 error:nil];
+  NSString *json = data != nil
+      ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+      : nil;
+  _cachedAudioTracksJSON = json ?: @"[]";
+  return _cachedAudioTracksJSON;
+}
+
+/// Selects the audible option whose index matches [trackId]. Validation is a
+/// read on the caller thread; the selection itself is a mutation → main queue.
+- (BOOL)selectAudioTrack:(NSString *)trackId {
+  AVMediaSelectionGroup *group = [self audibleGroup];
+  if (group == nil) {
+    return NO;
+  }
+  const NSInteger index = trackId.integerValue;
+  if (index < 0 || index >= (NSInteger)group.options.count) {
+    return NO;
+  }
+  AVMediaSelectionOption *option = group.options[(NSUInteger)index];
+  AVPlayerItem *item = _item;
+  VPWOnMain(^{
+    [item selectMediaOption:option inMediaSelectionGroup:group];
+  });
+  return YES;
+}
+
 - (void)dealloc {
   [self teardown];
 }
@@ -408,6 +472,22 @@ VPW_EXPORT
 const char *video_player_watchos_error(int64_t player_id) {
   VPWPlayer *player = VPWGet(player_id);
   return player != nil ? player.errorDescription.UTF8String : "";
+}
+
+VPW_EXPORT
+const char *video_player_watchos_get_audio_tracks(int64_t player_id) {
+  VPWPlayer *player = VPWGet(player_id);
+  return player != nil ? [player audioTracksJSON].UTF8String : "[]";
+}
+
+VPW_EXPORT
+bool video_player_watchos_select_audio_track(int64_t player_id,
+                                             const char *track_id) {
+  VPWPlayer *player = VPWGet(player_id);
+  if (player == nil || track_id == NULL) {
+    return false;
+  }
+  return [player selectAudioTrack:[NSString stringWithUTF8String:track_id]];
 }
 
 VPW_EXPORT

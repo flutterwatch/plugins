@@ -19,6 +19,7 @@
 // successive snapshots into `VideoEvent`s.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ffi' hide Size; // dart:ffi's Size clashes with dart:ui's.
 
 import 'package:ffi/ffi.dart';
@@ -156,6 +157,15 @@ class VideoPlayerWatchosBindings {
       .lookupFunction<Void Function(Bool), void Function(bool)>(
           'video_player_watchos_set_mix_with_others');
 
+  late final Pointer<Utf8> Function(int) _getAudioTracks = _lib!
+      .lookupFunction<Pointer<Utf8> Function(Int64), Pointer<Utf8> Function(int)>(
+          'video_player_watchos_get_audio_tracks');
+
+  late final bool Function(int, Pointer<Utf8>) _selectAudioTrack = _lib!
+      .lookupFunction<Bool Function(Int64, Pointer<Utf8>),
+              bool Function(int, Pointer<Utf8>)>(
+          'video_player_watchos_select_audio_track');
+
   late final void Function() _registerViews = _lib!
       .lookupFunction<Void Function(), void Function()>(
           'video_player_watchos_register_views');
@@ -224,6 +234,21 @@ class VideoPlayerWatchosBindings {
 
   /// Mixes this app's audio with other audio instead of interrupting it.
   void setMixWithOthers(bool mix) => _setMixWithOthers(mix);
+
+  /// The selectable audio tracks as a JSON array string (empty `[]` when the
+  /// video has no audible media-selection group, e.g. a regular MP4).
+  String audioTracksJson(int playerId) =>
+      _getAudioTracks(playerId).toDartString();
+
+  /// Selects an audio track by id; false if it couldn't be applied.
+  bool selectAudioTrack(int playerId, String trackId) {
+    final Pointer<Utf8> cId = trackId.toNativeUtf8();
+    try {
+      return _selectAudioTrack(playerId, cId);
+    } finally {
+      calloc.free(cId);
+    }
+  }
 
   /// Registers the plugin's native SwiftUI view factory with the app runner.
   void registerViews() => _registerViews();
@@ -434,5 +459,38 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
   @override
   Future<void> setMixWithOthers(bool mixWithOthers) async {
     _b.setMixWithOthers(mixWithOthers);
+  }
+
+  @override
+  bool isAudioTrackSupportAvailable() => true;
+
+  @override
+  Future<List<VideoAudioTrack>> getAudioTracks(int playerId) async {
+    // AVFoundation exposes selectable audio only through a media-selection
+    // group (HLS); a regular MP4 has none and returns an empty list — same as
+    // the upstream Apple implementation.
+    Object? decoded;
+    try {
+      decoded = jsonDecode(_b.audioTracksJson(playerId));
+    } on FormatException {
+      return const <VideoAudioTrack>[];
+    }
+    if (decoded is! List) {
+      return const <VideoAudioTrack>[];
+    }
+    return decoded.whereType<Map<String, dynamic>>().map((Map<String, dynamic> t) {
+      final String language = (t['language'] as String?) ?? '';
+      return VideoAudioTrack(
+        id: t['id'] as String? ?? '',
+        label: t['label'] as String?,
+        language: language.isEmpty ? null : language,
+        isSelected: t['isSelected'] as bool? ?? false,
+      );
+    }).toList();
+  }
+
+  @override
+  Future<void> selectAudioTrack(int playerId, String trackId) async {
+    _b.selectAudioTrack(playerId, trackId);
   }
 }

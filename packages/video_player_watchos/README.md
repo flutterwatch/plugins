@@ -37,7 +37,7 @@ explicit imports required from app code.
 | Buffering / play-state / completed events | supported (poll-derived) |
 | `setMixWithOthers` | supported (`AVAudioSession`) |
 | Content URIs | not supported (Android-only concept) |
-| Audio track selection (`getAudioTracks`) | not implemented |
+| Audio track selection (`getAudioTracks` / `selectAudioTrack`) | supported via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS streams (same as the upstream Apple impl) |
 | Subtitles/captions rendering | as upstream: `ClosedCaptionFile` is Dart-side and works; embedded-track selection is not implemented |
 
 Because the video surface is composited by the watch host rather than drawn

@@ -61,6 +61,19 @@ class _FakeBindings extends VideoPlayerWatchosBindings {
   void setMixWithOthers(bool mix) => calls.add('setMixWithOthers($mix)');
   @override
   void registerViews() => calls.add('registerViews()');
+
+  String audioTracksJsonValue = '[]';
+  @override
+  String audioTracksJson(int playerId) {
+    calls.add('audioTracksJson($playerId)');
+    return audioTracksJsonValue;
+  }
+
+  @override
+  bool selectAudioTrack(int playerId, String trackId) {
+    calls.add('selectAudioTrack($playerId, $trackId)');
+    return true;
+  }
 }
 
 WatchosVideoState _state({
@@ -273,6 +286,44 @@ void main() {
       expect(platformView.viewType, VideoPlayerWatchos.viewType);
       expect(platformView.creationParams, '7');
       expect(platformView.layer, WatchPlatformViewLayer.belowFlutter);
+    });
+  });
+
+  group('audio tracks', () {
+    test('support is advertised as available', () {
+      expect(player.isAudioTrackSupportAvailable(), isTrue);
+    });
+
+    test('getAudioTracks is empty for a video with no selection group',
+        () async {
+      fake.audioTracksJsonValue = '[]';
+      expect(await player.getAudioTracks(7), isEmpty);
+    });
+
+    test('getAudioTracks maps the native JSON into VideoAudioTracks',
+        () async {
+      fake.audioTracksJsonValue =
+          '[{"id":"0","label":"English","language":"en","isSelected":true},'
+          '{"id":"1","label":"Español","language":"","isSelected":false}]';
+      final List<VideoAudioTrack> tracks = await player.getAudioTracks(7);
+      expect(tracks, hasLength(2));
+      expect(tracks[0].id, '0');
+      expect(tracks[0].label, 'English');
+      expect(tracks[0].language, 'en');
+      expect(tracks[0].isSelected, isTrue);
+      // An empty language string becomes null (not reported by the platform).
+      expect(tracks[1].language, isNull);
+      expect(tracks[1].isSelected, isFalse);
+    });
+
+    test('malformed native JSON degrades to an empty list', () async {
+      fake.audioTracksJsonValue = 'not json';
+      expect(await player.getAudioTracks(7), isEmpty);
+    });
+
+    test('selectAudioTrack forwards the id to the native side', () async {
+      await player.selectAudioTrack(7, '1');
+      expect(fake.calls, contains('selectAudioTrack(7, 1)'));
     });
   });
 }

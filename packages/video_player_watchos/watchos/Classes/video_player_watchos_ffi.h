@@ -72,6 +72,20 @@ const char* video_player_watchos_error(int64_t player_id);
 // interrupting it. Global (matches the upstream semantics).
 void video_player_watchos_set_mix_with_others(bool mix);
 
+// Selectable audio tracks as a JSON array string
+// (`[{"id","label","language","isSelected"}, …]`), read from the item's
+// AVMediaCharacteristicAudible selection group. Regular MP4s have no such
+// group, so this returns "[]" — same as the upstream Apple implementation;
+// HLS streams expose their alternate audio renditions. Owned by the player,
+// valid until the next call for the same id.
+const char* video_player_watchos_get_audio_tracks(int64_t player_id);
+
+// Selects an audio track by its id (the option index as a string). Returns
+// false for an unknown player, a video with no audible selection group, or an
+// out-of-range id.
+bool video_player_watchos_select_audio_track(int64_t player_id,
+                                             const char* track_id);
+
 // Returns the underlying AVPlayer, RETAINED, as an opaque pointer — consumed
 // by the plugin's Swift view factory. NULL for unknown ids.
 void* video_player_watchos_copy_player(int64_t player_id);

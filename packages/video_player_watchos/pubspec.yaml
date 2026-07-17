@@ -48,5 +48,7 @@ flutter:
           - video_player_watchos_read_state
           - video_player_watchos_error
           - video_player_watchos_set_mix_with_others
+          - video_player_watchos_get_audio_tracks
+          - video_player_watchos_select_audio_track
           - video_player_watchos_copy_player
           - video_player_watchos_register_views
