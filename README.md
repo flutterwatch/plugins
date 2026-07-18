@@ -48,6 +48,10 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
+| [`firebase_core_watchos`](packages/firebase_core_watchos) [![pub](https://img.shields.io/pub/v/firebase_core_watchos.svg)](https://pub.dev/packages/firebase_core_watchos) | [`firebase_core`](https://pub.dev/packages/firebase_core) | Firebase Apple SDK (`FirebaseCore`) |
+| [`firebase_auth_watchos`](packages/firebase_auth_watchos) [![pub](https://img.shields.io/pub/v/firebase_auth_watchos.svg)](https://pub.dev/packages/firebase_auth_watchos) | [`firebase_auth`](https://pub.dev/packages/firebase_auth) | Firebase Apple SDK (`FirebaseAuth`) |
+| [`firebase_storage_watchos`](packages/firebase_storage_watchos) [![pub](https://img.shields.io/pub/v/firebase_storage_watchos.svg)](https://pub.dev/packages/firebase_storage_watchos) | [`firebase_storage`](https://pub.dev/packages/firebase_storage) | Firebase Apple SDK (`FirebaseStorage`) |
+| [`firebase_messaging_watchos`](packages/firebase_messaging_watchos) [![pub](https://img.shields.io/pub/v/firebase_messaging_watchos.svg)](https://pub.dev/packages/firebase_messaging_watchos) | [`firebase_messaging`](https://pub.dev/packages/firebase_messaging) | Firebase Apple SDK (`FirebaseMessaging`) |
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
@@ -77,7 +81,11 @@ These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
 `sqflite` (SQLite), `flutter_tts` (AVFoundation),
 `wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
-general idle-timer disable), and the Firebase family.
+general idle-timer disable), and `cloud_firestore` (the Firebase Apple SDK
+ships Firestore's core as a prebuilt binary with no watchOS slice, so a
+port needs Firebase's from-source Firestore build; the rest of the
+network-viable Firebase family — core, auth, storage, messaging — is
+ported above).
 
 ## Usage
 

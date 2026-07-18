@@ -1,0 +1,36 @@
+name: firebase_auth_example
+description: "watchOS example for firebase_auth_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_auth: any
+  firebase_auth_watchos:
+    path: ../
+  barcode_widget: "^2.0.4"
+  collection: ^1.16.0
+  firebase_core: "^4.12.1"
+  firebase_core_watchos:
+    path: ../../firebase_core_watchos
+  firebase_messaging: "^16.4.3"
+  flutter_facebook_auth: "^7.1.5"
+  flutter_signin_button: "^2.0.0"
+  font_awesome_flutter: "^10.8.0"
+  google_sign_in: "^6.1.0"
+  google_sign_in_dartio: "^0.3.0"
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  http: "^1.0.0"
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

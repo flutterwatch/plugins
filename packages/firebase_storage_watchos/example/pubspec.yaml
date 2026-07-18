@@ -1,0 +1,30 @@
+name: firebase_storage_example
+description: "watchOS example for firebase_storage_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_storage: any
+  firebase_storage_watchos:
+    path: ../
+  firebase_core: "^4.12.1"
+  firebase_core_watchos:
+    path: ../../firebase_core_watchos
+  image_picker: "^1.1.2"
+  image_picker_for_web: "^3.0.5"
+  web: "^1.0.0"
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
