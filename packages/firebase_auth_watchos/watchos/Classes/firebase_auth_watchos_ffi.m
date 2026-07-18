@@ -109,10 +109,18 @@ static NSMutableDictionary<NSString *, FAWState *> *FAWStates(void) {
     return states;
 }
 
+// Normalizes a Dart app name to the state-registry key. FAWAuth (listener
+// install) and FAWStateFor (lookup) must key identically.
+static NSString *FAWStateKey(NSString *dartName) {
+    return (dartName.length == 0 || [dartName isEqualToString:kDartDefaultName])
+        ? kDartDefaultName
+        : dartName;
+}
+
 // Resolves the FIRAuth for a Dart app name (installing the change listeners
 // on first use), or nil with `*errorOut` set if the app is not configured.
 static FIRAuth *FAWAuth(NSString *dartName, NSDictionary **errorOut) {
-    BOOL isDefault = dartName.length == 0 || [dartName isEqualToString:kDartDefaultName];
+    BOOL isDefault = [FAWStateKey(dartName) isEqualToString:kDartDefaultName];
     FIRApp *app = isDefault ? [FIRApp defaultApp] : [FIRApp appNamed:dartName];
     if (app == nil) {
         if (errorOut != NULL) {
@@ -123,7 +131,7 @@ static FIRAuth *FAWAuth(NSString *dartName, NSDictionary **errorOut) {
         return nil;
     }
     FIRAuth *auth = [FIRAuth authWithApp:app];
-    NSString *key = isDefault ? kDartDefaultName : dartName;
+    NSString *key = FAWStateKey(dartName);
     NSMutableDictionary<NSString *, FAWState *> *states = FAWStates();
     @synchronized(states) {
         if (states[key] == nil) {
@@ -143,9 +151,7 @@ static FIRAuth *FAWAuth(NSString *dartName, NSDictionary **errorOut) {
 }
 
 static FAWState *FAWStateFor(NSString *dartName) {
-    NSString *key = (dartName.length == 0 || [dartName isEqualToString:kDartDefaultName])
-        ? kDartDefaultName
-        : dartName;
+    NSString *key = FAWStateKey(dartName);
     NSMutableDictionary<NSString *, FAWState *> *states = FAWStates();
     @synchronized(states) {
         return states[key];

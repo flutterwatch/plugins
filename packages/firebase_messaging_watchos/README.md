@@ -26,8 +26,9 @@ platform interface's `onMessage` / `onMessageOpenedApp` streams.
 
 Firebase Cloud Messaging needs the APNs device token, which watchOS delivers
 only through the app-level `WKApplicationDelegate`. The `flutter-watchos`
-runner ships a `FlutterWatchOSAppDelegate` that rebroadcasts the
-remote-notification callbacks; adopt it in your `App`:
+runner ships a `FlutterWatchOSAppDelegate` that owns the notification
+delegates and rebroadcasts the remote-notification and user-notification
+callbacks to plugins; adopt it in your `App`:
 
 ```swift
 @WKApplicationDelegateAdaptor(FlutterWatchOSAppDelegate.self)

@@ -222,14 +222,18 @@ class FirebaseCoreWatchos extends FirebasePlatform {
     );
   }
 
-  void _throwIfError(Map<String, Object?> result) {
-    if (result.containsKey('error')) {
-      throw FirebaseException(
-        plugin: 'core',
-        code: result['code'] as String? ?? 'unknown',
-        message: result['error'] as String?,
-      );
-    }
+  void _throwIfError(Map<String, Object?> result) => _throwIfErrorResult(result);
+}
+
+// The plugin's single error contract: a native result map carrying an
+// "error" key becomes a FirebaseException.
+void _throwIfErrorResult(Map<String, Object?> result) {
+  if (result.containsKey('error')) {
+    throw FirebaseException(
+      plugin: 'core',
+      code: result['code'] as String? ?? 'unknown',
+      message: result['error'] as String?,
+    );
   }
 }
 
@@ -257,13 +261,7 @@ class FirebaseAppWatchos extends FirebaseAppPlatform {
   @override
   Future<void> setAutomaticDataCollectionEnabled(bool enabled) async {
     final Map<String, Object?> result = _bindings.setAutoDataCollection(name, enabled);
-    if (result.containsKey('error')) {
-      throw FirebaseException(
-        plugin: 'core',
-        code: result['code'] as String? ?? 'unknown',
-        message: result['error'] as String?,
-      );
-    }
+    _throwIfErrorResult(result);
     _isAutomaticDataCollectionEnabled = enabled;
   }
 

@@ -366,23 +366,59 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
     );
   }
 
-  // A fresh stream per call, matching FlutterFire semantics: emits the
-  // current user immediately, then again whenever the watched generation
-  // moves. The generation is bumped natively by the SDK's listeners; the
-  // poll timer stops as soon as the subscription is cancelled.
-  Stream<UserPlatform?> _watch(int Function(_AuthSnapshot) generationOf) {
-    late StreamController<UserPlatform?> controller;
-    Timer? timer;
-    int? lastGeneration;
-    void poll() {
-      final _AuthSnapshot snapshot;
-      try {
-        snapshot = _snapshot();
-      } on Object catch (error, stackTrace) {
-        controller.addError(error, stackTrace);
+  // One shared poll loop per platform instance feeds every active
+  // change-stream subscription: N listeners cost one native snapshot per
+  // interval, not N. The timer runs only while a subscription exists.
+  final Set<void Function(_AuthSnapshot?, Object?, StackTrace?)>
+      _pollSubscribers = <void Function(_AuthSnapshot?, Object?, StackTrace?)>{};
+  Timer? _pollTimer;
+  String? _lastPollErrorSignature;
+
+  // When [target] is set, delivers only to it (the immediate first emit for
+  // a new subscription) — bypassing the error dedup so a late listener still
+  // observes the current failure state.
+  void _pollOnce({void Function(_AuthSnapshot?, Object?, StackTrace?)? target}) {
+    final List<void Function(_AuthSnapshot?, Object?, StackTrace?)> targets =
+        target != null
+            ? <void Function(_AuthSnapshot?, Object?, StackTrace?)>[target]
+            : List<void Function(_AuthSnapshot?, Object?, StackTrace?)>.of(
+                _pollSubscribers);
+    final _AuthSnapshot snapshot;
+    try {
+      snapshot = _snapshot();
+    } on Object catch (error, stackTrace) {
+      // Deliver a given failure once, not once per tick: the pre-initializeApp
+      // "no app" state would otherwise flood the stream every poll interval.
+      final String signature = error.toString();
+      if (target == null && signature == _lastPollErrorSignature) {
         return;
       }
-      final int generation = generationOf(snapshot);
+      _lastPollErrorSignature = signature;
+      for (final void Function(_AuthSnapshot?, Object?, StackTrace?) deliver
+          in targets) {
+        deliver(null, error, stackTrace);
+      }
+      return;
+    }
+    _lastPollErrorSignature = null;
+    for (final void Function(_AuthSnapshot?, Object?, StackTrace?) deliver
+        in targets) {
+      deliver(snapshot, null, null);
+    }
+  }
+
+  // A fresh stream per call, matching FlutterFire semantics: emits the
+  // current user immediately, then again whenever the watched generation
+  // moves. The generation is bumped natively by the SDK's listeners.
+  Stream<UserPlatform?> _watch(int Function(_AuthSnapshot) generationOf) {
+    late StreamController<UserPlatform?> controller;
+    int? lastGeneration;
+    void onPoll(_AuthSnapshot? snapshot, Object? error, StackTrace? stackTrace) {
+      if (error != null) {
+        controller.addError(error, stackTrace!);
+        return;
+      }
+      final int generation = generationOf(snapshot!);
       if (generation != lastGeneration) {
         lastGeneration = generation;
         controller.add(snapshot.user);
@@ -391,12 +427,18 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
 
     controller = StreamController<UserPlatform?>(
       onListen: () {
-        poll();
-        timer = Timer.periodic(streamPollInterval, (_) => poll());
+        _pollSubscribers.add(onPoll);
+        _pollTimer ??=
+            Timer.periodic(streamPollInterval, (_) => _pollOnce());
+        _pollOnce(target: onPoll);
       },
       onCancel: () {
-        timer?.cancel();
-        timer = null;
+        _pollSubscribers.remove(onPoll);
+        if (_pollSubscribers.isEmpty) {
+          _pollTimer?.cancel();
+          _pollTimer = null;
+          _lastPollErrorSignature = null;
+        }
       },
     );
     return controller.stream;

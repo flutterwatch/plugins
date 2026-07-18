@@ -389,9 +389,15 @@ class ListResultWatchos extends ListResultPlatform {
 class TaskSnapshotWatchos extends TaskSnapshotPlatform {
   /// Wraps one native snapshot of a running task.
   TaskSnapshotWatchos(this._ref, TaskState state, Map<String, dynamic> data)
-      : super(state, data);
+      : _raw = data,
+        super(state, data);
 
   final ReferencePlatform _ref;
+
+  // The decoded native snapshot this instance was built from; error details
+  // are read from here so a failure is reported from the same state that
+  // triggered it.
+  final Map<String, dynamic> _raw;
 
   @override
   ReferencePlatform get ref => _ref;
@@ -489,9 +495,7 @@ class TaskWatchos extends TaskPlatform {
   }
 
   FirebaseException _taskException(TaskSnapshotWatchos snapshot) {
-    final Map<String, Object?> map =
-        FirebaseStorageWatchos._b.taskSnapshot(_taskId);
-    final Object? error = map['error'];
+    final Object? error = snapshot._raw['error'];
     if (error is Map) {
       return FirebaseException(
         plugin: 'firebase_storage',
@@ -507,41 +511,26 @@ class TaskWatchos extends TaskPlatform {
 
   @override
   Future<TaskSnapshotPlatform> get onComplete {
-    return _onComplete ??= () async {
-      while (true) {
-        final TaskSnapshotWatchos current = _snapshotNow();
-        if (_isTerminal(current.state)) {
-          if (current.state == TaskState.success) {
-            return current;
-          }
-          throw _taskException(current);
-        }
-        await Future<void>.delayed(FirebaseStorageWatchos.opPollInterval);
-      }
-    }();
+    // snapshotEvents runs the poll-until-terminal loop: it emits the final
+    // success snapshot as its last data event, or the mapped
+    // FirebaseException for error/canceled, then closes — so `.last` is
+    // exactly onComplete's contract.
+    return _onComplete ??= snapshotEvents.last;
   }
 
-  @override
-  Future<bool> pause() async {
+  Future<bool> _control(String action) async {
     final Map<String, Object?> result =
-        FirebaseStorageWatchos._b.taskControl(_taskId, 'pause');
+        FirebaseStorageWatchos._b.taskControl(_taskId, action);
     FirebaseStorageWatchos._throwIfError(result);
     return result['value'] == true;
   }
 
   @override
-  Future<bool> resume() async {
-    final Map<String, Object?> result =
-        FirebaseStorageWatchos._b.taskControl(_taskId, 'resume');
-    FirebaseStorageWatchos._throwIfError(result);
-    return result['value'] == true;
-  }
+  Future<bool> pause() => _control('pause');
 
   @override
-  Future<bool> cancel() async {
-    final Map<String, Object?> result =
-        FirebaseStorageWatchos._b.taskControl(_taskId, 'cancel');
-    FirebaseStorageWatchos._throwIfError(result);
-    return result['value'] == true;
-  }
+  Future<bool> resume() => _control('resume');
+
+  @override
+  Future<bool> cancel() => _control('cancel');
 }

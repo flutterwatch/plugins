@@ -151,6 +151,12 @@ class FirebaseMessagingWatchos extends FirebaseMessagingPlatform {
   static void startMessagePump() {
     _messagePump?.cancel();
     _messagePump = Timer.periodic(messagePumpInterval, (_) {
+      // Skip the FFI round-trips while nothing listens; undrained messages
+      // just accumulate natively and are delivered on the first listen.
+      if (!FirebaseMessagingPlatform.onMessage.hasListener &&
+          !FirebaseMessagingPlatform.onMessageOpenedApp.hasListener) {
+        return;
+      }
       for (final Object? map in _drain('foreground')) {
         if (map is Map) {
           FirebaseMessagingPlatform.onMessage

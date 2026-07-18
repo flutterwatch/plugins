@@ -56,6 +56,25 @@ static const char *FSWCopyError(NSString *message, NSString *code) {
     return FSWCopy(FSWSimpleError(message, code));
 }
 
+// Parses a request-JSON C string into a dictionary. On failure returns nil
+// and sets *errorOut to a heap-allocated error response for the caller to
+// return as-is.
+static NSDictionary *FSWParseRequest(const char *request_json,
+                                     const char **errorOut) {
+    if (request_json == NULL) {
+        *errorOut = FSWCopyError(@"Request JSON is null.", @"invalid-argument");
+        return nil;
+    }
+    NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *request =
+        [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if (![request isKindOfClass:[NSDictionary class]]) {
+        *errorOut = FSWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        return nil;
+    }
+    return request;
+}
+
 #pragma mark - Errors
 
 // Maps a FIRStorageErrorDomain NSError to the FlutterFire string code. The
@@ -281,8 +300,17 @@ static void FSWUpdateTask(int64_t taskId,
     map[@"bytesTransferred"] = @(snapshot.progress.completedUnitCount);
     map[@"totalBytes"] = @(snapshot.progress.totalUnitCount);
     [map addEntriesFromDictionary:extra ?: @{}];
+    BOOL terminal = [state isEqualToString:@"success"] ||
+        [state isEqualToString:@"error"] || [state isEqualToString:@"canceled"];
     @synchronized(FSWTasks()) {
         entry.snapshot = map;
+        if (terminal) {
+            // Release the SDK task (and, for uploads, the retained payload
+            // NSData) as soon as the final snapshot is recorded; only the
+            // small snapshot dict stays behind for late reads. Controls on
+            // a finished task become no-ops, which they effectively were.
+            entry.task = nil;
+        }
     }
 }
 
@@ -399,14 +427,10 @@ static BOOL FSWStartOp(NSString *op,
 
 const char *firebase_storage_watchos_begin(const char *request_json) {
     @autoreleasepool {
-        if (request_json == NULL) {
-            return FSWCopyError(@"Request JSON is null.", @"invalid-argument");
-        }
-        NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *request =
-            [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![request isKindOfClass:[NSDictionary class]]) {
-            return FSWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        const char *parseError = NULL;
+        NSDictionary *request = FSWParseRequest(request_json, &parseError);
+        if (request == nil) {
+            return parseError;
         }
         NSString *op = FSWStr(request, @"op");
         if (op == nil) {
@@ -437,14 +461,10 @@ const char *firebase_storage_watchos_poll(int64_t token) {
 
 const char *firebase_storage_watchos_task_start(const char *request_json) {
     @autoreleasepool {
-        if (request_json == NULL) {
-            return FSWCopyError(@"Request JSON is null.", @"invalid-argument");
-        }
-        NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *request =
-            [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![request isKindOfClass:[NSDictionary class]]) {
-            return FSWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        const char *parseError = NULL;
+        NSDictionary *request = FSWParseRequest(request_json, &parseError);
+        if (request == nil) {
+            return parseError;
         }
         NSDictionary *error = nil;
         FIRStorageReference *ref = FSWRef(request, &error);
@@ -547,14 +567,10 @@ const char *firebase_storage_watchos_task_control(int64_t task_id,
 
 const char *firebase_storage_watchos_configure(const char *request_json) {
     @autoreleasepool {
-        if (request_json == NULL) {
-            return FSWCopyError(@"Request JSON is null.", @"invalid-argument");
-        }
-        NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *request =
-            [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![request isKindOfClass:[NSDictionary class]]) {
-            return FSWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        const char *parseError = NULL;
+        NSDictionary *request = FSWParseRequest(request_json, &parseError);
+        if (request == nil) {
+            return parseError;
         }
         NSDictionary *error = nil;
         FIRStorage *storage = FSWStorage(request, &error);

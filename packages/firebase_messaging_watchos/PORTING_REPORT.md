@@ -23,15 +23,22 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 The one iOS API with no drop-in watchOS equivalent was `UIApplication`, which
 FlutterFire uses to register for remote notifications and to receive the APNs
 device token + notification payloads. On watchOS those callbacks are delivered
-only to an app-level `WKApplicationDelegate`.
+only to an app-level `WKApplicationDelegate` — and `UNUserNotificationCenter`
+has a single process-global delegate slot no plugin should claim for itself.
 
-To bridge this without coupling the plugin to any app, the `flutter-watchos`
-runner ships a `FlutterWatchOSAppDelegate` that rebroadcasts the
-remote-notification callbacks (`didRegisterForRemoteNotifications`,
-`didFailToRegister…`, `didReceiveRemoteNotification`) as `NSNotification`s. This
-plugin observes them by name (no compile-time dependency on the runner), hands
-the APNs token to `FIRMessaging`, and queues received payloads. Apps adopt the
-delegate with a one-liner (current templates include it automatically):
+Both are owned by the `flutter-watchos` runner's `FlutterWatchOSAppDelegate`,
+which rebroadcasts every callback (`didRegisterForRemoteNotifications`,
+`didFailToRegister…`, `didReceiveRemoteNotification`, plus the notification
+center's `willPresent`/`didReceiveResponse`) as `NSNotification`s. This plugin
+observes them by name (no compile-time dependency on the runner), hands the
+APNs token to `FIRMessaging`, queues received payloads (deduplicated by
+message id — a notification+`content-available` push arrives via two
+callbacks), and answers the foreground-presentation query through a mutable
+options box in the notification's userInfo. Callbacks that fire before the
+plugin's first FFI call (an at-launch token, the launching tap) are buffered
+by the runner and replayed once the plugin posts its observers-ready
+notification. Apps adopt the delegate with a one-liner (current templates
+include it automatically):
 
 ```swift
 @WKApplicationDelegateAdaptor(FlutterWatchOSAppDelegate.self)

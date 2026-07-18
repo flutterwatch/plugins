@@ -23,6 +23,14 @@ static NSString *const kDidFailNotification =
     @"FlutterWatchOSRemoteNotificationsDidFail";
 static NSString *const kDidReceiveNotification =
     @"FlutterWatchOSRemoteNotificationDidReceive";
+static NSString *const kWillPresentNotification =
+    @"FlutterWatchOSNotificationWillPresent";
+static NSString *const kDidReceiveResponseNotification =
+    @"FlutterWatchOSNotificationDidReceiveResponse";
+// Posted back to the runner once this plugin's observers are installed; the
+// runner then replays any callbacks that fired before the plugin started.
+static NSString *const kObserversReadyNotification =
+    @"FlutterWatchOSRemoteNotificationObserversReady";
 
 #pragma mark - JSON helpers
 
@@ -62,6 +70,25 @@ static NSDictionary *FMWSimpleError(NSString *message, NSString *code) {
 
 static const char *FMWCopyError(NSString *message, NSString *code) {
     return FMWCopy(FMWSimpleError(message, code));
+}
+
+// Parses a request-JSON C string into a dictionary. On failure returns nil
+// and sets *errorOut to a heap-allocated error response for the caller to
+// return as-is.
+static NSDictionary *FMWParseRequest(const char *request_json,
+                                     const char **errorOut) {
+    if (request_json == NULL) {
+        *errorOut = FMWCopyError(@"Request JSON is null.", @"invalid-argument");
+        return nil;
+    }
+    NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *request =
+        [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if (![request isKindOfClass:[NSDictionary class]]) {
+        *errorOut = FMWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        return nil;
+    }
+    return request;
 }
 
 static NSDictionary *FMWErrorDict(NSError *error) {
@@ -132,16 +159,20 @@ static NSDictionary *FMWMessageFromPayload(NSDictionary *userInfo) {
 
 #pragma mark - Shared state
 
-// Central plugin state: APNs/FCM token tracking (fed by the runner-delegate
-// notifications and the FIRMessaging delegate) and the received-message
-// queues (fed by the UNUserNotificationCenter delegate).
-@interface FMWState : NSObject <FIRMessagingDelegate, UNUserNotificationCenterDelegate>
+// Central plugin state: APNs/FCM token tracking and the received-message
+// queues. All app-level callbacks (APNs registration, incoming payloads,
+// foreground presentation, notification taps) arrive as NSNotifications
+// rebroadcast by the runner's FlutterWatchOSAppDelegate — the runner owns
+// the process-global WKApplicationDelegate and UNUserNotificationCenter
+// delegate slots so that no single plugin claims them.
+@interface FMWState : NSObject <FIRMessagingDelegate>
 @property(atomic, assign) int64_t tokenGeneration;
 @property(atomic, copy) NSString *fcmToken;
 @property(atomic, copy) NSData *apnsToken;
 @property(atomic, copy) NSString *apnsError;
 @property(nonatomic, strong) NSMutableArray<NSDictionary *> *foregroundMessages;
 @property(nonatomic, strong) NSMutableArray<NSDictionary *> *openedMessages;
+@property(nonatomic, strong) NSMutableOrderedSet<NSString *> *seenMessageIds;
 @property(nonatomic, strong) NSDictionary *initialMessage;
 @property(atomic, assign) UNNotificationPresentationOptions presentationOptions;
 @property(nonatomic, strong) NSDate *startedAt;
@@ -156,6 +187,7 @@ static NSDictionary *FMWMessageFromPayload(NSDictionary *userInfo) {
         shared = [[FMWState alloc] init];
         shared.foregroundMessages = [NSMutableArray array];
         shared.openedMessages = [NSMutableArray array];
+        shared.seenMessageIds = [NSMutableOrderedSet orderedSet];
         shared.presentationOptions = UNNotificationPresentationOptionNone;
         shared.startedAt = [NSDate date];
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
@@ -171,9 +203,41 @@ static NSDictionary *FMWMessageFromPayload(NSDictionary *userInfo) {
                    selector:@selector(onDidReceive:)
                        name:kDidReceiveNotification
                      object:nil];
-        [UNUserNotificationCenter currentNotificationCenter].delegate = shared;
+        [center addObserver:shared
+                   selector:@selector(onWillPresent:)
+                       name:kWillPresentNotification
+                     object:nil];
+        [center addObserver:shared
+                   selector:@selector(onDidReceiveResponse:)
+                       name:kDidReceiveResponseNotification
+                     object:nil];
+        // Ask the runner to replay any callbacks that fired before these
+        // observers existed (at-launch APNs token, wake-up payloads).
+        [center postNotificationName:kObserversReadyNotification object:nil];
     });
     return shared;
+}
+
+// Appends a foreground message unless a message with the same id was already
+// queued: a push that carries both a notification block and
+// content-available arrives via BOTH the remote-notification rebroadcast and
+// the will-present rebroadcast.
+- (void)enqueueForegroundMessage:(NSDictionary *)message {
+    @synchronized(self) {
+        NSString *messageId = [message[@"messageId"] isKindOfClass:[NSString class]]
+            ? message[@"messageId"]
+            : nil;
+        if (messageId != nil) {
+            if ([self.seenMessageIds containsObject:messageId]) {
+                return;
+            }
+            [self.seenMessageIds addObject:messageId];
+            while (self.seenMessageIds.count > 32) {
+                [self.seenMessageIds removeObjectAtIndex:0];
+            }
+        }
+        [self.foregroundMessages addObject:message];
+    }
 }
 
 - (void)onDidRegister:(NSNotification *)notification {
@@ -200,36 +264,27 @@ static NSDictionary *FMWMessageFromPayload(NSDictionary *userInfo) {
     if (payload == nil) {
         return;
     }
-    @synchronized(self) {
-        [self.foregroundMessages addObject:FMWMessageFromPayload(payload)];
+    [self enqueueForegroundMessage:FMWMessageFromPayload(payload)];
+}
+
+- (void)onWillPresent:(NSNotification *)notification {
+    NSDictionary *payload = notification.userInfo[@"payload"];
+    if ([payload isKindOfClass:[NSDictionary class]]) {
+        [self enqueueForegroundMessage:FMWMessageFromPayload(payload)];
+    }
+    // The runner reads the combined options out of this box after the post
+    // returns and hands them to the system's completion handler.
+    NSMutableDictionary *options = notification.userInfo[@"options"];
+    if ([options isKindOfClass:[NSMutableDictionary class]]) {
+        options[@"options"] = @((unsigned long)self.presentationOptions);
     }
 }
 
-// FIRMessagingDelegate ----------------------------------------------------
-
-- (void)messaging:(FIRMessaging *)messaging
-    didReceiveRegistrationToken:(NSString *)fcmToken {
-    self.fcmToken = fcmToken;
-    self.tokenGeneration += 1;
-}
-
-// UNUserNotificationCenterDelegate ---------------------------------------
-
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center
-       willPresentNotification:(UNNotification *)notification
-         withCompletionHandler:
-             (void (^)(UNNotificationPresentationOptions))completionHandler {
-    NSDictionary *payload = notification.request.content.userInfo;
-    @synchronized(self) {
-        [self.foregroundMessages addObject:FMWMessageFromPayload(payload)];
+- (void)onDidReceiveResponse:(NSNotification *)notification {
+    NSDictionary *payload = notification.userInfo[@"payload"];
+    if (![payload isKindOfClass:[NSDictionary class]]) {
+        return;
     }
-    completionHandler(self.presentationOptions);
-}
-
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center
-    didReceiveNotificationResponse:(UNNotificationResponse *)response
-             withCompletionHandler:(void (^)(void))completionHandler {
-    NSDictionary *payload = response.notification.request.content.userInfo;
     NSDictionary *message = FMWMessageFromPayload(payload);
     @synchronized(self) {
         // A tap that arrives right after process start launched the app: that
@@ -242,7 +297,14 @@ static NSDictionary *FMWMessageFromPayload(NSDictionary *userInfo) {
             [self.openedMessages addObject:message];
         }
     }
-    completionHandler();
+}
+
+// FIRMessagingDelegate ----------------------------------------------------
+
+- (void)messaging:(FIRMessaging *)messaging
+    didReceiveRegistrationToken:(NSString *)fcmToken {
+    self.fcmToken = fcmToken;
+    self.tokenGeneration += 1;
 }
 
 @end
@@ -426,14 +488,10 @@ static BOOL FMWStartOp(NSString *op,
 const char *firebase_messaging_watchos_begin(const char *request_json) {
     @autoreleasepool {
         [FMWState shared];
-        if (request_json == NULL) {
-            return FMWCopyError(@"Request JSON is null.", @"invalid-argument");
-        }
-        NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *request =
-            [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![request isKindOfClass:[NSDictionary class]]) {
-            return FMWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        const char *parseError = NULL;
+        NSDictionary *request = FMWParseRequest(request_json, &parseError);
+        if (request == nil) {
+            return parseError;
         }
         NSString *op = FMWStr(request, @"op");
         if (op == nil) {
@@ -501,14 +559,10 @@ const char *firebase_messaging_watchos_take_messages(const char *kind) {
 const char *firebase_messaging_watchos_configure(const char *request_json) {
     @autoreleasepool {
         [FMWState shared];
-        if (request_json == NULL) {
-            return FMWCopyError(@"Request JSON is null.", @"invalid-argument");
-        }
-        NSData *data = [@(request_json) dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *request =
-            [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![request isKindOfClass:[NSDictionary class]]) {
-            return FMWCopyError(@"Request JSON is malformed.", @"invalid-argument");
+        const char *parseError = NULL;
+        NSDictionary *request = FMWParseRequest(request_json, &parseError);
+        if (request == nil) {
+            return parseError;
         }
         NSString *op = FMWStr(request, @"op") ?: @"";
         if ([op isEqualToString:@"registerForRemoteNotifications"]) {
