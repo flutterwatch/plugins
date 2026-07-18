@@ -154,6 +154,40 @@ Two watchOS gotchas these surfaced:
   paths on a physical watch. Also gate the interactive test cases so they can't
   hang the suite (they present system UI with no one to answer).
 
+## 2d. Linking an external native SDK (SwiftPM)
+
+A plugin can depend on an external native SDK by declaring it in
+`watchos/Package.swift` like any SwiftPM package: add the `.package(url:)`
+dependency and the `.product` to the target, and list the system
+frameworks/libraries the SDK needs under `linkerSettings`. The
+`flutter-watchos` CLI resolves and builds the package graph with
+xcodebuild's SwiftPM, harvests the resulting objects (deduplicating
+modules shared between plugins, e.g. `FirebaseCore`/`GoogleUtilities`
+across the `firebase_*_watchos` family), and force-loads them into the
+app — no CocoaPods, no manual Xcode configuration.
+
+Constraints:
+
+- The SDK must **build from source for watchOS** — its manifest declares
+  `.watchOS(…)` and every product you pull in compiles for the watch. A
+  product that wraps a prebuilt `.binaryTarget` without a watchOS slice
+  cannot link (this is what blocks `cloud_firestore`).
+- Only name system frameworks that exist on watchOS in `linkerSettings`
+  (e.g. `SystemConfiguration` does not).
+- SDK calls are network-backed and asynchronous — bridge them with a
+  **begin/poll token pattern**: `begin(requestJSON)` starts the operation
+  and returns a token, `poll(token)` reports pending/done-with-result, and
+  the Dart side polls on a short `Timer`. See `firebase_auth_watchos` for
+  the canonical shape.
+- A plugin that needs **app-level `WKApplicationDelegate` callbacks**
+  (remote notifications) observes the `NSNotification`s the
+  `flutter-watchos` runner's `FlutterWatchOSAppDelegate` rebroadcasts —
+  by literal name, no compile-time coupling. See `firebase_messaging_watchos`
+  and the flutter-watchos plugins doc for the notification names.
+
+The four `firebase_*_watchos` packages (core, auth, storage, messaging)
+are worked examples of all of the above.
+
 ## 3. Verify
 
 ```sh

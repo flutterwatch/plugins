@@ -81,7 +81,11 @@ These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
 `sqflite` (SQLite), `flutter_tts` (AVFoundation),
 `wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
-general idle-timer disable), and the Firebase family.
+general idle-timer disable), and `cloud_firestore` (the Firebase Apple SDK
+ships Firestore's core as a prebuilt binary with no watchOS slice, so a
+port needs Firebase's from-source Firestore build; the rest of the
+network-viable Firebase family — core, auth, storage, messaging — is
+ported above).
 
 ## Usage
 
