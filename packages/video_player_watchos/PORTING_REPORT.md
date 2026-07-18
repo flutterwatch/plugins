@@ -5,7 +5,7 @@
 | Aspect | Result |
 |---|---|
 | Implementation | ✅ Working (FFI + native platform view) |
-| watchOS capability | Partial — no content URIs (Android-only) |
+| watchOS capability | Partial — no content URIs (Android-only); AVKit draws its own chrome while paused (see below) |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim (`video_player_test.dart` on the watch simulator) |
 | Internal unified demo | ✅ included |
@@ -64,3 +64,26 @@ flutter-watchos provides.
 
 Written by hand against `video_player_platform_interface`. FFI federated
 model — no dart:ffi native-assets, no Flutter patching.
+
+## AVKit's paused chrome cannot be suppressed
+
+While the player is paused, watchOS draws a *Done* button, remaining time, a
+play glyph and a scrubber over the video, even though the app drives playback
+from Dart. There is no supported way to remove it, confirmed against the
+watchOS 26.5 SDK:
+
+- SwiftUI's `VideoPlayer` is the platform's only video surface. watchOS AVKit
+  exports no Objective-C classes at all (no `AVPlayerViewController`), and
+  `AVPlayerLayer`, `AVPlayerItemVideoOutput`, `AVAssetImageGenerator` and
+  `AVAssetReader` are each `API_UNAVAILABLE(watchos)` — so there is neither an
+  alternative renderer nor any way to obtain decoded frames and draw the video
+  through Flutter instead.
+- `VideoPlayer`'s watchOS interface exposes no controls-hiding modifier, and
+  the chrome tracks `timeControlStatus` rather than touch input:
+  `.disabled(true)` + `.allowsHitTesting(false)` were measured on the
+  simulator and produced a pixel-identical paused frame.
+
+Options if an app cannot tolerate the chrome, both of which trade something
+away and so are left to the app: keep the media playing (the chrome auto-hides
+during playback), or have the plugin blank the native surface while paused so
+Flutter can draw its own paused state — which loses the frozen video frame.

@@ -46,6 +46,28 @@ axis-aligned (no `Transform` rotations of the video itself), and widgets that
 rely on snapshotting the scene (e.g. screenshot-based golden tests) capture
 the UI hole, not the video pixels.
 
+### Paused playback shows AVKit's controls
+
+While the video is **paused**, watchOS draws its own playback chrome over the
+video surface — a *Done* button, the remaining time, a play glyph and a
+scrubber — even when your app drives playback entirely from Dart. This is a
+platform limitation, not a plugin choice, and there is currently no way to
+turn it off:
+
+- SwiftUI's `VideoPlayer` is the *only* video surface watchOS offers. watchOS
+  AVKit exports no `AVPlayerViewController` (it has no Objective-C classes at
+  all), and `AVPlayerLayer`, `AVPlayerItemVideoOutput`,
+  `AVAssetImageGenerator` and `AVAssetReader` are all
+  `API_UNAVAILABLE(watchos)` — so there is no alternative renderer and no way
+  to obtain decoded frames to draw the video yourself.
+- `VideoPlayer` exposes no controls-hiding modifier on watchOS, and the chrome
+  follows the player's `timeControlStatus`, so `.disabled(true)` and
+  `.allowsHitTesting(false)` do not suppress it (verified on-device-class
+  simulator).
+
+The chrome auto-hides again as soon as playback resumes, so it only affects
+the paused state.
+
 > **Simulator note:** simulators play video without sound routing
 > peculiarities; on a physical Apple Watch, audio follows the system's audio
 > route (Bluetooth headphones or the built-in speaker, per watchOS rules).

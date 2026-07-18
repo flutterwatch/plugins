@@ -28,9 +28,20 @@ public func videoPlayerWatchosRegisterViews() {
             return AnyView(EmptyView())
         }
         let player = Unmanaged<AVPlayer>.fromOpaque(raw).takeRetainedValue()
-        // Bare video surface. The Dart side embeds it in the underlay layer
-        // (below the Flutter frame), so Flutter draws controls/overlays over
-        // the video and owns every touch — AVKit's own chrome never engages.
+        // The Dart side embeds this in the underlay layer (below the Flutter
+        // frame), so Flutter draws its own controls over the video and owns
+        // every touch.
+        //
+        // Caveat: AVKit still draws its own chrome (Done button, remaining
+        // time, play glyph, scrubber) whenever the player is PAUSED, and
+        // watchOS offers no way to suppress it — SwiftUI's `VideoPlayer` is
+        // the platform's only video surface (AVPlayerLayer,
+        // AVPlayerItemVideoOutput, AVAssetImageGenerator and AVAssetReader
+        // are all API_UNAVAILABLE(watchos), and watchOS AVKit exports no
+        // AVPlayerViewController), and it exposes no controls-hiding
+        // modifier. `.disabled(true)` / `.allowsHitTesting(false)` do not
+        // change it — the chrome is driven by timeControlStatus, not touch.
+        // See README "Paused playback shows AVKit's controls".
         return AnyView(VideoPlayer(player: player))
     }
 }
