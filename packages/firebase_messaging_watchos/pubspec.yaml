@@ -10,6 +10,14 @@ topics:
   - firebase
   - notifications
 
+# The example app is FlutterFire's upstream example verbatim, including its
+# firebase_options.dart. Those identifiers belong to Google's public
+# `flutterfire-e2e-tests` demo project, not to a FlutterWatch project, and are
+# client-side config rather than secrets.
+false_secrets:
+  - /example/lib/firebase_options.dart
+  - /example/lib/main.dart
+
 environment:
   sdk: ">=3.0.0 <4.0.0"
   flutter: ">=3.13.0"
