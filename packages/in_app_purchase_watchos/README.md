@@ -36,6 +36,25 @@ error until they land):
 The native StoreKit code is verified against the API; on-device verification
 needs an App Store Connect product configuration and a sandbox account.
 
+## Example
+
+`example/` is the upstream `in_app_purchase` example app (its demo UI and
+official `integration_test/`), ported to watchOS with a runner via
+`flutter-watchos plugin port --include-example`. Run it on a watch simulator:
+
+```sh
+cd example
+flutter-watchos drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/in_app_purchase_test.dart \
+  -d <watch-sim>
+```
+
+The demo exercises the full purchasing flow, so parts that depend on the
+not-yet-implemented methods (buy, restore) will surface the platform
+interface's "unimplemented" error until those slices land; product lookup
+works today.
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

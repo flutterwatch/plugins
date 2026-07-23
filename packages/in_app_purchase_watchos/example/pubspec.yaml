@@ -1,0 +1,27 @@
+name: in_app_purchase_example
+description: "watchOS example for in_app_purchase_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  in_app_purchase: any
+  in_app_purchase_watchos:
+    path: ../
+  in_app_purchase_android: "^0.5.0"
+  in_app_purchase_storekit: "^0.4.0"
+  shared_preferences: "^2.0.0"
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
