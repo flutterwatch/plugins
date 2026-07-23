@@ -40,7 +40,44 @@ class _FakeBindings extends InAppPurchaseWatchosBindings {
 
   @override
   void queryRelease(int handle) => releaseCount++;
+
+  // --- purchase flow ---
+  bool buyResult = true;
+  int startObserverCalls = 0;
+  List<Object?>? lastBuy;
+  String? lastFinish;
+  String? lastRestore;
+  final List<String> drainScript = <String>[];
+
+  @override
+  void purchasesStart() => startObserverCalls++;
+
+  @override
+  bool buy(String productId, String applicationUsername, int quantity) {
+    lastBuy = <Object?>[productId, applicationUsername, quantity];
+    return buyResult;
+  }
+
+  @override
+  String purchasesDrain() =>
+      drainScript.isNotEmpty ? drainScript.removeAt(0) : '[]';
+
+  @override
+  void finish(String purchaseId) => lastFinish = purchaseId;
+
+  @override
+  void restore(String applicationUsername) => lastRestore = applicationUsername;
 }
+
+/// A minimal [ProductDetails] for building [PurchaseParam]s in tests.
+ProductDetails _product(String id) => ProductDetails(
+      id: id,
+      title: id,
+      description: id,
+      price: r'$0.99',
+      rawPrice: 0.99,
+      currencyCode: 'USD',
+    );
 
 void main() {
   setUp(() {
@@ -49,6 +86,7 @@ void main() {
   });
 
   tearDown(() {
+    InAppPurchaseWatchos.resetPurchaseStreamForTest();
     InAppPurchaseWatchos.bindingsOverride = null;
   });
 
@@ -188,6 +226,171 @@ void main() {
           await InAppPurchaseWatchos().queryProductDetails(<String>{'a'});
 
       expect(r.error?.code, 'timeout');
+    });
+  });
+
+  group('parsePurchaseUpdates', () {
+    test('maps a purchased transaction, marked pending-complete', () {
+      final json = jsonEncode(<dynamic>[
+        <String, dynamic>{
+          'productID': 'coins_100',
+          'purchaseID': 't1',
+          'transactionDate': '1700000000000',
+          'status': 'purchased',
+          'receipt': 'RECEIPTB64',
+        },
+      ]);
+      final PurchaseDetails d =
+          InAppPurchaseWatchos.parsePurchaseUpdates(json).single;
+      expect(d.status, PurchaseStatus.purchased);
+      expect(d.productID, 'coins_100');
+      expect(d.purchaseID, 't1');
+      expect(d.transactionDate, '1700000000000');
+      expect(d.verificationData.serverVerificationData, 'RECEIPTB64');
+      expect(d.verificationData.source, 'app_store');
+      expect(d.pendingCompletePurchase, isTrue);
+      expect(d.error, isNull);
+    });
+
+    test('failed maps to error; failed+canceled maps to canceled', () {
+      final json = jsonEncode(<dynamic>[
+        <String, dynamic>{
+          'productID': 'a',
+          'purchaseID': 'f1',
+          'status': 'failed',
+          'error': <String, dynamic>{
+            'code': '2',
+            'message': 'boom',
+            'canceled': false,
+          },
+        },
+        <String, dynamic>{
+          'productID': 'b',
+          'purchaseID': 'f2',
+          'status': 'failed',
+          'error': <String, dynamic>{
+            'code': '2',
+            'message': 'user bailed',
+            'canceled': true,
+          },
+        },
+      ]);
+      final List<PurchaseDetails> d =
+          InAppPurchaseWatchos.parsePurchaseUpdates(json);
+      expect(d[0].status, PurchaseStatus.error);
+      expect(d[0].error!.message, 'boom');
+      expect(d[1].status, PurchaseStatus.canceled);
+    });
+
+    test('purchasing and deferred are pending, not pending-complete', () {
+      for (final String s in <String>['purchasing', 'deferred']) {
+        final PurchaseDetails d = InAppPurchaseWatchos.parsePurchaseUpdates(
+          jsonEncode(<dynamic>[
+            <String, dynamic>{'productID': 'a', 'status': s},
+          ]),
+        ).single;
+        expect(d.status, PurchaseStatus.pending, reason: s);
+        expect(d.pendingCompletePurchase, isFalse, reason: s);
+      }
+    });
+
+    test('restored maps to restored', () {
+      final PurchaseDetails d = InAppPurchaseWatchos.parsePurchaseUpdates(
+        jsonEncode(<dynamic>[
+          <String, dynamic>{'productID': 'a', 'purchaseID': 'r1', 'status': 'restored'},
+        ]),
+      ).single;
+      expect(d.status, PurchaseStatus.restored);
+      expect(d.pendingCompletePurchase, isTrue);
+    });
+
+    test('null / empty / malformed yield no updates', () {
+      expect(InAppPurchaseWatchos.parsePurchaseUpdates(null), isEmpty);
+      expect(InAppPurchaseWatchos.parsePurchaseUpdates(''), isEmpty);
+      expect(InAppPurchaseWatchos.parsePurchaseUpdates('{not json'), isEmpty);
+      expect(InAppPurchaseWatchos.parsePurchaseUpdates('{}'), isEmpty);
+    });
+  });
+
+  group('purchase actions', () {
+    late _FakeBindings fake;
+    setUp(() {
+      fake = _FakeBindings(result: null);
+      InAppPurchaseWatchos.bindingsOverride = fake;
+    });
+
+    test('buyNonConsumable forwards the product id and returns the result', () async {
+      fake.buyResult = true;
+      final bool ok = await InAppPurchaseWatchos().buyNonConsumable(
+        purchaseParam: PurchaseParam(
+            productDetails: _product('premium'), applicationUserName: 'u42'),
+      );
+      expect(ok, isTrue);
+      expect(fake.lastBuy, <Object?>['premium', 'u42', 1]);
+    });
+
+    test('buyConsumable forwards and returns false when the queue rejects', () async {
+      fake.buyResult = false;
+      final bool ok = await InAppPurchaseWatchos().buyConsumable(
+        purchaseParam: PurchaseParam(productDetails: _product('coins_100')),
+      );
+      expect(ok, isFalse);
+      expect(fake.lastBuy, <Object?>['coins_100', '', 1]);
+    });
+
+    test('completePurchase finishes by purchaseID', () async {
+      await InAppPurchaseWatchos().completePurchase(
+        PurchaseDetails(
+          purchaseID: 't9',
+          productID: 'coins_100',
+          status: PurchaseStatus.purchased,
+          transactionDate: '1',
+          verificationData: PurchaseVerificationData(
+              localVerificationData: '', serverVerificationData: '', source: 'app_store'),
+        ),
+      );
+      expect(fake.lastFinish, 't9');
+    });
+
+    test('completePurchase with no id is a no-op', () async {
+      await InAppPurchaseWatchos().completePurchase(
+        PurchaseDetails(
+          productID: 'x',
+          status: PurchaseStatus.error,
+          transactionDate: null,
+          verificationData: PurchaseVerificationData(
+              localVerificationData: '', serverVerificationData: '', source: 'app_store'),
+        ),
+      );
+      expect(fake.lastFinish, isNull);
+    });
+
+    test('restorePurchases forwards the username', () async {
+      await InAppPurchaseWatchos().restorePurchases(applicationUserName: 'u7');
+      expect(fake.lastRestore, 'u7');
+    });
+  });
+
+  group('purchaseStream', () {
+    test('installs the observer and drains updates into the stream', () async {
+      final fake = _FakeBindings(result: null);
+      fake.drainScript.add(jsonEncode(<dynamic>[
+        <String, dynamic>{'productID': 'coins_100', 'purchaseID': 't1', 'status': 'purchased'},
+      ]));
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 1);
+
+      final List<List<PurchaseDetails>> events = <List<PurchaseDetails>>[];
+      final sub = InAppPurchaseWatchos().purchaseStream.listen(events.add);
+
+      // Let the periodic drain fire.
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await sub.cancel();
+
+      expect(fake.startObserverCalls, 1);
+      expect(events, isNotEmpty);
+      expect(events.first.single.productID, 'coins_100');
+      expect(events.first.single.status, PurchaseStatus.purchased);
     });
   });
 }

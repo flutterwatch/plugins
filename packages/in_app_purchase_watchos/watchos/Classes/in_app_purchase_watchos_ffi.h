@@ -52,4 +52,40 @@ in_app_purchase_watchos_query_result(int64_t handle);
 IN_APP_PURCHASE_WATCHOS_EXPORT void
 in_app_purchase_watchos_query_release(int64_t handle);
 
+// Purchase flow (StoreKit `SKPaymentQueue`).
+//
+// Install the transaction observer once, then drive purchases: buy() enqueues a
+// payment for a product a prior query cached; the observer records every
+// transaction update, which Dart pulls with purchases_drain() and feeds to
+// `purchaseStream`. finish() completes a transaction; restore() replays past
+// non-consumable/subscription purchases. Like the query, updates are async, so
+// the model is again install → poll(drain) → act.
+
+// Installs the SKPaymentQueue transaction observer (idempotent). Safe to call
+// from registerWith so transactions pending at launch are captured.
+IN_APP_PURCHASE_WATCHOS_EXPORT void in_app_purchase_watchos_purchases_start(void);
+
+// Enqueues a payment for [product_id] — which must have been returned by a
+// prior ..._query_* (whose SKProduct the plugin caches). [application_username]
+// may be empty; [quantity] >= 1. Returns false if the product was not cached
+// (query it first).
+IN_APP_PURCHASE_WATCHOS_EXPORT bool in_app_purchase_watchos_buy(
+    const char* product_id, const char* application_username, int32_t quantity);
+
+// Returns pending transaction updates as a UTF-8 JSON array and clears the
+// buffer. Plugin-owned; valid until the next drain call. Each element:
+//   {"productID","purchaseID","transactionDate","status","receipt","error"?}
+// where status is: purchasing | purchased | failed | restored | deferred, and
+// error (only on failed) is {"code","message","canceled"}.
+IN_APP_PURCHASE_WATCHOS_EXPORT const char* in_app_purchase_watchos_purchases_drain(void);
+
+// Finishes the transaction with [purchase_id] (the update's "purchaseID").
+// No-op for an unknown id.
+IN_APP_PURCHASE_WATCHOS_EXPORT void in_app_purchase_watchos_finish(const char* purchase_id);
+
+// Restores completed non-consumable/subscription purchases; the restored
+// transactions arrive via purchases_drain with status "restored".
+IN_APP_PURCHASE_WATCHOS_EXPORT void in_app_purchase_watchos_restore(
+    const char* application_username);
+
 #endif  // IN_APP_PURCHASE_WATCHOS_FFI_H

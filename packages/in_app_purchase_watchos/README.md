@@ -26,15 +26,19 @@ code redemption) do not exist on the watch and are intentionally out of scope.
 Implemented:
 
 - ✅ `queryProductDetails` — product lookup via `SKProductsRequest`.
+- ✅ Purchase flow — `buyConsumable` / `buyNonConsumable`, `purchaseStream`,
+  `completePurchase`, `restorePurchases` via `SKPaymentQueue` (a transaction
+  observer whose updates are drained into `purchaseStream`).
 
-Not yet implemented (fall back to the platform interface's "unimplemented"
-error until they land):
+Out of scope (no watchOS equivalent): the StoreKit UI surfaces
+(`SKStoreProductViewController`, the review prompt, code redemption).
 
-- `buyNonConsumable` / `buyConsumable` — the purchase flow (`SKPaymentQueue`).
-- `restorePurchases`, the `purchaseStream`, `completePurchase`.
-
-The native StoreKit code is verified against the API; on-device verification
-needs an App Store Connect product configuration and a sandbox account.
+The plugin builds, links, and runs on the watch simulator (all FFI symbols
+present in the binary; the example's integration test passes). Verifying a
+*real* purchase round-trip still needs StoreKit test products (a `.storekit`
+configuration) or an App Store Connect sandbox account — the bare Simulator has
+no products, so `queryProductDetails` returns "not found" and a buy cannot
+complete there.
 
 ## Example
 

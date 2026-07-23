@@ -138,6 +138,133 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       error: error,
     );
   }
+
+  // --- Purchase flow ---
+
+  static StreamController<List<PurchaseDetails>>? _purchaseController;
+  static Timer? _drainTimer;
+
+  /// How often the native transaction queue is drained into [purchaseStream].
+  @visibleForTesting
+  static Duration drainInterval = const Duration(milliseconds: 500);
+
+  @override
+  Stream<List<PurchaseDetails>> get purchaseStream =>
+      (_purchaseController ??= _startPurchaseStream()).stream;
+
+  static StreamController<List<PurchaseDetails>> _startPurchaseStream() {
+    final InAppPurchaseWatchosBindings b = _b;
+    b.purchasesStart();
+    final controller = StreamController<List<PurchaseDetails>>.broadcast();
+    _drainTimer = Timer.periodic(drainInterval, (_) {
+      if (controller.isClosed) {
+        return;
+      }
+      final List<PurchaseDetails> updates = parsePurchaseUpdates(b.purchasesDrain());
+      if (updates.isNotEmpty) {
+        controller.add(updates);
+      }
+    });
+    return controller;
+  }
+
+  @override
+  Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) async =>
+      _b.buy(purchaseParam.productDetails.id,
+          purchaseParam.applicationUserName ?? '', 1);
+
+  @override
+  Future<bool> buyConsumable({
+    required PurchaseParam purchaseParam,
+    bool autoConsume = true,
+  }) async =>
+      _b.buy(purchaseParam.productDetails.id,
+          purchaseParam.applicationUserName ?? '', 1);
+
+  @override
+  Future<void> completePurchase(PurchaseDetails purchase) async {
+    final String? id = purchase.purchaseID;
+    if (id != null && id.isNotEmpty) {
+      _b.finish(id);
+    }
+  }
+
+  @override
+  Future<void> restorePurchases({String? applicationUserName}) async =>
+      _b.restore(applicationUserName ?? '');
+
+  /// Cancels the drain timer and tears down the stream. For tests only.
+  @visibleForTesting
+  static void resetPurchaseStreamForTest() {
+    _drainTimer?.cancel();
+    _drainTimer = null;
+    _purchaseController?.close();
+    _purchaseController = null;
+  }
+
+  /// Parses a native transaction-update JSON array (see the C header) into
+  /// [PurchaseDetails]. Exposed for unit tests.
+  @visibleForTesting
+  static List<PurchaseDetails> parsePurchaseUpdates(String? rawJson) {
+    if (rawJson == null || rawJson.isEmpty) {
+      return const <PurchaseDetails>[];
+    }
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(rawJson);
+    } on FormatException {
+      return const <PurchaseDetails>[];
+    }
+    if (decoded is! List<dynamic>) {
+      return const <PurchaseDetails>[];
+    }
+    final out = <PurchaseDetails>[];
+    for (final Object? item in decoded) {
+      if (item is! Map<String, dynamic>) {
+        continue;
+      }
+      final Map<String, dynamic>? err = item['error'] as Map<String, dynamic>?;
+      final bool canceled = err != null && (err['canceled'] as bool? ?? false);
+      final PurchaseStatus status =
+          _statusFrom(item['status'] as String? ?? '', canceled: canceled);
+      final String receipt = item['receipt'] as String? ?? '';
+      final details = PurchaseDetails(
+        purchaseID: item['purchaseID'] as String?,
+        productID: item['productID'] as String? ?? '',
+        transactionDate: item['transactionDate'] as String?,
+        status: status,
+        verificationData: PurchaseVerificationData(
+          localVerificationData: receipt,
+          serverVerificationData: receipt,
+          source: _errorSource,
+        ),
+      )..pendingCompletePurchase = status != PurchaseStatus.pending;
+      if (err != null) {
+        details.error = IAPError(
+          source: _errorSource,
+          code: err['code'] as String? ?? '',
+          message: err['message'] as String? ?? '',
+        );
+      }
+      out.add(details);
+    }
+    return out;
+  }
+
+  static PurchaseStatus _statusFrom(String name, {required bool canceled}) {
+    switch (name) {
+      case 'purchased':
+        return PurchaseStatus.purchased;
+      case 'restored':
+        return PurchaseStatus.restored;
+      case 'failed':
+        return canceled ? PurchaseStatus.canceled : PurchaseStatus.error;
+      case 'purchasing':
+      case 'deferred':
+      default:
+        return PurchaseStatus.pending;
+    }
+  }
 }
 
 /// FFI bindings to the native in_app_purchase_watchos C functions.
@@ -192,4 +319,67 @@ class InAppPurchaseWatchosBindings {
 
   /// Frees the result and handle. Must be called once per [queryStart].
   void queryRelease(int handle) => _queryRelease(handle);
+
+  late final void Function() _purchasesStart = _lib!.lookupFunction<
+      Void Function(),
+      void Function()>('in_app_purchase_watchos_purchases_start');
+
+  late final bool Function(Pointer<Utf8>, Pointer<Utf8>, int) _buy =
+      _lib!.lookupFunction<Bool Function(Pointer<Utf8>, Pointer<Utf8>, Int32),
+              bool Function(Pointer<Utf8>, Pointer<Utf8>, int)>(
+          'in_app_purchase_watchos_buy');
+
+  late final Pointer<Utf8> Function() _purchasesDrain = _lib!.lookupFunction<
+      Pointer<Utf8> Function(),
+      Pointer<Utf8> Function()>('in_app_purchase_watchos_purchases_drain');
+
+  late final void Function(Pointer<Utf8>) _finish = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('in_app_purchase_watchos_finish');
+
+  late final void Function(Pointer<Utf8>) _restore = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('in_app_purchase_watchos_restore');
+
+  /// Installs the StoreKit payment-transaction observer (idempotent).
+  void purchasesStart() => _purchasesStart();
+
+  /// Enqueues a payment for a previously-queried product. Returns false if the
+  /// product was not cached (i.e. not queried first).
+  bool buy(String productId, String applicationUsername, int quantity) {
+    final Pointer<Utf8> pid = productId.toNativeUtf8();
+    final Pointer<Utf8> user = applicationUsername.toNativeUtf8();
+    try {
+      return _buy(pid, user, quantity);
+    } finally {
+      malloc.free(pid);
+      malloc.free(user);
+    }
+  }
+
+  /// Drains pending transaction updates as a JSON array string.
+  String purchasesDrain() {
+    final Pointer<Utf8> p = _purchasesDrain();
+    return p == nullptr ? '[]' : p.toDartString();
+  }
+
+  /// Finishes the transaction identified by [purchaseId].
+  void finish(String purchaseId) {
+    final Pointer<Utf8> p = purchaseId.toNativeUtf8();
+    try {
+      _finish(p);
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  /// Restores completed purchases; updates arrive via [purchasesDrain].
+  void restore(String applicationUsername) {
+    final Pointer<Utf8> p = applicationUsername.toNativeUtf8();
+    try {
+      _restore(p);
+    } finally {
+      malloc.free(p);
+    }
+  }
 }
