@@ -1,0 +1,21 @@
+# Dart / Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+pubspec.lock
+
+# Xcode / SwiftPM (per-user, generated when watchos/Package.swift is opened)
+**/.swiftpm/
+**/.build/
+**/xcuserdata/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
