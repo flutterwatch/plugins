@@ -6,6 +6,20 @@ Source: `in_app_purchase_storekit` 0.4.10+1 (path: `/Users/aliustaoglu/.pub-cach
 Base platform: ios (Swift)
 Output: `./in_app_purchase_watchos`
 
+## Status (updated 2026-07-23)
+
+Port implemented past the scaffold. The full `InAppPurchasePlatform` surface
+that watchOS supports is done and verified on the simulator (builds, links, all
+9 FFI symbols defined, example integration test passes):
+
+- ✅ `queryProductDetails` (`SKProductsRequest`)
+- ✅ `buyConsumable` / `buyNonConsumable`, `purchaseStream`, `completePurchase`,
+  `restorePurchases` (`SKPaymentQueue`)
+- ⛔ StoreKit UI surfaces — omitted (no watchOS equivalent)
+
+Remaining: verifying a *real* purchase round-trip (needs a `.storekit` test
+config or an App Store Connect sandbox — the bare Simulator has no products).
+
 ## This is an FFI scaffold
 
 Method-channel plugins are not supported on watchOS — a `pluginClass:`-only implementation builds, but its channel calls throw `MissingPluginException`. The supported plugin model is **dart:ffi**, so this package is an FFI scaffold, not a copy of the source plugin's native code:
@@ -21,25 +35,26 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 
 These iOS/macOS APIs have **no watchOS equivalent** — the capability must be omitted or redesigned (often via the paired iPhone):
 
-| API | Used at | Why / watchOS note |
-|---|---|---|
-| StoreKitUISurfaces | `darwin/in_app_purchase_storekit/Sources/in_app_purchase_storekit/InAppPurchasePlugin.swift:286` (+8 more) | The StoreKit offer-code redemption sheet, review prompt, and product page UI are unavailable on watchOS (there is no in-app modal store UI). Core purchasing still works via StoreKit from watchOS 6.2; only these UI entry points must be removed. |
+| API | Used at | Why / watchOS note | Resolution |
+|---|---|---|---|
+| StoreKitUISurfaces | `darwin/in_app_purchase_storekit/Sources/in_app_purchase_storekit/InAppPurchasePlugin.swift:286` (+8 more) | The StoreKit offer-code redemption sheet, review prompt, and product page UI are unavailable on watchOS (there is no in-app modal store UI). Core purchasing still works via StoreKit from watchOS 6.2; only these UI entry points must be removed. | ⛔ **Omitted.** No watchOS surface exists; the corresponding platform-interface methods are left unimplemented. |
 
 ### Available, but review
 
 These work on watchOS (often differently than iOS) — implement them, checking the note:
 
-| API | Used at | watchOS note |
-|---|---|---|
-| StoreKit | `darwin/in_app_purchase_storekit/Sources/in_app_purchase_storekit/InAppPurchasePlugin.swift:86` (+38 more) | StoreKit purchasing works on watchOS from 6.2 (StoreKit 2 from watchOS 8), but the UI surfaces (`SKStoreProductViewController`, `SKStoreReviewController`, code redemption) are missing. Audit each StoreKit call site by hand and check the deployment target. |
+| API | Used at | watchOS note | Resolution |
+|---|---|---|---|
+| StoreKit | `darwin/in_app_purchase_storekit/Sources/in_app_purchase_storekit/InAppPurchasePlugin.swift:86` (+38 more) | StoreKit purchasing works on watchOS from 6.2 (StoreKit 2 from watchOS 8), but the UI surfaces (`SKStoreProductViewController`, `SKStoreReviewController`, code redemption) are missing. Audit each StoreKit call site by hand and check the deployment target. | ✅ **Implemented** with StoreKit 1 (`SKProductsRequest` + `SKPaymentQueue`), keeping the watchOS 7.0 deployment target. Product lookup + purchase/restore over dart:ffi. |
 
 ## Checklist
 
-- [ ] Declare your C functions in `watchos/Classes/in_app_purchase_watchos_ffi.h` and implement them in the `.m`, one per platform-interface method you support.
-- [ ] List every exported symbol under `ffiSymbols` in `pubspec.yaml`, and the frameworks you link in `Package.swift`.
-- [ ] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods.
-- [ ] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`).
-- [ ] Bump the version and update `CHANGELOG.md` before publishing.
+- [x] Declare your C functions in `watchos/Classes/in_app_purchase_watchos_ffi.h` and implement them in the `.m`, one per platform-interface method you support. — 9 functions (query start/ready/result/release; purchases start/buy/drain/finish/restore).
+- [x] List every exported symbol under `ffiSymbols` in `pubspec.yaml`, and the frameworks you link in `Package.swift`. — 9 symbols; `StoreKit` + `Foundation` linked.
+- [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods. — query/buy/stream/complete/restore.
+- [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`). — the ported `example/`; all 9 symbols defined (`T`) on 2026-07-23.
+- [ ] Bump the version and update `CHANGELOG.md` before publishing. — `CHANGELOG.md` updated; version still `0.0.1` (bump at publish time). Not yet published.
+- [ ] Verify a real purchase round-trip with StoreKit test products (`.storekit` config) or an App Store Connect sandbox — the bare Simulator has none. *(added — the one thing the on-sim build can't prove.)*
 
 ---
 
