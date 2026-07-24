@@ -17,6 +17,7 @@ import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 
 /// The watchOS implementation of [InAppPurchasePlatform].
@@ -31,8 +32,76 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       bindingsOverride ?? (_bindings ??= InAppPurchaseWatchosBindings());
 
   /// Registers this class as the [InAppPurchasePlatform] implementation.
+  ///
+  /// Called by the generated plugin registrant before any application code
+  /// runs, so apps only need to depend on this package — no extra setup.
+  ///
+  /// The app-facing `in_app_purchase` package does not honour the registrant:
+  /// it picks an implementation from `defaultTargetPlatform` and assigns it
+  /// unconditionally the first time `InAppPurchase.instance` is read. watchOS
+  /// reports as `TargetPlatform.iOS`, so that would install the iOS StoreKit
+  /// *method channel* implementation over this one — and method channels do not
+  /// exist on watchOS, so every call would fail with `channel-error`.
+  ///
+  /// That selection runs exactly once and is then memoised, so we trigger it
+  /// ourselves and install this implementation afterwards. Every later read by
+  /// the app returns the memoised object without re-registering, and each
+  /// `InAppPurchase` method resolves `InAppPurchasePlatform.instance` at call
+  /// time — so this one wins for the life of the process.
+  ///
+  /// It cannot always be done in one go: the registrant runs before `main()`
+  /// creates the binding, and upstream's selection installs a pigeon message
+  /// handler, which throws without a binding and leaves its instance
+  /// un-memoised. So a failed attempt retries on later event-loop turns, and we
+  /// re-assert this implementation each time regardless.
   static void registerWith() {
-    InAppPurchasePlatform.instance = InAppPurchaseWatchos();
+    _preempt();
+  }
+
+  static bool _preempted = false;
+  static int _attempts = 0;
+
+  /// How many event-loop turns to keep retrying the pre-emption for. Each retry
+  /// is a `Timer.run`, so the queue drains between attempts and `main()` gets to
+  /// initialise the binding; a microtask loop would starve it instead.
+  static const int _maxAttempts = 20;
+
+  /// Why the last pre-emption attempt failed, for diagnostics. Null once it
+  /// has succeeded.
+  @visibleForTesting
+  static Object? preemptError;
+
+  static void _preempt() {
+    if (_preempted) {
+      return;
+    }
+    try {
+      // Reading the getter runs upstream's one-time selection and memoises it,
+      // so it cannot run again later and displace us.
+      // ignore: unnecessary_statements
+      InAppPurchase.instance;
+      _preempted = true;
+      preemptError = null;
+    } on Object catch (e) {
+      // Usually "Binding has not yet been initialized": the registrant runs
+      // before main() creates the binding. Retry on later event-loop turns.
+      preemptError = e;
+      if (_attempts++ < _maxAttempts) {
+        Timer.run(_preempt);
+      }
+    } finally {
+      // Upstream assigns its own instance before it can throw, so always take
+      // the platform back — whether or not the pre-emption succeeded.
+      InAppPurchasePlatform.instance = InAppPurchaseWatchos();
+    }
+  }
+
+  /// Resets the pre-emption latch. For tests only.
+  @visibleForTesting
+  static void resetPreemptionForTest() {
+    _preempted = false;
+    _attempts = 0;
+    preemptError = null;
   }
 
   /// How often the native query is polled for completion.

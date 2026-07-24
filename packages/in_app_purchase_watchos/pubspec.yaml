@@ -14,6 +14,12 @@ dependencies:
   flutter:
     sdk: flutter
   in_app_purchase_platform_interface: ^1.4.0
+  # Needed by registerWith(): the app-facing package assigns its own
+  # implementation over the registrant's on first read of
+  # `InAppPurchase.instance`, so we trigger that one-time selection ourselves
+  # and install this implementation afterwards. Not a layering violation in
+  # practice — `in_app_purchase` does not depend on this package.
+  in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

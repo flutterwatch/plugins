@@ -12,7 +12,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:in_app_purchase_watchos/in_app_purchase_watchos.dart';
 import 'package:integration_test/integration_test.dart';
 
 const Set<String> _kProductIds = <String>{
@@ -24,14 +23,6 @@ const Set<String> _kProductIds = <String>{
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    // `in_app_purchase` registers the StoreKit method-channel implementation on
-    // first touch (watchOS reports as iOS), which does not work on the watch.
-    // Take the platform back — see registration_test.dart.
-    InAppPurchase.instance;
-    InAppPurchaseWatchos.registerWith();
-  });
 
   testWidgets('isAvailable() answers without throwing', (WidgetTester _) async {
     // The first call every app makes; it must never throw.

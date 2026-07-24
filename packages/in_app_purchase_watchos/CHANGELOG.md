@@ -2,6 +2,10 @@
 
 * Initial watchOS FFI implementation, started from a `flutter-watchos plugin
   port` scaffold of `in_app_purchase_storekit`.
+* Works as a normal federated implementation: apps just add this package and
+  use the standard `in_app_purchase` API. `registerWith()` pre-empts the
+  app-facing package's `defaultTargetPlatform`-based selection, which would
+  otherwise install the iOS method-channel implementation over this one.
 * `isAvailable`: `SKPaymentQueue canMakePayments` — the first call every app
   makes.
 * `queryProductDetails`: StoreKit product lookup (`SKProductsRequest`) exposed

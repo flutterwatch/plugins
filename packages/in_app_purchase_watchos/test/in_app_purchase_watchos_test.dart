@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -73,6 +74,9 @@ class _FakeBindings extends InAppPurchaseWatchosBindings {
   void restore(String applicationUsername) => lastRestore = applicationUsername;
 }
 
+/// A stand-in for whatever implementation the app-facing package would install.
+class _OtherPlatform extends InAppPurchasePlatform {}
+
 /// A minimal [ProductDetails] for building [PurchaseParam]s in tests.
 ProductDetails _product(String id) => ProductDetails(
       id: id,
@@ -92,6 +96,27 @@ void main() {
   tearDown(() {
     InAppPurchaseWatchos.resetPurchaseStreamForTest();
     InAppPurchaseWatchos.bindingsOverride = null;
+  });
+
+  group('registerWith', () {
+    // The end-to-end behaviour (pre-empting the app-facing selection so the
+    // plain InAppPurchase API routes here) is verified on a real watch by
+    // example/integration_test/registration_test.dart — it needs the watchOS
+    // defaultTargetPlatform and a live binding. Here we only pin the invariant
+    // that must hold however that attempt goes.
+    test('always leaves this implementation as the live platform', () {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      InAppPurchasePlatform.instance = _OtherPlatform();
+
+      // Under `flutter test` the host reports as Android, so the pre-emption
+      // drives in_app_purchase_android, whose billing client fails
+      // asynchronously off-device. That noise is irrelevant here — the watch
+      // takes the StoreKit path, which fails synchronously and is caught.
+      runZonedGuarded(InAppPurchaseWatchos.registerWith, (Object _, StackTrace __) {});
+
+      expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>(),
+          reason: 'registerWith must install us even if pre-emption fails');
+    });
   });
 
   group('isAvailable', () {
