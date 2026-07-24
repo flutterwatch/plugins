@@ -270,6 +270,30 @@ static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
   os_unfair_lock_unlock(&s_lock);
 }
 
+// A failed restore produces no transactions at all, so without this the caller
+// would wait forever on a stream that never emits. Publish a synthetic update
+// (empty productID, no purchaseID to finish) carrying the error.
+- (void)paymentQueue:(SKPaymentQueue *)queue
+    restoreCompletedTransactionsFailedWithError:(NSError *)error {
+  NSDictionary *update = @{
+    @"productID" : @"",
+    @"purchaseID" : @"",
+    @"status" : @"failed",
+    @"receipt" : @"",
+    @"error" : @{
+      @"code" : [@(error.code) stringValue],
+      @"message" : error.localizedDescription ?: @"",
+      @"canceled" : @(error.code == SKErrorPaymentCancelled),
+    },
+  };
+  os_unfair_lock_lock(&s_lock);
+  if (!s_updates) {
+    s_updates = [NSMutableArray array];
+  }
+  [s_updates addObject:update];
+  os_unfair_lock_unlock(&s_lock);
+}
+
 @end
 
 static FWIAPPaymentObserver *s_observer = nil;

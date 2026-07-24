@@ -304,6 +304,29 @@ void main() {
       expect(d.pendingCompletePurchase, isTrue);
     });
 
+    test('a restore failure surfaces as an error with nothing to complete', () {
+      // What the native restoreCompletedTransactionsFailedWithError: emits:
+      // no productID and no purchaseID, since no transaction exists.
+      final PurchaseDetails d = InAppPurchaseWatchos.parsePurchaseUpdates(
+        jsonEncode(<dynamic>[
+          <String, dynamic>{
+            'productID': '',
+            'purchaseID': '',
+            'status': 'failed',
+            'error': <String, dynamic>{
+              'code': '16',
+              'message': 'Restore failed',
+              'canceled': false,
+            },
+          },
+        ]),
+      ).single;
+      expect(d.status, PurchaseStatus.error);
+      expect(d.error!.message, 'Restore failed');
+      // Nothing to finish — must not ask the app to complete it.
+      expect(d.pendingCompletePurchase, isFalse);
+    });
+
     test('null / empty / malformed yield no updates', () {
       expect(InAppPurchaseWatchos.parsePurchaseUpdates(null), isEmpty);
       expect(InAppPurchaseWatchos.parsePurchaseUpdates(''), isEmpty);

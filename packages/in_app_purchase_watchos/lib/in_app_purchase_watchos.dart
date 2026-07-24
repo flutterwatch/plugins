@@ -228,8 +228,9 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       final PurchaseStatus status =
           _statusFrom(item['status'] as String? ?? '', canceled: canceled);
       final String receipt = item['receipt'] as String? ?? '';
+      final String? purchaseID = item['purchaseID'] as String?;
       final details = PurchaseDetails(
-        purchaseID: item['purchaseID'] as String?,
+        purchaseID: purchaseID,
         productID: item['productID'] as String? ?? '',
         transactionDate: item['transactionDate'] as String?,
         status: status,
@@ -238,7 +239,11 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
           serverVerificationData: receipt,
           source: _errorSource,
         ),
-      )..pendingCompletePurchase = status != PurchaseStatus.pending;
+        // Only a real transaction can be finished; a restore-failure update
+        // carries no purchaseID, so there is nothing to complete.
+      )..pendingCompletePurchase = status != PurchaseStatus.pending &&
+          purchaseID != null &&
+          purchaseID.isNotEmpty;
       if (err != null) {
         details.error = IAPError(
           source: _errorSource,

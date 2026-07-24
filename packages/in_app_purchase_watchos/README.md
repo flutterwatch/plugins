@@ -54,10 +54,10 @@ flutter-watchos drive \
   -d <watch-sim>
 ```
 
-The demo exercises the full purchasing flow, so parts that depend on the
-not-yet-implemented methods (buy, restore) will surface the platform
-interface's "unimplemented" error until those slices land; product lookup
-works today.
+The demo exercises the full purchasing flow. On a bare Simulator there are no
+StoreKit products, so product lookup returns "not found" and a purchase cannot
+complete — add a `.storekit` test configuration (or use a sandbox account) to
+exercise it end to end.
 
 ## License
 
