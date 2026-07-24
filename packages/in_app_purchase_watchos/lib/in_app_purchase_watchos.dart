@@ -45,6 +45,11 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
 
   static const String _errorSource = 'app_store';
 
+  /// Whether the device can make payments. Apps call this before anything
+  /// else, so it must never throw.
+  @override
+  Future<bool> isAvailable() async => _b.canMakePayments();
+
   @override
   Future<ProductDetailsResponse> queryProductDetails(
     Set<String> identifiers,
@@ -324,6 +329,13 @@ class InAppPurchaseWatchosBindings {
 
   /// Frees the result and handle. Must be called once per [queryStart].
   void queryRelease(int handle) => _queryRelease(handle);
+
+  late final bool Function() _canMakePayments = _lib!.lookupFunction<
+      Bool Function(),
+      bool Function()>('in_app_purchase_watchos_can_make_payments');
+
+  /// Whether the device/account is allowed to make payments.
+  bool canMakePayments() => _canMakePayments();
 
   late final void Function() _purchasesStart = _lib!.lookupFunction<
       Void Function(),

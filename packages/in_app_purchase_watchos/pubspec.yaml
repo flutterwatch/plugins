@@ -39,6 +39,7 @@ flutter:
           - in_app_purchase_watchos_query_ready
           - in_app_purchase_watchos_query_result
           - in_app_purchase_watchos_query_release
+          - in_app_purchase_watchos_can_make_payments
           - in_app_purchase_watchos_purchases_start
           - in_app_purchase_watchos_buy
           - in_app_purchase_watchos_purchases_drain

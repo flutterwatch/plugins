@@ -52,6 +52,12 @@ in_app_purchase_watchos_query_result(int64_t handle);
 IN_APP_PURCHASE_WATCHOS_EXPORT void
 in_app_purchase_watchos_query_release(int64_t handle);
 
+// Whether this device/account can make payments (`SKPaymentQueue
+// canMakePayments`) — false when purchases are disallowed, e.g. by parental
+// restrictions. Backs `InAppPurchase.isAvailable()`, which apps call before
+// anything else.
+IN_APP_PURCHASE_WATCHOS_EXPORT bool in_app_purchase_watchos_can_make_payments(void);
+
 // Purchase flow (StoreKit `SKPaymentQueue`).
 //
 // Install the transaction observer once, then drive purchases: buy() enqueues a

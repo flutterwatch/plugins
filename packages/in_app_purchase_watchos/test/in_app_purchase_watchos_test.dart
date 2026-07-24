@@ -42,7 +42,11 @@ class _FakeBindings extends InAppPurchaseWatchosBindings {
   void queryRelease(int handle) => releaseCount++;
 
   // --- purchase flow ---
+  bool canPay = true;
   bool buyResult = true;
+
+  @override
+  bool canMakePayments() => canPay;
   int startObserverCalls = 0;
   List<Object?>? lastBuy;
   String? lastFinish;
@@ -88,6 +92,44 @@ void main() {
   tearDown(() {
     InAppPurchaseWatchos.resetPurchaseStreamForTest();
     InAppPurchaseWatchos.bindingsOverride = null;
+  });
+
+  group('isAvailable', () {
+    // Every app calls isAvailable() first; an unimplemented override throws
+    // UnimplementedError and the plugin is dead on arrival.
+    test('reflects canMakePayments and never throws', () async {
+      final fake = _FakeBindings(result: null);
+      InAppPurchaseWatchos.bindingsOverride = fake;
+
+      fake.canPay = true;
+      expect(await InAppPurchaseWatchos().isAvailable(), isTrue);
+
+      fake.canPay = false;
+      expect(await InAppPurchaseWatchos().isAvailable(), isFalse);
+    });
+
+    test('every method the example app calls is actually overridden', () async {
+      // Regression guard: the base class throws UnimplementedError for anything
+      // left unimplemented, which is how isAvailable() slipped through.
+      final fake = _FakeBindings(result: '{"products":[],"notFound":[]}');
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      final platform = InAppPurchaseWatchos();
+
+      await expectLater(platform.isAvailable(), completes);
+      await expectLater(
+          platform.queryProductDetails(<String>{'a'}), completes);
+      await expectLater(
+          platform.restorePurchases(), completes);
+      await expectLater(
+          platform.buyConsumable(
+              purchaseParam: PurchaseParam(productDetails: _product('a'))),
+          completes);
+      await expectLater(
+          platform.buyNonConsumable(
+              purchaseParam: PurchaseParam(productDetails: _product('a'))),
+          completes);
+      expect(() => platform.purchaseStream, returnsNormally);
+    });
   });
 
   group('parseProductDetailsResponse', () {

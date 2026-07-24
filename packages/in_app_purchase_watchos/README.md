@@ -25,6 +25,7 @@ code redemption) do not exist on the watch and are intentionally out of scope.
 
 Implemented:
 
+- ✅ `isAvailable` — `SKPaymentQueue canMakePayments`.
 - ✅ `queryProductDetails` — product lookup via `SKProductsRequest`.
 - ✅ Purchase flow — `buyConsumable` / `buyNonConsumable`, `purchaseStream`,
   `completePurchase`, `restorePurchases` via `SKPaymentQueue` (a transaction

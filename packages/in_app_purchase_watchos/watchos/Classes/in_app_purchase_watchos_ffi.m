@@ -180,6 +180,12 @@ void in_app_purchase_watchos_query_release(int64_t handle) {
   os_unfair_lock_unlock(&s_lock);
 }
 
+#pragma mark - Availability
+
+bool in_app_purchase_watchos_can_make_payments(void) {
+  return [SKPaymentQueue canMakePayments];
+}
+
 #pragma mark - Purchase flow
 
 static NSString *FWIAPStatusName(SKPaymentTransactionState state) {
