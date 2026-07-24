@@ -219,7 +219,15 @@ static NSString *FWIAPReceiptBase64(void) {
 // run outside the lock — the receipt read is file I/O we don't want to hold it
 // across.
 static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
-  NSString *purchaseID = txn.transactionIdentifier ?: [NSUUID UUID].UUIDString;
+  // StoreKit has no transactionIdentifier until a transaction is final. Report
+  // it empty rather than inventing one, so an app keyed on purchaseID does not
+  // see two different ids for the same purchase; only final states need an id,
+  // and those get a synthesised one below purely so finish() has a key.
+  const BOOL isFinal = txn.transactionState == SKPaymentTransactionStatePurchased ||
+                       txn.transactionState == SKPaymentTransactionStateFailed ||
+                       txn.transactionState == SKPaymentTransactionStateRestored;
+  NSString *purchaseID = txn.transactionIdentifier
+                             ?: (isFinal ? [NSUUID UUID].UUIDString : @"");
   NSMutableDictionary *update = [NSMutableDictionary dictionary];
   update[@"productID"] = txn.payment.productIdentifier ?: @"";
   update[@"purchaseID"] = purchaseID;

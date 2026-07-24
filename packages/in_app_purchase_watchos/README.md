@@ -65,12 +65,19 @@ Implemented:
 Out of scope (no watchOS equivalent): the StoreKit UI surfaces
 (`SKStoreProductViewController`, the review prompt, code redemption).
 
-The plugin builds, links, and runs on the watch simulator (all FFI symbols
-present in the binary; the example's integration test passes). Verifying a
-*real* purchase round-trip still needs StoreKit test products (a `.storekit`
-configuration) or an App Store Connect sandbox account — the bare Simulator has
-no products, so `queryProductDetails` returns "not found" and a buy cannot
-complete there.
+Verified end to end against real StoreKit on a watch simulator, using the
+bundled `watchos/Configuration.storekit` test configuration: product lookup
+returns all four test products with prices, and a purchase completes
+(`buy` → `purchaseStream` reports `purchased` with a receipt → `completePurchase`
+finishes the transaction). Also builds and links on a physical Apple Watch
+(all 10 FFI symbols present in the device binary).
+
+**StoreKit testing only activates when the app is launched from Xcode** — the
+scheme's StoreKit configuration is what turns it on. A CLI launch
+(`flutter-watchos drive`) does not enable it, so product lookups return
+"not found" there; `example/integration_test/` skips its product assertions in
+that case rather than failing. To exercise purchasing, open
+`example/watchos/Runner.xcodeproj` and Run.
 
 ## Example
 
