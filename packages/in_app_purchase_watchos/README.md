@@ -7,15 +7,43 @@ scaffold of `in_app_purchase_storekit`; see `PORTING_REPORT.md` for the API map.
 
 ## Usage
 
-This is a federated plugin implementation. An app that already uses
-`in_app_purchase` and targets watchOS just adds this package alongside it — the
-`in_app_purchase` API picks it up automatically on the watch:
+Add this package alongside `in_app_purchase`:
 
 ```yaml
 dependencies:
   in_app_purchase: ^<latest>
   in_app_purchase_watchos: ^0.0.1
 ```
+
+### ⚠️ One extra line is required on watchOS
+
+Unlike most federated plugins, this one is **not** picked up automatically. The
+app-facing `in_app_purchase` package chooses its implementation from
+`defaultTargetPlatform` instead of from the plugin registrant, and watchOS
+reports as `TargetPlatform.iOS`. So the first time you touch
+`InAppPurchase.instance`, it installs the *iOS StoreKit method-channel*
+implementation over this one — and method channels do not exist on watchOS, so
+every call then fails with `channel-error`.
+
+Take the platform back once, at startup, before using the API:
+
+```dart
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_watchos/in_app_purchase_watchos.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  InAppPurchase.instance;              // runs the one-time platform selection
+  InAppPurchaseWatchos.registerWith(); // ...then take it back on watchOS
+  runApp(const MyApp());
+}
+```
+
+After that the standard `InAppPurchase` API works normally — every method reads
+`InAppPurchasePlatform.instance` at call time, and the selection above only ever
+runs once, so this sticks. (Verified on device; see
+`example/integration_test/registration_test.dart`, which fails loudly if
+upstream ever fixes the selection and the workaround becomes unnecessary.)
 
 ## Status
 

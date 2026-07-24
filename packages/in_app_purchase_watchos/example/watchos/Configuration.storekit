@@ -1,0 +1,109 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "1000000001",
+      "localizations" : [
+        {
+          "description" : "A consumable product for testing.",
+          "displayName" : "Consumable",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "consumable",
+      "referenceName" : "consumable",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "1000000002",
+      "localizations" : [
+        {
+          "description" : "A non-consumable upgrade for testing.",
+          "displayName" : "Upgrade",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "upgrade",
+      "referenceName" : "upgrade",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "20000001",
+      "localizations" : [
+
+      ],
+      "name" : "Subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "1000000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Silver subscription for testing.",
+              "displayName" : "Silver Subscription",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subscription_silver",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "subscription_silver",
+          "subscriptionGroupID" : "20000001",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "1000000004",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Gold subscription for testing.",
+              "displayName" : "Gold Subscription",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subscription_gold",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "subscription_gold",
+          "subscriptionGroupID" : "20000001",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
