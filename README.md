@@ -48,6 +48,7 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
+| [`in_app_purchase_watchos`](packages/in_app_purchase_watchos) [![pub](https://img.shields.io/pub/v/in_app_purchase_watchos.svg)](https://pub.dev/packages/in_app_purchase_watchos) | [`in_app_purchase`](https://pub.dev/packages/in_app_purchase) | StoreKit (`SKProductsRequest`, `SKPaymentQueue`) |
 | [`firebase_core_watchos`](packages/firebase_core_watchos) [![pub](https://img.shields.io/pub/v/firebase_core_watchos.svg)](https://pub.dev/packages/firebase_core_watchos) | [`firebase_core`](https://pub.dev/packages/firebase_core) | Firebase Apple SDK (`FirebaseCore`) |
 | [`firebase_auth_watchos`](packages/firebase_auth_watchos) [![pub](https://img.shields.io/pub/v/firebase_auth_watchos.svg)](https://pub.dev/packages/firebase_auth_watchos) | [`firebase_auth`](https://pub.dev/packages/firebase_auth) | Firebase Apple SDK (`FirebaseAuth`) |
 | [`firebase_storage_watchos`](packages/firebase_storage_watchos) [![pub](https://img.shields.io/pub/v/firebase_storage_watchos.svg)](https://pub.dev/packages/firebase_storage_watchos) | [`firebase_storage`](https://pub.dev/packages/firebase_storage) | Firebase Apple SDK (`FirebaseStorage`) |
@@ -129,8 +130,8 @@ flutter-watchos drive \
 
 The official integration tests **pass on the watch** for path_provider,
 network_info_plus, sensors_plus, local_auth, device_info_plus, battery_plus,
-connectivity_plus, shared_preferences (64/64), and package_info_plus's
-plugin-level `fromPlatform` case — some cases self-skip on non-Android, as
+connectivity_plus, shared_preferences (64/64), in_app_purchase, and
+package_info_plus's plugin-level `fromPlatform` case — some cases self-skip on non-Android, as
 upstream intends. Two upstream tests are written as **phone-UI sweeps** that
 pump the demo's scrolling list and find widgets that a ~200 px watch screen
 never materialises: package_info_plus's `example` test and
@@ -139,6 +140,10 @@ viewport reasons, not plugin defects — the FFI implementations are proven by
 the plugin-level cases, the host unit tests, and the unified demo. geolocator's
 upstream example has **no** `integration_test/` (its Baseflow demo is manual),
 so that package is verified by building and running the example on the sim.
+`in_app_purchase_watchos` additionally ships a `purchase_test` covering the full
+StoreKit round trip (buy → `purchaseStream` → `completePurchase`); it needs
+StoreKit *testing*, which only an Xcode launch activates, so a CLI run skips its
+product assertions rather than failing — see that package's README.
 
 Where an official test surfaced a genuine behavioural gap, the fix went into the
 **implementation, not the test** — e.g. `shared_preferences_watchos` now throws
