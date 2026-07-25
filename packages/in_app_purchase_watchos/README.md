@@ -50,8 +50,9 @@ app-side setup.
 
 ## Status
 
-🚧 **In progress.** StoreKit purchasing is available on watchOS (from 6.2), but
-the StoreKit *UI surfaces* (`SKStoreProductViewController`, the review prompt,
+**Working, and verified end to end on a watch** (see below). Versioned 0.0.1
+while the package settles. StoreKit purchasing is available on watchOS (from
+6.2), but the StoreKit *UI surfaces* (`SKStoreProductViewController`, the review prompt,
 code redemption) do not exist on the watch and are intentionally out of scope.
 
 Implemented:

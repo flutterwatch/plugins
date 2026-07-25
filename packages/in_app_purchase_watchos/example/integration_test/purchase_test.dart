@@ -9,6 +9,15 @@
 // launch this from Xcode with `watchos/Configuration.storekit` attached to the
 // scheme. A CLI launch (`flutter-watchos drive`) does not activate StoreKit
 // testing, so the test reports that and skips rather than failing.
+//
+// Running it takes TWO launches, which is a StoreKit-testing behaviour rather
+// than anything this plugin does: confirming "Buy" on the watch does not hand
+// the `purchased` transaction to the running app — it arrives at the *next*
+// launch, as an unfinished transaction re-delivered to the observer. So:
+//   1. Run from Xcode, tap Buy (and OK). This run times out — expected.
+//   2. Run again. The transaction is re-delivered and the round trip completes.
+// Observed consistently on watchOS 26 / Xcode 26; dismissing the success sheet
+// does not release it any sooner (verified with a 47s wait).
 
 import 'dart:async';
 

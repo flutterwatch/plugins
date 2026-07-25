@@ -16,7 +16,7 @@ import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 
@@ -71,15 +71,30 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
   @visibleForTesting
   static Object? preemptError;
 
+  /// Whether every pre-emption attempt failed. When true this implementation
+  /// is expected to be displaced by the app-facing package's own selection.
+  @visibleForTesting
+  static bool preemptExhausted = false;
+
+  /// Triggers the app-facing package's one-time platform selection. Seam so
+  /// tests can drive the failure path, which is otherwise only reachable on a
+  /// device with no binding.
+  @visibleForTesting
+  static void Function() preemptProbe = _defaultPreemptProbe;
+
+  static void _defaultPreemptProbe() {
+    // Reading the getter runs upstream's one-time selection and memoises it,
+    // so it cannot run again later and displace us.
+    // ignore: unnecessary_statements
+    InAppPurchase.instance;
+  }
+
   static void _preempt() {
     if (_preempted) {
       return;
     }
     try {
-      // Reading the getter runs upstream's one-time selection and memoises it,
-      // so it cannot run again later and displace us.
-      // ignore: unnecessary_statements
-      InAppPurchase.instance;
+      preemptProbe();
       _preempted = true;
       preemptError = null;
     } on Object catch (e) {
@@ -88,6 +103,18 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       preemptError = e;
       if (_attempts++ < _maxAttempts) {
         Timer.run(_preempt);
+      } else {
+        // Out of retries. Upstream's selection was never memoised, so the
+        // app's first read of InAppPurchase.instance will install the iOS
+        // method-channel implementation over this one and every call will then
+        // fail with `channel-error`. That is invisible until it happens, so
+        // say so here rather than let it look like a StoreKit bug.
+        preemptExhausted = true;
+        debugPrint(
+          'in_app_purchase_watchos: could not pre-empt the in_app_purchase '
+          'platform selection after $_maxAttempts attempts; StoreKit calls '
+          'will likely fail with `channel-error`. Last error: $e',
+        );
       }
     } finally {
       // Upstream assigns its own instance before it can throw, so always take
@@ -102,6 +129,8 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
     _preempted = false;
     _attempts = 0;
     preemptError = null;
+    preemptExhausted = false;
+    preemptProbe = _defaultPreemptProbe;
   }
 
   /// How often the native query is polled for completion.
@@ -228,10 +257,29 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
 
   static StreamController<List<PurchaseDetails>> _startPurchaseStream() {
     final InAppPurchaseWatchosBindings b = _b;
+    // Install the observer immediately: StoreKit can hand us transactions
+    // (notably unfinished ones re-delivered at launch) before anything
+    // subscribes, and they queue natively until we drain them.
     b.purchasesStart();
-    final controller = StreamController<List<PurchaseDetails>>.broadcast();
-    _drainTimer = Timer.periodic(drainInterval, (_) {
+    late final StreamController<List<PurchaseDetails>> controller;
+    controller = StreamController<List<PurchaseDetails>>.broadcast(
+      // Polling is what costs battery on a watch, so only poll while someone
+      // is actually listening. Nothing is lost in between — updates accumulate
+      // natively and the first drain after a subscribe delivers them.
+      onListen: () => _startDraining(b, controller),
+      onCancel: _stopDraining,
+    );
+    return controller;
+  }
+
+  static void _startDraining(
+    InAppPurchaseWatchosBindings b,
+    StreamController<List<PurchaseDetails>> controller,
+  ) {
+    _drainTimer ??= Timer.periodic(drainInterval, (Timer timer) {
       if (controller.isClosed) {
+        timer.cancel();
+        _drainTimer = null;
         return;
       }
       final List<PurchaseDetails> updates = parsePurchaseUpdates(b.purchasesDrain());
@@ -239,7 +287,11 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
         controller.add(updates);
       }
     });
-    return controller;
+  }
+
+  static void _stopDraining() {
+    _drainTimer?.cancel();
+    _drainTimer = null;
   }
 
   @override
@@ -251,9 +303,15 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
   Future<bool> buyConsumable({
     required PurchaseParam purchaseParam,
     bool autoConsume = true,
-  }) async =>
-      _b.buy(purchaseParam.productDetails.id,
-          purchaseParam.applicationUserName ?? '', 1);
+  }) async {
+    // Same contract as iOS: StoreKit consumes on finishTransaction, so there
+    // is no way to honour autoConsume: false. Upstream asserts; diverging
+    // silently would make watchOS behave differently from iOS for the same
+    // call.
+    assert(autoConsume, 'On watchOS, as on iOS, consumables are always consumed');
+    return _b.buy(
+        purchaseParam.productDetails.id, purchaseParam.applicationUserName ?? '', 1);
+  }
 
   @override
   Future<void> completePurchase(PurchaseDetails purchase) async {

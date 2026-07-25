@@ -63,9 +63,13 @@ class _FakeBindings extends InAppPurchaseWatchosBindings {
     return buyResult;
   }
 
+  int drainCalls = 0;
+
   @override
-  String purchasesDrain() =>
-      drainScript.isNotEmpty ? drainScript.removeAt(0) : '[]';
+  String purchasesDrain() {
+    drainCalls++;
+    return drainScript.isNotEmpty ? drainScript.removeAt(0) : '[]';
+  }
 
   @override
   void finish(String purchaseId) => lastFinish = purchaseId;
@@ -94,6 +98,7 @@ void main() {
   });
 
   tearDown(() {
+    InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 500);
     InAppPurchaseWatchos.resetPurchaseStreamForTest();
     InAppPurchaseWatchos.bindingsOverride = null;
   });
@@ -116,6 +121,71 @@ void main() {
 
       expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>(),
           reason: 'registerWith must install us even if pre-emption fails');
+    });
+
+    test('retries a failing pre-emption, then reports giving up', () async {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      int probeCalls = 0;
+      InAppPurchaseWatchos.preemptProbe = () {
+        probeCalls++;
+        throw StateError('Binding has not yet been initialized.');
+      };
+
+      InAppPurchaseWatchos.registerWith();
+      // Each retry is a Timer.run, so yield until the chain is exhausted.
+      for (int i = 0; i < 40 && !InAppPurchaseWatchos.preemptExhausted; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(probeCalls, greaterThan(1), reason: 'it must retry, not give up at once');
+      expect(InAppPurchaseWatchos.preemptExhausted, isTrue,
+          reason: 'exhaustion must be observable — it silently breaks the plugin');
+      expect(InAppPurchaseWatchos.preemptError, isA<StateError>());
+      // Even having lost the race, we must still be the installed platform.
+      expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>());
+    });
+
+    test('stops retrying once the pre-emption succeeds', () async {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      int probeCalls = 0;
+      InAppPurchaseWatchos.preemptProbe = () => probeCalls++;
+
+      InAppPurchaseWatchos.registerWith();
+      InAppPurchaseWatchos.registerWith();
+      for (int i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(probeCalls, 1, reason: 'the selection must be triggered exactly once');
+      expect(InAppPurchaseWatchos.preemptExhausted, isFalse);
+      expect(InAppPurchaseWatchos.preemptError, isNull);
+    });
+  });
+
+  group('purchase stream lifecycle', () {
+    test('polls only while listened to, and never after close', () async {
+      final fake = _FakeBindings(result: null);
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 5);
+
+      final Stream<List<PurchaseDetails>> stream =
+          InAppPurchaseWatchos().purchaseStream;
+      // The observer is installed eagerly (StoreKit re-delivers unfinished
+      // transactions at launch), but nothing should poll yet.
+      expect(fake.startObserverCalls, 1);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(fake.drainCalls, 0,
+          reason: 'polling with no listener just burns watch battery');
+
+      final sub = stream.listen((_) {});
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(fake.drainCalls, greaterThan(0), reason: 'it must poll while listened to');
+
+      await sub.cancel();
+      final int afterCancel = fake.drainCalls;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(fake.drainCalls, afterCancel,
+          reason: 'the last listener leaving must stop the timer');
     });
   });
 

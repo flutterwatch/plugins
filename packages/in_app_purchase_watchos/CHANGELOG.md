@@ -6,6 +6,12 @@
   use the standard `in_app_purchase` API. `registerWith()` pre-empts the
   app-facing package's `defaultTargetPlatform`-based selection, which would
   otherwise install the iOS method-channel implementation over this one.
+* `purchaseStream` only polls StoreKit while it has a listener, and always
+  cancels its timer — polling with nobody listening costs watch battery.
+* `buyConsumable` asserts `autoConsume`, matching iOS, instead of silently
+  ignoring it.
+* Losing the registration race is now reported via `debugPrint` rather than
+  failing silently later with an opaque `channel-error`.
 * `isAvailable`: `SKPaymentQueue canMakePayments` — the first call every app
   makes.
 * `queryProductDetails`: StoreKit product lookup (`SKProductsRequest`) exposed
