@@ -65,6 +65,22 @@ int url_launcher_watchos_launch(const char* url) {
 
     if (_is_web_scheme(scheme)) {
       dispatch_async(dispatch_get_main_queue(), ^{
+        // Both calls, deliberately.
+        //
+        // openSystemURL: DOES accept http/https (the docs only mention tel:
+        // and sms:) and presents the system web sheet. Verified on a physical
+        // Apple Watch Ultra 3, watchOS 26.5: for a third-party app that sheet
+        // declines to render and shows "URL failed to load — this url can be
+        // viewed on your iPhone", for `example.com` as much as for anything
+        // else. watchOS DOES have a browser (WebSheet.framework, which Weather
+        // and Mail use) but does not vend it to us.
+        //
+        // That refusal is still the best thing to show: it tells the user, on
+        // the wrist, that the link is going to their phone. Publishing the
+        // Handoff activity silently would leave them staring at nothing.
+        // So: openSystemURL for the visible prompt, NSUserActivity so the
+        // phone actually has something to pick up.
+        [[WKApplication sharedApplication] openSystemURL:parsed];
         [_handoffActivity invalidate];
         NSUserActivity* activity = [[NSUserActivity alloc]
             initWithActivityType:NSUserActivityTypeBrowsingWeb];

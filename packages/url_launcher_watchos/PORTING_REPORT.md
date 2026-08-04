@@ -11,7 +11,8 @@
 | CLI integration | ✅ `url_launcher` drops off the "no watchOS implementation" warning in a real app |
 | Upstream integration test | ✗ not reused — upstream asserts an in-app `SFSafariViewController`/webview surface that cannot exist on watchOS |
 | Own integration test (Simulator, real FFI) | ✅ pass (5) — symbols resolve via `DynamicLibrary.process()` and `url_launcher` federates to this implementation |
-| On-device outcome verification | ◐ **Not done** — that a `tel:` URL rings and an `https:` URL surfaces as a Handoff offer needs a physical watch paired to an iPhone. Neither mechanism reports completion to the app, so no automated test can assert it on any device |
+| On-device (Apple Watch Ultra 3, watchOS 26.5, release AOT) | ✅ web path verified by hand — the system sheet appears and reports the link can be viewed on the iPhone |
+| On-device Handoff pickup on the phone | ◐ **Not yet confirmed** — the activity is published, but that the Handoff icon appears on the paired iPhone has not been observed |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
 
@@ -46,6 +47,24 @@ and WebKit — while it does ship inside the OS — is absent from the SDK, with
 `UIViewRepresentable`). Only two mechanisms remain, and each covers a
 different set of schemes.
 
+### The watch does have a browser; we just cannot drive it
+
+`WebSheet.framework` is the mini browser Weather and Mail present, and the
+rest of the stack (`WebCore`, `MobileSafari`, `SafariSharedUI`, `WebUI`) sits
+beside it — all in `PrivateFrameworks`.
+
+`openSystemURL:` reaches it, and contrary to the documentation it is not
+limited to `tel:`/`sms:` — an `https:` URL raises the system sheet. But for a
+third-party app that sheet refuses to render, showing "URL failed to load —
+this url can be viewed on your iPhone". Confirmed on an Apple Watch Ultra 3
+(watchOS 26.5, release AOT) with `https://example.com`, a page with no
+JavaScript, redirects or TLS quirks — so this is policy, not a page that
+failed.
+
+That refusal is worth triggering anyway: it is the only on-wrist feedback the
+user gets. Publishing the Handoff activity alone would look like nothing
+happened.
+
 ## API coverage
 
 | Method | watchOS backing | Status |
@@ -62,7 +81,7 @@ different set of schemes.
 | Scheme | Mechanism | Status |
 |---|---|---|
 | `tel:`, `sms:` | `-[WKApplication openSystemURL:]` (watchOS 7+) | ✅ opens on the watch |
-| `http:`, `https:` | `NSUserActivity` (`NSUserActivityTypeBrowsingWeb`) + `becomeCurrent` | ◐ offered to the paired iPhone/Mac via Handoff; the watch cannot render it |
+| `http:`, `https:` | `openSystemURL:` **and** `NSUserActivity` + `becomeCurrent` | ◐ the watch shows "can be viewed on your iPhone"; Handoff carries it to the phone |
 | `mailto:` | — | ✗ refused deliberately |
 | everything else | — | ✗ `launchUrl` returns `false` |
 
@@ -87,8 +106,9 @@ return.
 
 ## Follow-ups
 
-- Verify by hand on a physical watch paired to an iPhone: `tel:` should open
-  the phone-call UI, and an `https:` URL should surface as a Handoff offer on
-  the phone. The integration test covers everything up to that boundary —
-  there is no API to observe the peer device from the watch, so the last step
-  is necessarily manual.
+- ✅ Done: the `https:` path on hardware — the system sheet appears and
+  defers to the iPhone.
+- Still open: confirm the Handoff offer actually reaches the paired iPhone
+  (the icon in the app switcher), and that `tel:`/`sms:` raise the call and
+  compose UI. There is no API to observe the peer device from the watch, so
+  these last steps are necessarily manual.

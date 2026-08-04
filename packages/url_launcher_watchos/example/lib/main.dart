@@ -44,8 +44,8 @@ class _ExampleAppState extends State<ExampleApp> {
               Text(_status, textAlign: TextAlign.center),
               const SizedBox(height: 8),
               _Button(
-                label: 'https (Handoff)',
-                onTap: () => _open('https://flutterwatch.dev'),
+                label: 'https (→ iPhone)',
+                onTap: () => _open('https://example.com'),
               ),
               _Button(label: 'tel', onTap: () => _open('tel:+15551234567')),
               _Button(label: 'sms', onTap: () => _open('sms:+15551234567')),

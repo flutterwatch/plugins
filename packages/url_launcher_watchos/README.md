@@ -24,7 +24,7 @@ this package maps each scheme to the one mechanism that fits it:
 | Scheme | Behaviour |
 |---|---|
 | `tel:`, `sms:` | Opened on the watch by the system handler, via `-[WKApplication openSystemURL:]` (watchOS 7+). |
-| `http:`, `https:` | Published as an `NSUserActivity` (`NSUserActivityTypeBrowsingWeb`) so the page can be opened on the **paired iPhone or Mac** through Handoff. The watch cannot render it. |
+| `http:`, `https:` | The watch shows the system sheet — which tells the user the link can be viewed on their iPhone — **and** an `NSUserActivity` (`NSUserActivityTypeBrowsingWeb`) is published so the phone or Mac can pick it up via Handoff. |
 | anything else | `launchUrl` returns `false`. |
 
 `mailto:` is deliberately **not** claimed: `openSystemURL:` does not own it,
@@ -43,11 +43,19 @@ link the user still has to pick up the Handoff on their phone.
 and `supportsCloseForMode` is always `false`. `closeWebView()` withdraws the
 published Handoff activity, which is the nearest equivalent.
 
-WebKit ships inside watchOS (system apps like Mail use it), but it is absent
-from the SDK — no headers, no linkable stub — and `WKWebView` is a `UIView`,
-which watchOS SwiftUI cannot host (there is no `UIViewRepresentable`). There
-is therefore no supported way for a third-party app to render a page on the
-watch.
+watchOS genuinely has a browser — `WebSheet.framework`, which is what Weather
+and Mail present — but it is a private framework, as is the rest of the web
+stack (`WebCore`, `MobileSafari`, `SafariSharedUI`). WebKit itself ships in
+the OS but is absent from the SDK, and `WKWebView` is a `UIView`, which
+watchOS SwiftUI cannot host (there is no `UIViewRepresentable`).
+
+Passing an `https` URL to `openSystemURL:` from a third-party app *does*
+raise the system sheet — the documentation's `tel:`/`sms:`-only list is
+incomplete — but the sheet then refuses to render and points at the iPhone.
+Verified on an Apple Watch Ultra 3 (watchOS 26.5) with `example.com`, so this
+is policy rather than a page that happened to fail. That prompt is why this
+package makes the call anyway: the user gets told, on the wrist, where their
+link went.
 
 ## Testing
 

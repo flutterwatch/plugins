@@ -18,11 +18,13 @@
 //
 //   * tel: / sms:      -> -[WKApplication openSystemURL:], which hands the
 //                         URL to the system phone/messages handler.
-//   * http: / https:   -> an NSUserActivity of type
-//                         NSUserActivityTypeBrowsingWeb, published via
-//                         -becomeCurrent. The watch cannot render the page
-//                         (no WebKit in the SDK), so the link is offered to
-//                         the paired iPhone/Mac through Handoff.
+//   * http: / https:   -> openSystemURL: AND an NSUserActivity of type
+//                         NSUserActivityTypeBrowsingWeb published via
+//                         -becomeCurrent. openSystemURL: shows the system
+//                         sheet, which for a third-party app says the link
+//                         can be viewed on the iPhone; the activity is what
+//                         makes the phone able to pick it up. See the .m for
+//                         the hardware-verified detail.
 //
 // Any other scheme is refused rather than silently dropped: openSystemURL
 // returns void and does nothing for schemes it does not own, so reporting

@@ -69,7 +69,7 @@ class UrlLauncherWatchosBindings {
 /// | Scheme | Behaviour |
 /// |---|---|
 /// | `tel:`, `sms:` | Opened by the system handler on the watch. |
-/// | `http:`, `https:` | Published as a Handoff activity for the paired iPhone/Mac — the watch cannot render a page itself. |
+/// | `http:`, `https:` | The system sheet tells the user the link can be viewed on their iPhone, and a Handoff activity is published so the phone can pick it up. The watch will not render a page for a third-party app. |
 /// | anything else | [launchUrl] returns `false`. |
 ///
 /// A `true` result means the URL was handed to the system, not that the user
