@@ -37,6 +37,11 @@ watchOS reports no completion for either mechanism, so a `true` result means
 the URL was accepted by the system — not that the user followed it. For a web
 link the user still has to pick up the Handoff on their phone.
 
+All four behaviours above are verified on an Apple Watch Ultra 3
+(watchOS 26.5, release build): `tel:` and `sms:` raise the system call and
+compose UI, and a web URL shows the sheet on the watch while the Handoff icon
+appears on the paired iPhone and opens the page.
+
 ### In-app web views do not exist
 
 `PreferredLaunchMode.inAppWebView` and `inAppBrowserView` report unsupported,
