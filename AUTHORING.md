@@ -58,9 +58,14 @@ Document the decision in a table in your `README.md` /
 
 - No UIKit app surface (UIApplication, UIView/UIViewController, UIDevice —
   use WKApplication / WKInterfaceDevice)
-- No WebKit, no camera, no photo library, no pasteboard
-- No SFSpeechRecognizer, CallKit, CoreNFC, Vision, PDFKit, CoreTelephony
-- No SystemConfiguration reachability (use `NWPathMonitor`, watchOS 6+)
+- No camera, no photo library, no pasteboard
+- No WebKit **in the SDK** — the framework ships in the OS, but there are no
+  headers or linkable stub, and `WKWebView` is a `UIView`, which watchOS
+  SwiftUI cannot host. Web content has to leave the watch (see
+  `url_launcher_watchos`, which hands links to the phone via Handoff)
+- No SFSpeechRecognizer, CoreNFC, Vision, PDFKit, CoreTelephony
+- No SystemConfiguration reachability (use `NWPathMonitor`, watchOS 6+);
+  for the Wi-Fi SSID use `NEHotspotNetwork.fetchCurrent`, watchOS 7+
 - Platform views are not supported by the embedder
 
 And, unlike tvOS, these DO work — don't stub them reflexively:
@@ -69,7 +74,11 @@ And, unlike tvOS, these DO work — don't stub them reflexively:
 - HealthKit, CoreMotion, WatchConnectivity (watch side)
 - StoreKit purchasing (watchOS 6.2+; no store UI surfaces)
 - ASWebAuthenticationSession (watchOS 6.2+)
-- LocalAuthentication `.deviceOwnerAuthentication` (watchOS 9+)
+- LocalAuthentication `.deviceOwnerAuthentication` (watchOS 3.0+; only
+  `.deviceOwnerAuthenticationWithBiometrics` is unavailable)
+- CallKit — `CXProvider` / `CXCallController` (watchOS 9+)
+- NetworkExtension hotspot — `NEHotspotNetwork` / `NEHotspotConfiguration`
+  (watchOS 7+)
 - Haptics via `WKInterfaceDevice.current().play(_:)`
 
 The porter's `PORTING_REPORT.md` lists exactly which handlers hit which of

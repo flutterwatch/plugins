@@ -1,0 +1,43 @@
+name: url_launcher_watchos
+description: "watchOS implementation of the url_launcher plugin: opens tel:/sms: through the system handler and hands web links to the paired iPhone via Handoff, over dart:ffi."
+version: 0.0.1
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - url-launcher
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  flutter:
+    sdk: flutter
+  url_launcher_platform_interface: ^2.3.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    implements: url_launcher
+    platforms:
+      watchos:
+        # FFI plugin: the CLI compiles watchos/Classes/*.m into a static
+        # archive force-loaded into the watch binary; Dart resolves the
+        # exported symbols via DynamicLibrary.process(). Method-channel
+        # plugins are not supported on watchOS; FFI is the plugin model.
+        ffiPlugin: true
+        dartPluginClass: UrlLauncherWatchos
+        # C symbols exported for dart:ffi lookup; the CLI emits a forced
+        # reference for each so they survive the static link.
+        ffiSymbols:
+          - url_launcher_watchos_can_launch
+          - url_launcher_watchos_launch
+          - url_launcher_watchos_close_handoff
