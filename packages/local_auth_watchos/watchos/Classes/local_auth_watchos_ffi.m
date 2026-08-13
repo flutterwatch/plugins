@@ -22,10 +22,24 @@ static int _state = kFailure;
 // handler is delivered.
 static LAContext* _context;
 
+static local_auth_watchos_cb _callback = NULL;
+
+void local_auth_watchos_set_callback(local_auth_watchos_cb callback) {
+    os_unfair_lock_lock(&_lock);
+    _callback = callback;
+    os_unfair_lock_unlock(&_lock);
+}
+
 static void _setState(int state) {
     os_unfair_lock_lock(&_lock);
     _state = state;
+    local_auth_watchos_cb callback = _callback;
     os_unfair_lock_unlock(&_lock);
+    // Wake Dart outside the lock: the callback is free to call straight back
+    // into this file, and holding the lock across it would deadlock.
+    if (state != kPending && callback != NULL) {
+        callback(0);
+    }
 }
 
 int local_auth_watchos_is_device_supported(void) {

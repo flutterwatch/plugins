@@ -35,17 +35,35 @@ abstract class LocalAuthWatchosBackend {
   /// Poll state: 0 = pending, 1 = success, 2 = failure.
   int poll();
 
+  /// Registers the function native calls when an evaluation resolves, or
+  /// `nullptr` to stop.
+  void setCallback(Pointer<NativeFunction<LocalAuthResolvedNative>> callback);
+
   /// Cancels any in-progress evaluation.
   void stop();
 }
+
+/// Signature of the native→Dart completion signal.
+typedef LocalAuthResolvedNative = Void Function(Int64);
+
+/// Trampolines handed to native, kept for the life of the process.
+///
+/// Never closed: native can be between reading the pointer and calling it when
+/// an evaluation ends, and closing under that race is worse than retaining a
+/// few words per authentication.
+final List<NativeCallable<LocalAuthResolvedNative>> _retainedCallables =
+    <NativeCallable<LocalAuthResolvedNative>>[];
 
 /// watchOS implementation of [LocalAuthPlatform].
 base class LocalAuthWatchos extends LocalAuthPlatform {
   /// Test hook: set before first use to replace the native backend with a fake.
   static LocalAuthWatchosBackend? backendOverride;
 
-  /// How often the Dart side polls the native evaluation result.
-  static Duration pollInterval = const Duration(milliseconds: 120);
+  /// How long to wait for the system's authentication UI before giving up.
+  ///
+  /// The UI has no timeout of its own — a prompt left on screen stays there —
+  /// so this bounds the future rather than the prompt.
+  static Duration timeout = const Duration(minutes: 2);
 
   static LocalAuthWatchosBackend? _backend;
 
@@ -64,19 +82,36 @@ base class LocalAuthWatchos extends LocalAuthPlatform {
     required Iterable<AuthMessages> authMessages,
     AuthenticationOptions options = const AuthenticationOptions(),
   }) async {
-    _b.startAuthenticate(localizedReason, options.biometricOnly);
-    // Poll until the native completion handler resolves, or give up after a
-    // generous window (the system UI has no fixed timeout of its own).
-    const int maxPolls = 1000;
-    for (int i = 0; i < maxPolls; i++) {
+    final Completer<bool> completer = Completer<bool>();
+
+    void settle() {
       final int state = _b.poll();
-      if (state != 0) {
-        return state == 1;
+      if (state != 0 && !completer.isCompleted) {
+        completer.complete(state == 1);
       }
-      await Future<void>.delayed(pollInterval);
     }
-    _b.stop();
-    return false;
+
+    final NativeCallable<LocalAuthResolvedNative> callable =
+        NativeCallable<LocalAuthResolvedNative>.listener((int _) => settle());
+    // A prompt awaiting a human is not a reason to hold the isolate open.
+    callable.keepIsolateAlive = false;
+    _retainedCallables.add(callable);
+    _b.setCallback(callable.nativeFunction);
+
+    _b.startAuthenticate(localizedReason, options.biometricOnly);
+    // An evaluation can resolve before the callback is even registered — a
+    // policy the device cannot evaluate fails immediately — so check once
+    // rather than waiting for a signal that has already been and gone.
+    settle();
+
+    try {
+      return await completer.future.timeout(timeout, onTimeout: () {
+        _b.stop();
+        return false;
+      });
+    } finally {
+      _b.setCallback(nullptr);
+    }
   }
 
   @override
@@ -120,6 +155,12 @@ class _FfiBackend implements LocalAuthWatchosBackend {
   late final _IntDart _stop =
       _lib.lookupFunction<_IntNative, _IntDart>('local_auth_watchos_stop');
 
+  late final void Function(Pointer<NativeFunction<LocalAuthResolvedNative>>)
+      _setCallback = _lib.lookupFunction<
+              Void Function(Pointer<NativeFunction<LocalAuthResolvedNative>>),
+              void Function(Pointer<NativeFunction<LocalAuthResolvedNative>>)>(
+          'local_auth_watchos_set_callback');
+
   @override
   bool isDeviceSupported() => _isSupported() == 1;
 
@@ -138,6 +179,10 @@ class _FfiBackend implements LocalAuthWatchosBackend {
 
   @override
   int poll() => _poll();
+
+  @override
+  void setCallback(Pointer<NativeFunction<LocalAuthResolvedNative>> callback) =>
+      _setCallback(callback);
 
   @override
   void stop() => _stop();
