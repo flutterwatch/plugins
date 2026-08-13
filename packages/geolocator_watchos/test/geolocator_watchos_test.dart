@@ -8,6 +8,8 @@
 
 import 'dart:async';
 
+import 'dart:ffi';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:geolocator_watchos/geolocator_watchos.dart';
@@ -34,6 +36,24 @@ class _FakeBackend implements GeolocatorWatchosBackend {
   List<double>? readPosition() => fix;
   @override
   void stopUpdates() => stopCount++;
+
+  Pointer<NativeFunction<GeolocatorFixNative>>? _callback;
+
+  /// Whether native would currently wake Dart.
+  bool get isRegistered => _callback != null;
+
+  @override
+  void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> cb) =>
+      _callback = cb == nullptr ? null : cb;
+
+  /// Fires the native signal, as any CLLocationManager delegate callback does.
+  void signal() => _callback?.asFunction<void Function(int)>()(0);
+
+  /// Delivers [next] the way a location update would.
+  void deliver(List<double> next) {
+    fix = next;
+    signal();
+  }
 }
 
 /// A representative fix: San Francisco, with distinct field values.
@@ -57,13 +77,11 @@ void main() {
   setUp(() {
     fake = _FakeBackend();
     GeolocatorWatchos.backendOverride = fake;
-    GeolocatorWatchos.pollInterval = const Duration(milliseconds: 1);
     geo = GeolocatorWatchos();
   });
 
   tearDown(() {
     GeolocatorWatchos.backendOverride = null;
-    GeolocatorWatchos.pollInterval = const Duration(milliseconds: 200);
   });
 
   test('registerWith installs the watchOS implementation', () {
@@ -85,11 +103,23 @@ void main() {
   test('requestPermission requests when undetermined, then maps the result',
       () async {
     fake.status = 0;
-    // Grant after the request lands.
-    scheduleMicrotask(() => fake.status = 4);
-    final LocationPermission result = await geo.requestPermission();
+    final Future<LocationPermission> pending = geo.requestPermission();
+    await pumpEventQueue();
     expect(fake.requestPermissionCount, 1);
-    expect(result, LocationPermission.whileInUse);
+
+    // The user answers the prompt; CoreLocation reports it through
+    // locationManagerDidChangeAuthorization, not through any pollable value.
+    fake.status = 4;
+    fake.signal();
+
+    expect(await pending, LocationPermission.whileInUse);
+  });
+
+  test('requestPermission gives up if the prompt is never answered', () async {
+    GeolocatorWatchos.permissionTimeout = const Duration(milliseconds: 20);
+    fake.status = 0;
+    expect(await geo.requestPermission(), LocationPermission.denied);
+    GeolocatorWatchos.permissionTimeout = const Duration(minutes: 2);
   });
 
   test('isLocationServiceEnabled forwards the native value', () async {
@@ -133,11 +163,34 @@ void main() {
     expect((await geo.getLastKnownPosition())!.latitude, 37.7749);
   });
 
-  test('getPositionStream emits fixes and stops on cancel', () async {
+  test('getPositionStream emits the fix already available on listen', () async {
+    // CLLocationManager hands over its last known fix as soon as updates
+    // start, which can land before the callback is registered.
     fake.fix = _fix();
     final Position first = await geo.getPositionStream().first;
     expect(first.latitude, 37.7749);
-    await Future<void>.delayed(const Duration(milliseconds: 5));
+    expect(fake.stopCount, greaterThanOrEqualTo(1));
+  });
+
+  test('getPositionStream emits each new fix native signals', () async {
+    final List<Position> seen = <Position>[];
+    final StreamSubscription<Position> sub =
+        geo.getPositionStream().listen(seen.add);
+    await pumpEventQueue();
+    expect(fake.isRegistered, isTrue);
+
+    final List<double> moved = _fix()..[0] = 40.7128; // New York
+    fake.deliver(moved);
+    await pumpEventQueue();
+
+    // The same fix again must not emit — a repeated signal is not movement.
+    fake.deliver(moved);
+    await pumpEventQueue();
+
+    expect(seen.map((Position p) => p.latitude), <double>[40.7128]);
+
+    await sub.cancel();
+    expect(fake.isRegistered, isFalse);
     expect(fake.stopCount, greaterThanOrEqualTo(1));
   });
 }

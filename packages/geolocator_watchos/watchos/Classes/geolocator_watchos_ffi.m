@@ -21,6 +21,24 @@ typedef struct {
 
 static os_unfair_lock _lock = OS_UNFAIR_LOCK_INIT;
 static Fix _fix;
+static geolocator_watchos_cb _callback = NULL;
+
+void geolocator_watchos_set_callback(geolocator_watchos_cb callback) {
+    os_unfair_lock_lock(&_lock);
+    _callback = callback;
+    os_unfair_lock_unlock(&_lock);
+}
+
+// Wakes Dart. The callback pointer is read under the lock but invoked outside
+// it, because Dart is free to call straight back into this file.
+static void _signal(void) {
+    os_unfair_lock_lock(&_lock);
+    geolocator_watchos_cb callback = _callback;
+    os_unfair_lock_unlock(&_lock);
+    if (callback != NULL) {
+        callback(0);
+    }
+}
 
 @interface GeolocatorWatchosDelegate : NSObject <CLLocationManagerDelegate>
 @end
@@ -46,11 +64,20 @@ static Fix _fix;
     _fix.timestampMillis = location.timestamp.timeIntervalSince1970 * 1000.0;
     _fix.has = 1;
     os_unfair_lock_unlock(&_lock);
+    _signal();
 }
 
 - (void)locationManager:(CLLocationManager*)manager
        didFailWithError:(NSError*)error {
-    // Leave the last cached fix in place; the Dart poller times out on its own.
+    // Leave the last cached fix in place; the caller's deadline decides.
+    // Still wake Dart: a waiter should re-check rather than sit until timeout.
+    _signal();
+}
+
+// Authorization changes are the other thing Dart waits on — the answer to the
+// system permission prompt arrives here, not on any value it could poll.
+- (void)locationManagerDidChangeAuthorization:(CLLocationManager*)manager {
+    _signal();
 }
 
 @end

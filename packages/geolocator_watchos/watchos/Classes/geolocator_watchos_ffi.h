@@ -12,6 +12,9 @@
 #ifndef GEOLOCATOR_WATCHOS_FFI_H
 #define GEOLOCATOR_WATCHOS_FFI_H
 
+// For int64_t in the callback typedef below.
+#include <stdint.h>
+
 // Each exported symbol is marked `used` + default-visibility so it survives
 // the linker's `-dead_strip` and lands in the executable's dynamic symbol
 // table, where `DynamicLibrary.process()` / dlsym can resolve it.
@@ -50,5 +53,16 @@ int geolocator_watchos_read_position(double* out);
 // Stops continuous updates.
 GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_stop_updates(void);
+
+/// Called from the CLLocationManager delegate when a new fix lands.
+///
+/// Carries no value: the Dart end is a `NativeCallable.listener` and runs
+/// asynchronously, so it re-reads `..._read_position` rather than trusting a
+/// pointer captured at signal time.
+typedef void (*geolocator_watchos_cb)(int64_t unused);
+
+/// Registers the function to wake Dart on a new fix, or NULL to stop.
+GEOLOCATOR_WATCHOS_EXPORT
+void geolocator_watchos_set_callback(geolocator_watchos_cb callback);
 
 #endif  // GEOLOCATOR_WATCHOS_FFI_H

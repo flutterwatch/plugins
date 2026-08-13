@@ -2,8 +2,10 @@
 
 The watchOS implementation of [`geolocator`](https://pub.dev/packages/geolocator).
 
-Location comes from **CoreLocation** (`CLLocationManager`) over dart:ffi: a
-delegate caches the latest fix and the Dart side polls it.
+Location comes from **CoreLocation** (`CLLocationManager`) over dart:ffi: the
+delegate caches the latest fix and **pushes** a signal into Dart. The position
+stream, `getCurrentPosition` and `requestPermission` all wait on it — nothing
+polls.
 
 > Scaffolded by [`flutter-watchos plugin port`](https://github.com/flutterwatch/flutter-watchos)
 > from `geolocator_apple`, then implemented and verified by hand.

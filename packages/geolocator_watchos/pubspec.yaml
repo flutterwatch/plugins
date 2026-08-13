@@ -1,6 +1,6 @@
 name: geolocator_watchos
 description: "watchOS implementation of the geolocator plugin, providing position and permission handling from CoreLocation (CLLocationManager) via dart:ffi."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues
@@ -13,7 +13,9 @@ topics:
 # License holder: The FlutterWatch Authors
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  # 3.1 is where NativeCallable.listener landed — the push path this plugin
+  # uses instead of a polling timer.
+  sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.13.0"
 
 dependencies:
@@ -49,3 +51,4 @@ flutter:
           - geolocator_watchos_request_location
           - geolocator_watchos_read_position
           - geolocator_watchos_stop_updates
+          - geolocator_watchos_set_callback
