@@ -1,0 +1,62 @@
+name: flutter_watch_link
+description: "WatchConnectivity for Flutter companion apps: one Dart API for iPhone-to-Apple-Watch messaging, application context, and guaranteed background transfers."
+version: 0.1.0
+homepage: https://flutterwatch.dev
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+topics:
+  - watchos
+  - ffi
+  - companion
+  - watchconnectivity
+
+environment:
+  # 3.1 is where NativeCallable.listener landed — the push path this package
+  # depends on. Matches the Dart shipped by the Flutter floor below.
+  sdk: ">=3.1.0 <4.0.0"
+  flutter: ">=3.13.0"
+
+dependencies:
+  ffi: ^2.1.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      # Both halves are FFI, compiling the same `src/` implementation.
+      #
+      # `NativeCallable` delivers native background-thread callbacks on both
+      # engines, so each side pushes rather than polls — and one implementation
+      # for both beats two to keep in step.
+      ios:
+        ffiPlugin: true
+      watchos:
+        ffiPlugin: true
+        dartPluginClass: FlutterWatchLink
+        # C symbols exported for dart:ffi lookup. The CLI emits a forced
+        # reference for each so they survive the static link.
+        ffiSymbols:
+          - flutter_watch_link_set_callback
+          - flutter_watch_link_activate
+          - flutter_watch_link_is_supported
+          - flutter_watch_link_state
+          - flutter_watch_link_send_message
+          - flutter_watch_link_update_application_context
+          - flutter_watch_link_transfer_user_info
+          - flutter_watch_link_send_message_with_reply
+          - flutter_watch_link_respond
+          - flutter_watch_link_transfer_file
+          - flutter_watch_link_outstanding_file_transfer_count
+          - flutter_watch_link_application_context
+          - flutter_watch_link_sent_application_context
+          - flutter_watch_link_poll_inbound
+          - flutter_watch_link_outstanding_transfer_count
+          - flutter_watch_link_dropped_inbound_count
+          - flutter_watch_link_take_last_error
+          - flutter_watch_link_free

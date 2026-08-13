@@ -2,6 +2,7 @@
 .dart_tool/
 build/
 pubspec.lock
+coverage/
 
 # IDE / OS noise
 .idea/
