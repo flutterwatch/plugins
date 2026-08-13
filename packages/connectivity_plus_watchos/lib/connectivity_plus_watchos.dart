@@ -8,8 +8,13 @@
 // this package follows the FFI plugin model: `watchos/Classes/
 // connectivity_plus_watchos_ffi.m` runs a persistent `NWPathMonitor`
 // (SystemConfiguration reachability does not exist on watchOS) and caches
-// the current connectivity, and this class resolves the symbol via
+// the current connectivity, and this class resolves the symbols via
 // `DynamicLibrary.process()`.
+//
+// Changes are **pushed**: the path monitor wakes Dart through a
+// `NativeCallable.listener` and Dart re-reads the cached value. It does not
+// poll. A connectivity state that changes a handful of times a day does not
+// justify a timer running for the life of the app on a watch.
 
 import 'dart:async';
 import 'dart:ffi';
@@ -34,10 +39,32 @@ class ConnectivityPlusWatchosBindings {
       .lookupFunction<Int32 Function(), int Function()>(
           'connectivity_plus_watchos_current');
 
+  late final void Function(Pointer<NativeFunction<ConnectivityChangedNative>>)
+      _setCallback = _lib!.lookupFunction<
+              Void Function(Pointer<NativeFunction<ConnectivityChangedNative>>),
+              void Function(Pointer<NativeFunction<ConnectivityChangedNative>>)>(
+          'connectivity_plus_watchos_set_callback');
+
   /// Current native connectivity code (0 none / 1 wifi / 2 mobile /
   /// 3 ethernet / 4 other).
   int get current => _current();
+
+  /// Registers the function the path monitor calls on a change, or `nullptr`
+  /// to stop.
+  void setCallback(Pointer<NativeFunction<ConnectivityChangedNative>> cb) =>
+      _setCallback(cb);
 }
+
+/// Signature of the native→Dart connectivity-change signal.
+typedef ConnectivityChangedNative = Void Function(Int64);
+
+/// Trampolines handed to native, kept alive for the life of the process.
+///
+/// They are deliberately never closed. Native can be between reading the
+/// pointer and calling it at the moment a listener cancels, and closing under
+/// that race is worse than retaining a few words per subscription.
+final List<NativeCallable<ConnectivityChangedNative>> _retainedCallables =
+    <NativeCallable<ConnectivityChangedNative>>[];
 
 /// watchOS implementation of [ConnectivityPlatform].
 class ConnectivityPlusWatchos extends ConnectivityPlatform {
@@ -49,10 +76,6 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
   static ConnectivityPlusWatchosBindings get _b =>
       bindingsOverride ?? (_bindings ??= ConnectivityPlusWatchosBindings());
 
-  /// How often [onConnectivityChanged] polls the native monitor. The native
-  /// `NWPathMonitor` updates its cache asynchronously; Dart samples it,
-  /// since watchOS offers no cross-FFI push channel.
-  static Duration pollInterval = const Duration(seconds: 2);
 
   /// Registers this implementation as the default `connectivity_plus`
   /// platform implementation on watchOS.
@@ -82,9 +105,8 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
   Stream<List<ConnectivityResult>> get onConnectivityChanged {
     int? lastCode;
     late final StreamController<List<ConnectivityResult>> controller;
-    Timer? timer;
 
-    void tick() {
+    void emitIfChanged() {
       final int code = _b.current;
       if (code != lastCode) {
         lastCode = code;
@@ -94,13 +116,18 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
 
     controller = StreamController<List<ConnectivityResult>>.broadcast(
       onListen: () {
-        tick();
-        timer = Timer.periodic(pollInterval, (_) => tick());
+        // Emit the current value first: a listener should not have to wait for
+        // the network to change before it learns what the network is.
+        emitIfChanged();
+        final NativeCallable<ConnectivityChangedNative> c =
+            NativeCallable<ConnectivityChangedNative>.listener(
+                (int _) => emitIfChanged());
+        // Connectivity is not a reason to keep the isolate alive.
+        c.keepIsolateAlive = false;
+        _retainedCallables.add(c);
+        _b.setCallback(c.nativeFunction);
       },
-      onCancel: () {
-        timer?.cancel();
-        timer = null;
-      },
+      onCancel: () => _b.setCallback(nullptr),
     );
     return controller.stream;
   }
