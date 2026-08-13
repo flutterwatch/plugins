@@ -40,6 +40,11 @@ abstract class SensorsPlusWatchosBackend {
   void startMagnetometer(int intervalMicros);
   List<double>? readMagnetometer();
   void stopMagnetometer();
+
+  /// Registers the function native calls when a sample lands, or `nullptr`
+  /// to stop. One callback serves all four sensors; the kind it is passed
+  /// says which produced the sample.
+  void setCallback(Pointer<NativeFunction<SensorSampleNative>> callback);
 }
 
 /// watchOS implementation of [SensorsPlatform].
@@ -62,7 +67,8 @@ base class SensorsPlusWatchos extends SensorsPlatform {
   Stream<AccelerometerEvent> accelerometerEventStream({
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) =>
-      _poll<AccelerometerEvent>(
+      _push<AccelerometerEvent>(
+        1,
         samplingPeriod,
         _b.startAccelerometer,
         _b.readAccelerometer,
@@ -75,7 +81,8 @@ base class SensorsPlusWatchos extends SensorsPlatform {
   Stream<UserAccelerometerEvent> userAccelerometerEventStream({
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) =>
-      _poll<UserAccelerometerEvent>(
+      _push<UserAccelerometerEvent>(
+        2,
         samplingPeriod,
         _b.startUserAccelerometer,
         _b.readUserAccelerometer,
@@ -88,7 +95,8 @@ base class SensorsPlusWatchos extends SensorsPlatform {
   Stream<GyroscopeEvent> gyroscopeEventStream({
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) =>
-      _poll<GyroscopeEvent>(
+      _push<GyroscopeEvent>(
+        3,
         samplingPeriod,
         _b.startGyroscope,
         _b.readGyroscope,
@@ -100,7 +108,8 @@ base class SensorsPlusWatchos extends SensorsPlatform {
   Stream<MagnetometerEvent> magnetometerEventStream({
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) =>
-      _poll<MagnetometerEvent>(
+      _push<MagnetometerEvent>(
+        4,
         samplingPeriod,
         _b.startMagnetometer,
         _b.readMagnetometer,
@@ -108,9 +117,16 @@ base class SensorsPlusWatchos extends SensorsPlatform {
         (List<double> v, DateTime t) => MagnetometerEvent(v[0], v[1], v[2], t),
       );
 
-  /// Builds a broadcast stream that starts native updates on first listen,
-  /// polls [read] every [samplingPeriod], and stops updates on cancel.
-  Stream<T> _poll<T>(
+  /// Builds a broadcast stream that starts native updates on first listen and
+  /// emits one event per CoreMotion sample of [kind], stopping on cancel.
+  ///
+  /// One event per native sample, not one per Dart tick. The old
+  /// `Timer.periodic` ran on a clock independent of CoreMotion's, so at the
+  /// same nominal rate it would re-read a sample it had already emitted, or
+  /// skip one entirely — aliasing that is invisible until you look at
+  /// timestamps.
+  Stream<T> _push<T>(
+    int kind,
     Duration samplingPeriod,
     void Function(int intervalMicros) start,
     List<double>? Function() read,
@@ -120,30 +136,56 @@ base class SensorsPlusWatchos extends SensorsPlatform {
     final int micros = samplingPeriod.inMicroseconds <= 0
         ? SensorInterval.normalInterval.inMicroseconds
         : samplingPeriod.inMicroseconds;
-    final Duration period = Duration(microseconds: micros);
     late StreamController<T> controller;
-    Timer? timer;
-
-    void tick(Timer _) {
-      final List<double>? xyz = read();
-      if (xyz != null) {
-        controller.add(build(xyz, DateTime.now()));
-      }
-    }
 
     controller = StreamController<T>.broadcast(
       onListen: () {
+        _b.setCallback(_sharedCallback(kind, () {
+          final List<double>? xyz = read();
+          if (xyz != null) {
+            controller.add(build(xyz, DateTime.now()));
+          }
+        }));
         start(micros);
-        timer = Timer.periodic(period, tick);
       },
       onCancel: () {
-        timer?.cancel();
-        timer = null;
+        _unregister(kind);
         stop();
       },
     );
     return controller.stream;
   }
+}
+
+/// Signature of the native→Dart sample signal.
+typedef SensorSampleNative = Void Function(Int64);
+
+/// Per-kind emit callbacks, and the single trampoline that fans out to them.
+///
+/// Native holds one callback pointer, not one per sensor, so the four streams
+/// share a trampoline and dispatch on the kind it is handed.
+final Map<int, void Function()> _emitters = <int, void Function()>{};
+NativeCallable<SensorSampleNative>? _sharedCallable;
+
+Pointer<NativeFunction<SensorSampleNative>> _sharedCallback(
+    int kind, void Function() emit) {
+  _emitters[kind] = emit;
+  final NativeCallable<SensorSampleNative> callable = _sharedCallable ??= () {
+    final NativeCallable<SensorSampleNative> c =
+        NativeCallable<SensorSampleNative>.listener(
+            (int k) => _emitters[k]?.call());
+    // A sensor subscription should not, by itself, keep the isolate alive.
+    c.keepIsolateAlive = false;
+    return c;
+  }();
+  return callable.nativeFunction;
+}
+
+void _unregister(int kind) {
+  _emitters.remove(kind);
+  // The trampoline itself is deliberately kept: native may be between reading
+  // the pointer and calling it, and an empty emitter map already makes any
+  // late signal a no-op.
 }
 
 typedef _StartNative = Void Function(Int64);
@@ -171,6 +213,16 @@ class _FfiBackend implements SensorsPlusWatchosBackend {
       _lib.lookupFunction<_ReadNative, _ReadDart>(name);
   _StopDart _stop(String name) =>
       _lib.lookupFunction<_StopNative, _StopDart>(name);
+
+  late final void Function(Pointer<NativeFunction<SensorSampleNative>>)
+      _setCallback = _lib.lookupFunction<
+              Void Function(Pointer<NativeFunction<SensorSampleNative>>),
+              void Function(Pointer<NativeFunction<SensorSampleNative>>)>(
+          'sensors_plus_watchos_set_callback');
+
+  @override
+  void setCallback(Pointer<NativeFunction<SensorSampleNative>> callback) =>
+      _setCallback(callback);
 
   late final _StartDart _startAccel =
       _start('sensors_plus_watchos_start_accelerometer');
