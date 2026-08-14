@@ -249,21 +249,18 @@ class _Notifier {
       GeolocatorWatchosBackend backend, void Function() listener) {
     _listeners.add(listener);
     if (!identical(_registeredWith, backend)) {
-      // A different backend than the one we registered with — re-register,
-      // reusing the trampoline.
-      _callable = null;
-    }
-    if (_callable == null) {
-      final NativeCallable<GeolocatorFixNative> c =
-          NativeCallable<GeolocatorFixNative>.listener((int _) {
-        // Copied: a listener may remove itself while being notified.
-        for (final void Function() l in _listeners.toList()) {
-          l();
-        }
-      });
-      // Waiting on a fix should not, by itself, keep the isolate alive.
-      c.keepIsolateAlive = false;
-      _callable = c;
+      final NativeCallable<GeolocatorFixNative> c = _callable ??= () {
+        final NativeCallable<GeolocatorFixNative> created =
+            NativeCallable<GeolocatorFixNative>.listener((int _) {
+          // Copied: a listener may remove itself while being notified.
+          for (final void Function() l in _listeners.toList()) {
+            l();
+          }
+        });
+        // Waiting on a fix should not, by itself, keep the isolate alive.
+        created.keepIsolateAlive = false;
+        return created;
+      }();
       _registeredWith = backend;
       backend.setCallback(c.nativeFunction);
     }
@@ -271,10 +268,11 @@ class _Notifier {
       _listeners.remove(listener);
       if (_listeners.isEmpty) {
         backend.setCallback(nullptr);
-        // The trampoline itself is kept: native may be between reading the
-        // pointer and calling it, and an empty listener set already makes a
-        // late signal a no-op.
-        _callable = null;
+        // The trampoline itself is kept and reused on the next listen: native
+        // may be between reading the pointer and calling it, an empty listener
+        // set already makes a late signal a no-op, and a NativeCallable is
+        // only reclaimed by close() — so discarding it would leak one per
+        // listen/cancel cycle.
         _registeredWith = null;
       }
     };
