@@ -84,6 +84,61 @@ void main() {
     ]);
   });
 
+  test('a second listener is seeded and both see changes', () async {
+    // Native holds a single callback pointer, and a broadcast onListen fires
+    // only on zero-to-one: registering per subscription let the newcomer
+    // silence the incumbent, and seeding in onListen left the newcomer
+    // without a current value at all.
+    final c = ConnectivityPlusWatchos();
+    fake.code = 1; // wifi
+
+    final List<List<ConnectivityResult>> first = <List<ConnectivityResult>>[];
+    final StreamSubscription<List<ConnectivityResult>> a =
+        c.onConnectivityChanged.listen(first.add);
+    await pumpEventQueue();
+
+    final List<List<ConnectivityResult>> second = <List<ConnectivityResult>>[];
+    final StreamSubscription<List<ConnectivityResult>> b =
+        c.onConnectivityChanged.listen(second.add);
+    await pumpEventQueue();
+
+    expect(second.single, <ConnectivityResult>[ConnectivityResult.wifi],
+        reason: 'a late listener learns what the network is without waiting');
+
+    fake.code = 0;
+    fake.fireChange();
+    await pumpEventQueue();
+
+    expect(first.last, <ConnectivityResult>[ConnectivityResult.none],
+        reason: 'the first listener was not silenced by the second');
+    expect(second.last, <ConnectivityResult>[ConnectivityResult.none]);
+
+    await a.cancel();
+    await b.cancel();
+  });
+
+  test('cancelling one listener leaves the other registered', () async {
+    final c = ConnectivityPlusWatchos();
+    final List<List<ConnectivityResult>> kept = <List<ConnectivityResult>>[];
+    final StreamSubscription<List<ConnectivityResult>> a =
+        c.onConnectivityChanged.listen((_) {});
+    final StreamSubscription<List<ConnectivityResult>> b =
+        c.onConnectivityChanged.listen(kept.add);
+    await pumpEventQueue();
+
+    await a.cancel();
+    expect(fake.isRegistered, isTrue,
+        reason: 'one listener is left, so native must keep signalling');
+
+    fake.code = 2;
+    fake.fireChange();
+    await pumpEventQueue();
+    expect(kept.last, <ConnectivityResult>[ConnectivityResult.mobile]);
+
+    await b.cancel();
+    expect(fake.isRegistered, isFalse);
+  });
+
   test('registers on listen and unregisters on cancel', () async {
     final c = ConnectivityPlusWatchos();
     expect(fake.isRegistered, isFalse);

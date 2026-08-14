@@ -58,13 +58,58 @@ class ConnectivityPlusWatchosBindings {
 /// Signature of the native→Dart connectivity-change signal.
 typedef ConnectivityChangedNative = Void Function(Int64);
 
-/// Trampolines handed to native, kept alive for the life of the process.
+/// Fan-out for the single native callback slot.
 ///
-/// They are deliberately never closed. Native can be between reading the
-/// pointer and calling it at the moment a listener cancels, and closing under
-/// that race is worse than retaining a few words per subscription.
-final List<NativeCallable<ConnectivityChangedNative>> _retainedCallables =
-    <NativeCallable<ConnectivityChangedNative>>[];
+/// Native holds **one** callback pointer, so registering per subscription
+/// would let the newest subscriber silence every older one, and let the first
+/// cancel unregister the callback out from under the rest. They share one
+/// trampoline instead, and native is unregistered only once nobody is left.
+class _Notifier {
+  static final Set<void Function()> _listeners = <void Function()>{};
+  static NativeCallable<ConnectivityChangedNative>? _callable;
+
+  /// Which bindings the trampoline is currently registered with, or null when
+  /// it is not registered at all.
+  ///
+  /// Tracked because the bindings are swappable (`bindingsOverride`):
+  /// registering once and never again would leave replaced bindings silent.
+  static ConnectivityPlusWatchosBindings? _registeredWith;
+
+  /// Calls [listener] on every path change, and returns a function that stops
+  /// it.
+  static void Function() listen(
+      ConnectivityPlusWatchosBindings bindings, void Function() listener) {
+    _listeners.add(listener);
+    if (!identical(_registeredWith, bindings)) {
+      final NativeCallable<ConnectivityChangedNative> c = _callable ??= () {
+        final NativeCallable<ConnectivityChangedNative> created =
+            NativeCallable<ConnectivityChangedNative>.listener((int _) {
+          // Copied: a listener may remove itself while being notified.
+          for (final void Function() l in _listeners.toList()) {
+            l();
+          }
+        });
+        // Connectivity is not a reason to keep the isolate alive.
+        created.keepIsolateAlive = false;
+        return created;
+      }();
+      _registeredWith = bindings;
+      bindings.setCallback(c.nativeFunction);
+    }
+    return () {
+      _listeners.remove(listener);
+      if (_listeners.isEmpty) {
+        bindings.setCallback(nullptr);
+        // The trampoline itself is kept and reused on the next listen: native
+        // may be between reading the pointer and calling it, an empty listener
+        // set already makes a late signal a no-op, and a NativeCallable is
+        // only reclaimed by close() — so discarding it would leak one per
+        // listen/cancel cycle.
+        _registeredWith = null;
+      }
+    };
+  }
+}
 
 /// watchOS implementation of [ConnectivityPlatform].
 class ConnectivityPlusWatchos extends ConnectivityPlatform {
@@ -101,34 +146,34 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
   @override
   Future<List<ConnectivityResult>> checkConnectivity() async => _map(_b.current);
 
+  /// Connectivity changes, seeded with the current value for *every*
+  /// subscriber.
+  ///
+  /// [Stream.multi] rather than a broadcast controller: a broadcast
+  /// `onListen` fires only when the listener count goes from zero to one, so a
+  /// second concurrent subscriber would never learn what the network is until
+  /// it happened to change. Each subscriber gets its own dedupe state and its
+  /// own entry in [_Notifier], and native is only unregistered once the last
+  /// one cancels.
   @override
-  Stream<List<ConnectivityResult>> get onConnectivityChanged {
-    int? lastCode;
-    late final StreamController<List<ConnectivityResult>> controller;
+  Stream<List<ConnectivityResult>> get onConnectivityChanged =>
+      Stream<List<ConnectivityResult>>.multi(
+        (MultiStreamController<List<ConnectivityResult>> out) {
+          int? lastCode;
 
-    void emitIfChanged() {
-      final int code = _b.current;
-      if (code != lastCode) {
-        lastCode = code;
-        controller.add(_map(code));
-      }
-    }
+          void emitIfChanged() {
+            final int code = _b.current;
+            if (code != lastCode) {
+              lastCode = code;
+              out.add(_map(code));
+            }
+          }
 
-    controller = StreamController<List<ConnectivityResult>>.broadcast(
-      onListen: () {
-        // Emit the current value first: a listener should not have to wait for
-        // the network to change before it learns what the network is.
-        emitIfChanged();
-        final NativeCallable<ConnectivityChangedNative> c =
-            NativeCallable<ConnectivityChangedNative>.listener(
-                (int _) => emitIfChanged());
-        // Connectivity is not a reason to keep the isolate alive.
-        c.keepIsolateAlive = false;
-        _retainedCallables.add(c);
-        _b.setCallback(c.nativeFunction);
-      },
-      onCancel: () => _b.setCallback(nullptr),
-    );
-    return controller.stream;
-  }
+          // The current value first: a listener should not have to wait for
+          // the network to change before it learns what the network is.
+          emitIfChanged();
+          out.onCancel = _Notifier.listen(_b, emitIfChanged);
+        },
+        isBroadcast: true,
+      );
 }
