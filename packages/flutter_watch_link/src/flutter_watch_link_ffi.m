@@ -346,9 +346,12 @@ int flutter_watch_link_respond(int64_t reply_id, const char* json) {
             return;
         }
 
-        NSDictionary* metadata = file.metadata;
-        if (metadata == nil ||
-            ![NSJSONSerialization isValidJSONObject:metadata]) {
+        // Unwraps the JSON string the sender put under the reserved key. A
+        // dictionary without it came from something other than this package,
+        // and _payloadObject falls back to the dictionary itself.
+        NSDictionary* metadata =
+            file.metadata == nil ? nil : _payloadObject(file.metadata);
+        if (metadata == nil) {
             metadata = @{};
         }
         _enqueue(_copyJSON(@{
@@ -537,8 +540,16 @@ int flutter_watch_link_transfer_file(const char* path,
         }
         // Metadata is optional; an absent or unparseable value is treated as
         // empty rather than failing the transfer.
-        NSDictionary* metadata =
+        //
+        // Wrapped like every other tier rather than handed over as a decoded
+        // dictionary. WCSession accepts only property-list values in metadata,
+        // and a JSON null decodes to NSNull, which is not one — passing it
+        // through raises NSInvalidArgumentException. Wrapping also keeps
+        // metadata out of the plist numeric coercion that would turn an int
+        // into a double on the way across.
+        NSDictionary* parsed =
             metadata_json == NULL ? nil : _parseObject(metadata_json);
+        NSDictionary* metadata = parsed == nil ? nil : _wrap(parsed);
         WCSession* session = _session();
         if (session == nil) {
             return FWL_NOT_ACTIVATED;

@@ -18,6 +18,8 @@
 // listening is expected to fail in a specific, documented way. Two-device
 // delivery is checked by hand — see the README's Simulator-pair section.
 
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_watch_link/flutter_watch_link.dart';
 import 'package:integration_test/integration_test.dart';
@@ -159,6 +161,40 @@ void main() {
     final Map<String, Object?>? sent = await link.sentApplicationContext();
     expect(sent, isNotNull);
     expect(sent!['stamp'], stamp);
+  });
+
+  testWidgets('file metadata carrying a null reaches WCSession intact',
+      (WidgetTester _) async {
+    if (!await link.isSupported()) {
+      return;
+    }
+    if (!(await link.readState()).activated) {
+      return;
+    }
+    // Metadata is wrapped as a JSON string like every other tier rather than
+    // handed over as a decoded dictionary. WCSession documents metadata as
+    // property-list values, and a JSON null decodes to NSNull, which is not
+    // one; the same wrapping is what keeps an int from arriving as a double
+    // after the property-list round trip.
+    //
+    // What this asserts is only that the call is accepted and the app is
+    // still running. On a device with no counterpart installed, WCSession
+    // discards the transfer without validating the metadata at all — measured,
+    // not assumed — so the raise cannot be provoked here. Whether the
+    // metadata *arrives* is part of the two-device check in the README.
+    //
+    // The file is left behind on purpose: the transfer may still be queued
+    // when this returns, and deleting the source out from under it would fail
+    // the transfer for a reason that has nothing to do with what is being
+    // tested. It is a handful of bytes in the app's temporary directory.
+    final Directory dir = Directory.systemTemp.createTempSync('watch_link');
+    final File file = File('${dir.path}/payload.txt')
+      ..writeAsStringSync('hello');
+    await link.transferFile(
+      file.path,
+      metadata: <String, Object?>{'caption': null, 'index': 1},
+    );
+    expect(await link.outstandingFileTransferCount(), greaterThanOrEqualTo(0));
   });
 
   testWidgets('transfer counts are readable and non-negative',
