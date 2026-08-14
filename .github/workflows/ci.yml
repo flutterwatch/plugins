@@ -1,0 +1,78 @@
+# CI for every package in packages/.
+#
+# Scoped to `lib` and `test` on purpose. Each `example/` is a separate Flutter
+# project with its own pubspec — several are ported upstream examples carrying
+# their own sub-projects (audioplayers' `example/server/`), and AUTHORING.md
+# says to ship those verbatim. Gating on them would make CI red for reasons
+# that are not the package's, and would pressure people into editing code the
+# repo deliberately keeps unmodified.
+#
+# Native code is not compiled here: these are watchOS FFI plugins, and every
+# test fakes the bindings through a `forTesting` constructor, so nothing needs
+# a Mac. Compiling the `.m` sources needs a watchOS SDK and belongs in the
+# per-package `example` build, run on a Mac by hand — see AUTHORING.md §3.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packages:
+    name: analyze + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+
+      # One job looping rather than a 20-way matrix: each matrix leg would
+      # re-install Flutter to run about ten seconds of tests. The loop keeps
+      # going after a failure and reports every package, so one broken package
+      # does not hide the state of the other nineteen.
+      - name: Analyze and test every package
+        run: |
+          failed=()
+          for dir in packages/*/; do
+            name=$(basename "$dir")
+            echo "::group::$name"
+            ok=1
+            (cd "$dir" && flutter pub get)               || ok=0
+            (cd "$dir" && flutter analyze lib test)      || ok=0
+            (cd "$dir" && flutter test)                  || ok=0
+            echo "::endgroup::"
+            if [ "$ok" -eq 1 ]; then
+              echo "PASS $name"
+            else
+              echo "::error title=$name::analyze or tests failed"
+              failed+=("$name")
+            fi
+          done
+
+          echo
+          echo "### Package results" >> "$GITHUB_STEP_SUMMARY"
+          if [ ${#failed[@]} -eq 0 ]; then
+            total=$(ls -d packages/*/ | wc -l | tr -d ' ')
+            echo "All $total packages passed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Failed: ${failed[*]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "FAILED: ${failed[*]}"
+            exit 1
+          fi
+
+  # No `dart format` gate yet. 46 of the 109 files under packages/*/lib and
+  # packages/*/test are not currently formatted, so adding one would fail on
+  # its first run and force a mechanical reformat of published sources as a
+  # side effect of turning CI on. Worth doing as its own change, not this one.

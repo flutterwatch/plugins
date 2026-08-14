@@ -7,8 +7,6 @@
 // FFI requests, rebuilds notification settings and messages from the JSON
 // results, and pumps queued messages into the platform-interface streams.
 
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:firebase_messaging_platform_interface/firebase_messaging_platform_interface.dart';
 import 'package:firebase_messaging_watchos/firebase_messaging_watchos.dart';
