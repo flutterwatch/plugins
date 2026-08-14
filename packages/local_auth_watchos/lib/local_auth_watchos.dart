@@ -46,13 +46,60 @@ abstract class LocalAuthWatchosBackend {
 /// Signature of the native→Dart completion signal.
 typedef LocalAuthResolvedNative = Void Function(Int64);
 
-/// Trampolines handed to native, kept for the life of the process.
+/// Fan-out for the single native callback slot.
 ///
-/// Never closed: native can be between reading the pointer and calling it when
-/// an evaluation ends, and closing under that race is worse than retaining a
-/// few words per authentication.
-final List<NativeCallable<LocalAuthResolvedNative>> _retainedCallables =
-    <NativeCallable<LocalAuthResolvedNative>>[];
+/// Native holds **one** callback pointer, so a second [LocalAuthWatchos
+/// .authenticate] would otherwise overwrite the first's callback — leaving
+/// the first future to hang until its timeout and report failure for an
+/// authentication that succeeded — and then clear the callback the first was
+/// still waiting on. Overlapping calls share one trampoline, and all of them
+/// settle when the evaluation resolves.
+class _Notifier {
+  static final Set<void Function()> _listeners = <void Function()>{};
+  static NativeCallable<LocalAuthResolvedNative>? _callable;
+
+  /// Which backend the trampoline is currently registered with, or null when
+  /// it is not registered at all.
+  ///
+  /// Tracked because the backend is swappable (`backendOverride`): registering
+  /// once and never again would leave a replaced backend silent.
+  static LocalAuthWatchosBackend? _registeredWith;
+
+  /// Calls [listener] whenever an evaluation resolves, and returns a function
+  /// that stops it.
+  static void Function() listen(
+      LocalAuthWatchosBackend backend, void Function() listener) {
+    _listeners.add(listener);
+    if (!identical(_registeredWith, backend)) {
+      final NativeCallable<LocalAuthResolvedNative> c = _callable ??= () {
+        final NativeCallable<LocalAuthResolvedNative> created =
+            NativeCallable<LocalAuthResolvedNative>.listener((int _) {
+          // Copied: a listener removes itself as it settles.
+          for (final void Function() l in _listeners.toList()) {
+            l();
+          }
+        });
+        // A prompt awaiting a human is not a reason to hold the isolate open.
+        created.keepIsolateAlive = false;
+        return created;
+      }();
+      _registeredWith = backend;
+      backend.setCallback(c.nativeFunction);
+    }
+    return () {
+      _listeners.remove(listener);
+      if (_listeners.isEmpty) {
+        backend.setCallback(nullptr);
+        // The trampoline itself is kept and reused by the next call: native
+        // may be between reading the pointer and calling it, an empty listener
+        // set already makes a late signal a no-op, and a NativeCallable is
+        // only reclaimed by close() — so discarding it would leak one per
+        // authentication.
+        _registeredWith = null;
+      }
+    };
+  }
+}
 
 /// watchOS implementation of [LocalAuthPlatform].
 base class LocalAuthWatchos extends LocalAuthPlatform {
@@ -76,6 +123,13 @@ base class LocalAuthWatchos extends LocalAuthPlatform {
     LocalAuthPlatform.instance = LocalAuthWatchos();
   }
 
+  /// Prompts for device-owner authentication.
+  ///
+  /// Native runs one `LAContext` at a time, so overlapping calls share a
+  /// single evaluation: the later prompt supersedes the earlier one and every
+  /// outstanding future completes with that shared outcome. None of them
+  /// hangs, which is the part that matters — a caller that needs the two
+  /// treated separately has to serialise them itself.
   @override
   Future<bool> authenticate({
     required String localizedReason,
@@ -91,12 +145,7 @@ base class LocalAuthWatchos extends LocalAuthPlatform {
       }
     }
 
-    final NativeCallable<LocalAuthResolvedNative> callable =
-        NativeCallable<LocalAuthResolvedNative>.listener((int _) => settle());
-    // A prompt awaiting a human is not a reason to hold the isolate open.
-    callable.keepIsolateAlive = false;
-    _retainedCallables.add(callable);
-    _b.setCallback(callable.nativeFunction);
+    final void Function() stopListening = _Notifier.listen(_b, settle);
 
     _b.startAuthenticate(localizedReason, options.biometricOnly);
     // An evaluation can resolve before the callback is even registered — a
@@ -110,7 +159,8 @@ base class LocalAuthWatchos extends LocalAuthPlatform {
         return false;
       });
     } finally {
-      _b.setCallback(nullptr);
+      // Only unregisters native once no other call is still waiting.
+      stopListening();
     }
   }
 

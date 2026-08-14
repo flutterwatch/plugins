@@ -147,6 +147,51 @@ void main() {
     expect(fake.lastBiometricOnly, isTrue);
   });
 
+  test('overlapping authenticate calls both settle', () async {
+    // Native holds a single callback pointer. Registering per call let the
+    // second overwrite the first's, leaving the first to hang to its timeout
+    // and report failure for an authentication that had succeeded.
+    LocalAuthWatchos.timeout = const Duration(milliseconds: 50);
+    final Future<bool> first = auth.authenticate(
+        localizedReason: 'Unlock', authMessages: const <AuthMessages>[]);
+    await pumpEventQueue();
+    final Future<bool> second = auth.authenticate(
+        localizedReason: 'Unlock again', authMessages: const <AuthMessages>[]);
+    await pumpEventQueue();
+
+    fake.resolve();
+
+    expect(await first, isTrue);
+    expect(await second, isTrue);
+    expect(fake.isRegistered, isFalse,
+        reason: 'native is unregistered once the last caller settles');
+  });
+
+  test('one call settling does not unregister another still waiting',
+      () async {
+    LocalAuthWatchos.timeout = const Duration(milliseconds: 50);
+    final Future<bool> first = auth.authenticate(
+        localizedReason: 'Unlock', authMessages: const <AuthMessages>[]);
+    await pumpEventQueue();
+
+    // A second call that resolves immediately, the way an unevaluatable
+    // policy does — its `finally` must not clear the callback the first is
+    // still waiting on.
+    fake.resolveInsideStart = true;
+    expect(
+        await auth.authenticate(
+            localizedReason: 'Unlock again',
+            authMessages: const <AuthMessages>[]),
+        isTrue);
+    expect(fake.isRegistered, isTrue,
+        reason: 'the first call is still waiting for a signal');
+
+    fake.resolveInsideStart = false;
+    fake.resolve();
+    expect(await first, isTrue);
+    expect(fake.isRegistered, isFalse);
+  });
+
   test('biometrics are unavailable on watchOS', () async {
     expect(await auth.deviceSupportsBiometrics(), isFalse);
     expect(await auth.getEnrolledBiometrics(), isEmpty);
