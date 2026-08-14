@@ -84,11 +84,29 @@ And, unlike tvOS, these DO work — don't stub them reflexively:
 The porter's `PORTING_REPORT.md` lists exactly which handlers hit which of
 these — trust it as the checklist.
 
-## 2b. Streams and async native APIs — poll, don't call back
+## 2b. Streams and async native APIs
 
-FFI has no zero-setup way to invoke Dart from a native callback thread, so
-this repo bridges asynchronous CoreMotion / CoreLocation / LocalAuthentication
-work with a **cache-and-poll** pattern instead of `NativeCallable`:
+`NativeCallable.listener` **works on the watchOS engine** — native code can wake
+Dart from a background thread. Verified in release/AOT on a physical watch:
+5 callbacks fired from a global dispatch queue, 5 received in order, no drops.
+So push is available, and a new streaming plugin should prefer it.
+
+`flutter_watch_link` is the worked example. The rule that matters
+there: **the callback carries a kind, never a payload.** `NativeCallable
+.listener` is asynchronous, so native returns before Dart runs and any pointer
+handed across could be freed in between. Signal that something changed, keep a
+bounded native buffer, and let Dart pull the data back with synchronous reads —
+a burst can still outrun the isolate, and a ring buffer with a drop counter is a
+better failure mode than unbounded growth.
+
+### Cache-and-poll, the older pattern
+
+Several plugins still bridge asynchronous native work with **cache-and-poll**,
+which predates the finding above: `audioplayers_watchos`,
+`battery_plus_watchos`, `video_player_watchos`, `in_app_purchase_watchos` and
+the three `firebase_*_watchos` packages. It is still correct, and still the
+simpler option for a one-shot call; it is no longer the only option, and it is
+the wrong default for anything long-lived:
 
 - Native starts updates and stores the *latest* value (a struct guarded by an
   `os_unfair_lock`, or a `dispatch_once`-cached one-shot); it exposes a
@@ -100,8 +118,39 @@ work with a **cache-and-poll** pattern instead of `NativeCallable`:
   `evaluatePolicy`, `getCurrentPosition`) `await Future.delayed` between polls
   until the native state flips or a deadline passes.
 
-See `sensors_plus_watchos` (streams), `geolocator_watchos` (permission +
-stream + one-shot) and `local_auth_watchos` (async poll) for worked examples.
+For **push** — what a new streaming plugin should do — see
+`sensors_plus_watchos` (four streams sharing one callback, fanned out on a
+sensor kind), `geolocator_watchos` (a stream and two one-shots sharing one
+callback through a small notifier) and `local_auth_watchos` (a one-shot future
+that must also handle resolving *before* Dart registers).
+
+Four rules those three earned the hard way:
+
+- **Native holds one callback pointer, not one per consumer.** If more than one
+  thing can wait at once, fan out from a single trampoline — registering per
+  consumer lets whichever finishes first silence the others.
+- **A consumer is a *subscription*, not a stream or a call site.** Keying the
+  fan-out by sensor, by stream, or by "the current call" is the same bug one
+  level down: a second `listen` on the same sensor, a second `authenticate()`,
+  a second listener on the same connectivity stream. Keep a `Set` of callbacks
+  per waited-on thing, notify all of them, and unregister native only when the
+  set empties — a copy of the set while notifying, since a listener may remove
+  itself as it settles.
+- **Check the state once immediately after starting.** A native operation can
+  resolve synchronously inside the call that begins it, so the signal is gone
+  before Dart could register for it, and waiting alone deadlocks.
+- **Keep the trampoline; unregister the pointer.** A `NativeCallable` is only
+  reclaimed by `close()`, and `close()` is exactly what cannot be called while
+  native might be between reading the pointer and calling it. So allocate one
+  per plugin, `setCallback(nullptr)` when nobody is waiting, and re-register
+  the *same* one on the next listen. Allocating a fresh one per cycle — or
+  appending each to a `_retained` list — leaks one per subscription for the
+  life of the app.
+
+A **broadcast controller's `onListen` fires only on zero-to-one**, so it is the
+wrong place to seed a "current value". A second concurrent subscriber gets
+nothing until something changes. Use `Stream.multi` and seed each subscriber:
+`connectivity_plus_watchos` and `flutter_watch_link`'s `states` both do.
 
 ## 2c. Native SwiftUI platform views
 

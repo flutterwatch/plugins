@@ -8,6 +8,7 @@
 // Simulator has no motion hardware).
 
 import 'dart:async';
+import 'dart:ffi';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sensors_plus_platform_interface/sensors_plus_platform_interface.dart';
@@ -46,7 +47,26 @@ class _FakeBackend implements SensorsPlusWatchosBackend {
   List<double>? readMagnetometer() => sample;
   @override
   void stopMagnetometer() {}
+
+  Pointer<NativeFunction<SensorSampleNative>>? _callback;
+
+  /// Whether native would currently wake Dart.
+  bool get isRegistered => _callback != null;
+
+  @override
+  void setCallback(Pointer<NativeFunction<SensorSampleNative>> cb) =>
+      _callback = cb == nullptr ? null : cb;
+
+  /// Delivers a sample of [kind] the way a CoreMotion handler would, through
+  /// the real NativeCallable trampoline.
+  void deliver(int kind) => _callback?.asFunction<void Function(int)>()(kind);
 }
+
+/// Sensor kinds, mirrored from the native header.
+const int kAccel = 1;
+const int kUserAccel = 2;
+const int kGyro = 3;
+const int kMag = 4;
 
 void main() {
   late _FakeBackend fake;
@@ -67,32 +87,153 @@ void main() {
 
   test('accelerometer stream emits mapped events and starts/stops native',
       () async {
-    final Stream<AccelerometerEvent> stream = sensors.accelerometerEventStream(
-        samplingPeriod: const Duration(milliseconds: 10));
-    final AccelerometerEvent event = await stream.first;
-    expect(event.x, 1);
-    expect(event.y, 2);
-    expect(event.z, 3);
+    final List<AccelerometerEvent> seen = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> sub = sensors
+        .accelerometerEventStream(
+            samplingPeriod: const Duration(milliseconds: 10))
+        .listen(seen.add);
+    await pumpEventQueue();
     expect(fake.accelStarts, 1);
-    // Cancelling the last listener stops native updates.
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(fake.isRegistered, isTrue);
+
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+
+    expect(seen.single.x, 1);
+    expect(seen.single.y, 2);
+    expect(seen.single.z, 3);
+
+    await sub.cancel();
     expect(fake.accelStops, greaterThanOrEqualTo(1));
+  });
+
+  test('one event per native sample, not one per tick', () async {
+    // The point of the push conversion: the old Timer ran on its own clock and
+    // so could emit the same cached sample twice, or miss one entirely.
+    final List<AccelerometerEvent> seen = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> sub =
+        sensors.accelerometerEventStream().listen(seen.add);
+    await pumpEventQueue();
+
+    fake.deliver(kAccel);
+    fake.deliver(kAccel);
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+
+    expect(seen, hasLength(3));
+    await sub.cancel();
+  });
+
+  test('a sample of one kind does not emit on another sensor stream',
+      () async {
+    // All four share one native callback, so the fan-out has to respect kinds.
+    final List<GyroscopeEvent> gyro = <GyroscopeEvent>[];
+    final List<MagnetometerEvent> mag = <MagnetometerEvent>[];
+    final StreamSubscription<GyroscopeEvent> gyroSub =
+        sensors.gyroscopeEventStream().listen(gyro.add);
+    final StreamSubscription<MagnetometerEvent> magSub =
+        sensors.magnetometerEventStream().listen(mag.add);
+    await pumpEventQueue();
+
+    fake.deliver(kGyro);
+    await pumpEventQueue();
+
+    expect(gyro, hasLength(1));
+    expect(mag, isEmpty);
+
+    await gyroSub.cancel();
+    await magSub.cancel();
   });
 
   test('no native sample yields no events (Simulator behaviour)', () async {
     fake.sample = null;
-    final Stream<GyroscopeEvent> stream = sensors.gyroscopeEventStream(
-        samplingPeriod: const Duration(milliseconds: 5));
-    final Object marker = Object();
-    final Object result = await stream.first
-        .then<Object>((GyroscopeEvent e) => e)
-        .timeout(const Duration(milliseconds: 60), onTimeout: () => marker);
-    expect(result, same(marker));
+    final List<GyroscopeEvent> seen = <GyroscopeEvent>[];
+    final StreamSubscription<GyroscopeEvent> sub =
+        sensors.gyroscopeEventStream().listen(seen.add);
+    await pumpEventQueue();
+
+    fake.deliver(kGyro);
+    await pumpEventQueue();
+
+    expect(seen, isEmpty);
+    await sub.cancel();
+  });
+
+  test('two subscriptions to one sensor both receive every sample', () async {
+    // Native holds a single callback pointer. Keying the fan-out by sensor
+    // alone let the second subscription overwrite the first's emit callback
+    // and silence it.
+    final List<AccelerometerEvent> first = <AccelerometerEvent>[];
+    final List<AccelerometerEvent> second = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> a =
+        sensors.accelerometerEventStream().listen(first.add);
+    final StreamSubscription<AccelerometerEvent> b =
+        sensors.accelerometerEventStream().listen(second.add);
+    await pumpEventQueue();
+
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+
+    expect(first, hasLength(1));
+    expect(second, hasLength(1));
+
+    await a.cancel();
+    await b.cancel();
+  });
+
+  test('cancelling one subscription leaves the sensor running for the other',
+      () async {
+    final List<AccelerometerEvent> kept = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> a =
+        sensors.accelerometerEventStream().listen((_) {});
+    final StreamSubscription<AccelerometerEvent> b =
+        sensors.accelerometerEventStream().listen(kept.add);
+    await pumpEventQueue();
+
+    await a.cancel();
+    expect(fake.accelStops, 0, reason: 'one subscriber is still listening');
+    expect(fake.isRegistered, isTrue);
+
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+    expect(kept, hasLength(1));
+
+    await b.cancel();
+    expect(fake.accelStops, 1, reason: 'the last cancel stops the sensor');
+    expect(fake.isRegistered, isFalse);
+  });
+
+  test('one sensor cancelling does not unregister another still listening',
+      () async {
+    final List<GyroscopeEvent> gyro = <GyroscopeEvent>[];
+    final StreamSubscription<AccelerometerEvent> accel =
+        sensors.accelerometerEventStream().listen((_) {});
+    final StreamSubscription<GyroscopeEvent> sub =
+        sensors.gyroscopeEventStream().listen(gyro.add);
+    await pumpEventQueue();
+
+    await accel.cancel();
+    expect(fake.isRegistered, isTrue);
+
+    fake.deliver(kGyro);
+    await pumpEventQueue();
+    expect(gyro, hasLength(1));
+
+    await sub.cancel();
+    expect(fake.isRegistered, isFalse);
   });
 
   test('every sensor stream maps its triple', () async {
-    expect((await sensors.userAccelerometerEventStream().first).x, 1);
-    expect((await sensors.gyroscopeEventStream().first).y, 2);
-    expect((await sensors.magnetometerEventStream().first).z, 3);
+    Future<T> firstOf<T>(Stream<T> stream, int kind) async {
+      final Future<T> first = stream.first;
+      await pumpEventQueue();
+      fake.deliver(kind);
+      return first;
+    }
+
+    expect((await firstOf(sensors.userAccelerometerEventStream(), kUserAccel)).x,
+        1);
+    expect((await firstOf(sensors.gyroscopeEventStream(), kGyro)).y, 2);
+    expect((await firstOf(sensors.magnetometerEventStream(), kMag)).z, 3);
   });
 }

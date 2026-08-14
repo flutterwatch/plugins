@@ -1,6 +1,6 @@
 name: local_auth_watchos
 description: "watchOS implementation of the local_auth plugin, authenticating the wearer with the device passcode through LocalAuthentication via dart:ffi."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues
@@ -12,7 +12,9 @@ topics:
 # License holder: The FlutterWatch Authors
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  # 3.1 is where NativeCallable.listener landed — the completion signal this
+  # plugin uses instead of a poll loop.
+  sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.13.0"
 
 dependencies:
@@ -45,4 +47,5 @@ flutter:
           - local_auth_watchos_supports_biometrics
           - local_auth_watchos_authenticate
           - local_auth_watchos_poll
+          - local_auth_watchos_set_callback
           - local_auth_watchos_stop

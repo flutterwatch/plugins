@@ -3,8 +3,9 @@
 The watchOS implementation of [`local_auth`](https://pub.dev/packages/local_auth).
 
 Backed by **LocalAuthentication** (`LAContext`, available on watchOS 9+) over
-dart:ffi. `evaluatePolicy` is asynchronous, so the native side caches the
-result and the Dart side polls it.
+dart:ffi. `evaluatePolicy` is asynchronous, so its reply block **pushes** the
+result into Dart through a `NativeCallable.listener`; `authenticate` resolves
+the moment the system answers rather than on a poll interval.
 
 > Scaffolded by [`flutter-watchos plugin port`](https://github.com/flutterwatch/flutter-watchos)
 > from `local_auth_darwin`, then implemented and verified by hand.

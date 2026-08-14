@@ -16,6 +16,7 @@
 // for the change stream.
 static _Atomic int32_t s_current = kConnectivityWatchosNone;
 static nw_path_monitor_t s_monitor = NULL;
+static _Atomic(connectivity_plus_watchos_cb) s_callback = NULL;
 
 static int32_t _code_for_path(nw_path_t path) {
   if (nw_path_get_status(path) != nw_path_status_satisfied) {
@@ -41,10 +42,28 @@ static void _ensure_monitor(void) {
         "dev.flutterwatch.connectivity_plus_watchos", DISPATCH_QUEUE_SERIAL);
     nw_path_monitor_set_queue(s_monitor, queue);
     nw_path_monitor_set_update_handler(s_monitor, ^(nw_path_t _Nonnull path) {
-      atomic_store(&s_current, _code_for_path(path));
+      int32_t code = _code_for_path(path);
+      int32_t previous = atomic_exchange(&s_current, code);
+      // Only wake Dart when the answer actually changed. NWPathMonitor fires
+      // on path details Dart cannot observe through this API, and every
+      // spurious signal is an isolate wake-up on a watch.
+      if (code != previous) {
+        connectivity_plus_watchos_cb callback = atomic_load(&s_callback);
+        if (callback != NULL) {
+          callback(0);
+        }
+      }
     });
     nw_path_monitor_start(s_monitor);
   });
+}
+
+void connectivity_plus_watchos_set_callback(
+    connectivity_plus_watchos_cb callback) {
+  atomic_store(&s_callback, callback);
+  // Registering is also what starts the monitor for a listener that subscribes
+  // before anything has read the current value.
+  _ensure_monitor();
 }
 
 int32_t connectivity_plus_watchos_current(void) {

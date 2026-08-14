@@ -24,7 +24,7 @@ Connectivity().onConnectivityChanged.listen((r) => print(r));
 | Member | watchOS |
 |---|---|
 | `checkConnectivity` | ✅ `NWPathMonitor` → wifi / mobile / ethernet / other / none |
-| `onConnectivityChanged` | ✅ a persistent native `NWPathMonitor` caches the path; Dart polls it every `ConnectivityPlusWatchos.pollInterval` (default 2s) and emits on change |
+| `onConnectivityChanged` | ✅ a persistent native `NWPathMonitor` **pushes** changes into Dart; no timer runs, and native suppresses updates that do not change the reported value |
 
 `SCNetworkReachability` (which `connectivity_plus` uses on iOS) does not
 exist on watchOS, so this uses the Network framework (watchOS 6+) instead.

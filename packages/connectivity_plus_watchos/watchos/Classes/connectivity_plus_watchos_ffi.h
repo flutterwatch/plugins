@@ -23,10 +23,23 @@ enum {
   kConnectivityWatchosOther = 4,
 };
 
+/// Called from the `NWPathMonitor` queue when connectivity changes.
+///
+/// Carries no value: the callback is a `NativeCallable.listener`, which runs
+/// asynchronously, so anything passed by pointer could be stale or freed by
+/// the time Dart reads it. Dart re-reads `..._current` instead.
+typedef void (*connectivity_plus_watchos_cb)(int64_t unused);
+
+/// Registers the function to wake Dart on a change, or NULL to stop.
+///
+/// Starts the monitor if it is not already running, so a listener registered
+/// before the first `..._current` call still gets updates.
+CONNECTIVITY_PLUS_WATCHOS_EXPORT void connectivity_plus_watchos_set_callback(
+    connectivity_plus_watchos_cb callback);
+
 /// Current connectivity code. On the first call this starts a persistent
 /// `NWPathMonitor` on a background queue; subsequent calls read the latest
-/// path status it has cached. The Dart side polls this for the change
-/// stream, since watchOS has no cross-FFI push channel.
+/// path status it has cached.
 CONNECTIVITY_PLUS_WATCHOS_EXPORT int32_t connectivity_plus_watchos_current(void);
 
 #endif  // CONNECTIVITY_PLUS_WATCHOS_FFI_H

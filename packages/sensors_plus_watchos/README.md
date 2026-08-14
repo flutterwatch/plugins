@@ -3,8 +3,10 @@
 The watchOS implementation of [`sensors_plus`](https://pub.dev/packages/sensors_plus).
 
 Motion samples come from **CoreMotion** (`CMMotionManager`) over dart:ffi.
-Native updates cache the latest value and the Dart side polls it on a timer at
-the requested sampling period.
+Each CoreMotion update is **pushed** into Dart through a
+`NativeCallable.listener`; nothing polls. That means one stream event per
+native sample, rather than one per timer tick on a clock independent of
+CoreMotion's.
 
 > Scaffolded by [`flutter-watchos plugin port`](https://github.com/flutterwatch/flutter-watchos)
 > from `sensors_plus`, then implemented and verified by hand.

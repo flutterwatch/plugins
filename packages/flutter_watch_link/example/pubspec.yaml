@@ -1,0 +1,26 @@
+name: flutter_watch_link_example
+description: "Companion example for flutter_watch_link: an iPhone app and an Apple Watch app sharing one WCSession."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_watch_link:
+    path: ../
+  # For `FlutterWatchosPlatform.isWatch` — a pure-Dart check with no FFI, so it
+  # is safe to evaluate inside the iOS binary too.
+  flutter_watchos: ^0.1.0-beta.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

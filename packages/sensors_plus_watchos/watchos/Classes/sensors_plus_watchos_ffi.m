@@ -46,13 +46,29 @@ static NSOperationQueue* _queue(void) {
 static os_unfair_lock _lock = OS_UNFAIR_LOCK_INIT;
 static Sample _accel, _userAccel, _gyro, _mag;
 
-static void _store(Sample* slot, double x, double y, double z) {
+static sensors_plus_watchos_cb _callback = NULL;
+
+void sensors_plus_watchos_set_callback(sensors_plus_watchos_cb callback) {
+    os_unfair_lock_lock(&_lock);
+    _callback = callback;
+    os_unfair_lock_unlock(&_lock);
+}
+
+static void _store(Sample* slot, double x, double y, double z, int64_t kind) {
     os_unfair_lock_lock(&_lock);
     slot->x = x;
     slot->y = y;
     slot->z = z;
     slot->has = 1;
+    sensors_plus_watchos_cb callback = _callback;
     os_unfair_lock_unlock(&_lock);
+    // Outside the lock: Dart reads the cache straight back, and holding it
+    // across the callback would deadlock. One signal per CoreMotion update
+    // means Dart sees exactly the samples CoreMotion produced — the previous
+    // Timer.periodic ran on its own clock and so re-read or skipped samples.
+    if (callback != NULL) {
+        callback(kind);
+    }
 }
 
 static int _load(Sample* slot, double* out_xyz) {
@@ -86,7 +102,8 @@ void sensors_plus_watchos_start_accelerometer(int64_t interval_micros) {
             return;
         }
         CMAcceleration a = data.acceleration;
-        _store(&_accel, -a.x * kGravity, -a.y * kGravity, -a.z * kGravity);
+        _store(&_accel, -a.x * kGravity, -a.y * kGravity, -a.z * kGravity,
+               kSensorsPlusWatchosAccelerometer);
     }];
 }
 
@@ -112,7 +129,8 @@ void sensors_plus_watchos_start_user_accelerometer(int64_t interval_micros) {
             return;
         }
         CMAcceleration a = data.userAcceleration;
-        _store(&_userAccel, -a.x * kGravity, -a.y * kGravity, -a.z * kGravity);
+        _store(&_userAccel, -a.x * kGravity, -a.y * kGravity, -a.z * kGravity,
+               kSensorsPlusWatchosUserAccelerometer);
     }];
 }
 
@@ -138,7 +156,7 @@ void sensors_plus_watchos_start_gyroscope(int64_t interval_micros) {
             return;
         }
         CMRotationRate r = data.rotationRate;
-        _store(&_gyro, r.x, r.y, r.z);
+        _store(&_gyro, r.x, r.y, r.z, kSensorsPlusWatchosGyroscope);
     }];
 }
 
@@ -165,7 +183,7 @@ void sensors_plus_watchos_start_magnetometer(int64_t interval_micros) {
             return;
         }
         CMMagneticField f = data.magneticField;
-        _store(&_mag, f.x, f.y, f.z);
+        _store(&_mag, f.x, f.y, f.z, kSensorsPlusWatchosMagnetometer);
     }];
 }
 

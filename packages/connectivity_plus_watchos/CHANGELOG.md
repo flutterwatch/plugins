@@ -1,3 +1,32 @@
+## 0.2.0
+
+**Breaking**
+
+* `pollInterval` is gone. `onConnectivityChanged` no longer polls, so there is
+  no interval to tune.
+* Minimum Dart SDK is now 3.1.0, where `NativeCallable.listener` landed.
+
+**Changed**
+
+* `onConnectivityChanged` is **pushed**, not polled. The `NWPathMonitor` update
+  handler wakes Dart through a `NativeCallable.listener`; the 2-second timer
+  that ran for the life of the app is gone. Connectivity changes a handful of
+  times a day — it never justified a timer on a watch.
+* Native filters unchanged path updates, so `NWPathMonitor` firing on details
+  this API cannot express no longer wakes the isolate.
+
+**Fixed**
+
+* **Two listeners on `onConnectivityChanged` no longer fight.** The native side
+  holds a single callback pointer, and registering per subscription let the
+  newest listener silence every older one, while the first cancel unregistered
+  the callback out from under the rest. All listeners now share one trampoline,
+  and native is unregistered only once the last one cancels.
+* **Every listener is seeded with the current connectivity**, not just the
+  first. A broadcast stream's `onListen` fires only on zero-to-one, so a second
+  concurrent listener used to learn nothing until the network happened to
+  change. Each listener also gets its own de-duplication state.
+
 ## 0.1.0
 
 * First working release. FFI implementation over the Network framework's

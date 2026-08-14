@@ -55,4 +55,23 @@ int sensors_plus_watchos_read_magnetometer(double* out_xyz);
 SENSORS_PLUS_WATCHOS_EXPORT
 void sensors_plus_watchos_stop_magnetometer(void);
 
+/// Which sensor produced a sample. Mirrored in lib/sensors_plus_watchos.dart.
+enum {
+  kSensorsPlusWatchosAccelerometer = 1,
+  kSensorsPlusWatchosUserAccelerometer = 2,
+  kSensorsPlusWatchosGyroscope = 3,
+  kSensorsPlusWatchosMagnetometer = 4,
+};
+
+/// Called on the CoreMotion queue when a sample lands, with the sensor kind.
+///
+/// Carries the kind but not the sample: the Dart end is a
+/// `NativeCallable.listener` and runs asynchronously, so it re-reads the cache
+/// rather than trusting values captured at signal time.
+typedef void (*sensors_plus_watchos_cb)(int64_t kind);
+
+/// Registers the function to wake Dart on a new sample, or NULL to stop.
+SENSORS_PLUS_WATCHOS_EXPORT
+void sensors_plus_watchos_set_callback(sensors_plus_watchos_cb callback);
+
 #endif  // SENSORS_PLUS_WATCHOS_FFI_H

@@ -34,6 +34,10 @@ abstract class GeolocatorWatchosBackend {
   List<double>? readPosition();
 
   void stopUpdates();
+
+  /// Registers the function native calls when a new fix lands, or `nullptr`
+  /// to stop.
+  void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> callback);
 }
 
 /// watchOS implementation of [GeolocatorPlatform].
@@ -42,7 +46,10 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   static GeolocatorWatchosBackend? backendOverride;
 
   /// How often the Dart side polls the native fix while awaiting one.
-  static Duration pollInterval = const Duration(milliseconds: 200);
+  /// How long to wait for the user to answer the system permission prompt.
+  ///
+  /// The prompt has no timeout of its own; this only bounds the future.
+  static Duration permissionTimeout = const Duration(minutes: 2);
 
   static GeolocatorWatchosBackend? _backend;
 
@@ -96,16 +103,30 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
     if (current != 0) {
       return _mapStatus(current);
     }
-    _b.requestPermission();
-    // Poll until the user answers the system prompt (delegate updates status).
-    for (int i = 0; i < 400; i++) {
-      await Future<void>.delayed(pollInterval);
+    final Completer<int> completer = Completer<int>();
+
+    void check() {
       final int status = _b.checkPermission();
-      if (status != 0) {
-        return _mapStatus(status);
+      if (status != 0 && !completer.isCompleted) {
+        completer.complete(status);
       }
     }
-    return LocationPermission.denied;
+
+    // Registered before the prompt: the user can answer faster than the call
+    // to request it returns.
+    final void Function() stopListening = _Notifier.listen(_b, check);
+    _b.requestPermission();
+    check();
+
+    try {
+      final int status = await completer.future.timeout(
+        permissionTimeout,
+        onTimeout: () => 0,
+      );
+      return _mapStatus(status);
+    } finally {
+      stopListening();
+    }
   }
 
   @override
@@ -133,20 +154,30 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
     final double distanceFilter =
         (locationSettings?.distanceFilter ?? 0).toDouble();
 
+    final Completer<Position> completer = Completer<Position>();
+
+    void check() {
+      final List<double>? fix = _b.readPosition();
+      if (fix != null && !completer.isCompleted) {
+        completer.complete(_toPosition(fix));
+      }
+    }
+
+    final void Function() stopListening = _Notifier.listen(_b, check);
     _b.requestLocation();
     _b.startUpdates(accuracy.index, distanceFilter);
-    final DateTime deadline = DateTime.now().add(timeLimit);
+    // A cached fix may already satisfy this, in which case no delegate callback
+    // is coming and waiting for one would burn the whole time limit.
+    check();
+
     try {
-      while (DateTime.now().isBefore(deadline)) {
-        final List<double>? fix = _b.readPosition();
-        if (fix != null) {
-          return _toPosition(fix);
-        }
-        await Future<void>.delayed(pollInterval);
-      }
-      throw TimeoutException(
-          'Failed to obtain a location fix within $timeLimit.');
+      return await completer.future.timeout(
+        timeLimit,
+        onTimeout: () => throw TimeoutException(
+            'Failed to obtain a location fix within $timeLimit.'),
+      );
     } finally {
+      stopListening();
       _b.stopUpdates();
     }
   }
@@ -160,10 +191,10 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
     final double distanceFilter =
         (locationSettings?.distanceFilter ?? 0).toDouble();
     late StreamController<Position> controller;
-    Timer? timer;
     List<double>? last;
+    void Function()? stopListening;
 
-    void tick(Timer _) {
+    void emitIfNew() {
       final List<double>? fix = _b.readPosition();
       if (fix != null && !_sameFix(fix, last)) {
         last = fix;
@@ -173,12 +204,15 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
     controller = StreamController<Position>.broadcast(
       onListen: () {
+        stopListening = _Notifier.listen(_b, emitIfNew);
         _b.startUpdates(accuracy.index, distanceFilter);
-        timer = Timer.periodic(pollInterval, tick);
+        // CLLocationManager delivers the last known fix immediately on start,
+        // which can land before the callback is in place.
+        emitIfNew();
       },
       onCancel: () {
-        timer?.cancel();
-        timer = null;
+        stopListening?.call();
+        stopListening = null;
         _b.stopUpdates();
       },
     );
@@ -187,6 +221,62 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
   static bool _sameFix(List<double> a, List<double>? b) =>
       b != null && a[0] == b[0] && a[1] == b[1] && a[9] == b[9];
+}
+
+/// Signature of the native→Dart new-fix signal.
+typedef GeolocatorFixNative = Void Function(Int64);
+
+/// Fan-out for the single native callback slot.
+///
+/// Native holds **one** callback pointer, but several things wait on it at
+/// once — a position stream, a `getCurrentPosition` awaiting its first fix, a
+/// `requestPermission` awaiting the prompt. Registering per consumer would let
+/// whichever finished last unregister the others, so they share one trampoline
+/// and every waiter is notified.
+class _Notifier {
+  static final Set<void Function()> _listeners = <void Function()>{};
+  static NativeCallable<GeolocatorFixNative>? _callable;
+
+  /// Which backend the trampoline is currently registered with.
+  ///
+  /// Tracked because the backend is swappable (`backendOverride`): registering
+  /// once and never again would leave a replaced backend permanently silent.
+  static GeolocatorWatchosBackend? _registeredWith;
+
+  /// Calls [listener] whenever CoreLocation reports anything, and returns a
+  /// function that stops it.
+  static void Function() listen(
+      GeolocatorWatchosBackend backend, void Function() listener) {
+    _listeners.add(listener);
+    if (!identical(_registeredWith, backend)) {
+      final NativeCallable<GeolocatorFixNative> c = _callable ??= () {
+        final NativeCallable<GeolocatorFixNative> created =
+            NativeCallable<GeolocatorFixNative>.listener((int _) {
+          // Copied: a listener may remove itself while being notified.
+          for (final void Function() l in _listeners.toList()) {
+            l();
+          }
+        });
+        // Waiting on a fix should not, by itself, keep the isolate alive.
+        created.keepIsolateAlive = false;
+        return created;
+      }();
+      _registeredWith = backend;
+      backend.setCallback(c.nativeFunction);
+    }
+    return () {
+      _listeners.remove(listener);
+      if (_listeners.isEmpty) {
+        backend.setCallback(nullptr);
+        // The trampoline itself is kept and reused on the next listen: native
+        // may be between reading the pointer and calling it, an empty listener
+        // set already makes a late signal a no-op, and a NativeCallable is
+        // only reclaimed by close() — so discarding it would leak one per
+        // listen/cancel cycle.
+        _registeredWith = null;
+      }
+    };
+  }
 }
 
 typedef _IntNative = Int32 Function();
@@ -219,6 +309,11 @@ class _FfiBackend implements GeolocatorWatchosBackend {
       _ReadDart>('geolocator_watchos_read_position');
   late final _VoidDart _stopUpdates = _lib.lookupFunction<_VoidNative,
       _VoidDart>('geolocator_watchos_stop_updates');
+  late final void Function(Pointer<NativeFunction<GeolocatorFixNative>>)
+      _setCallback = _lib.lookupFunction<
+              Void Function(Pointer<NativeFunction<GeolocatorFixNative>>),
+              void Function(Pointer<NativeFunction<GeolocatorFixNative>>)>(
+          'geolocator_watchos_set_callback');
 
   @override
   bool isServiceEnabled() => _serviceEnabled() == 1;
@@ -248,4 +343,8 @@ class _FfiBackend implements GeolocatorWatchosBackend {
 
   @override
   void stopUpdates() => _stopUpdates();
+
+  @override
+  void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> callback) =>
+      _setCallback(callback);
 }

@@ -27,6 +27,25 @@ plugins are **not supported** on watchOS — a package whose `watchos:` block
 declares only `pluginClass:` will build but its channel calls throw
 `MissingPluginException` (the CLI warns about this at build time).
 
+## Companion apps: talking to the iPhone
+
+One package here is **not** a port of an upstream plugin, because there is no
+upstream to port: WatchConnectivity is the only transport Apple provides
+between a watch and its phone, and it needs an implementation on *both* sides.
+
+| Plugin | What it is | Backend |
+|---|---|---|
+| [`flutter_watch_link`](packages/flutter_watch_link) | First-party. One Dart API for phone↔watch messaging, application context, and guaranteed transfers — the same code on both devices. | `WCSession` (one FFI implementation, compiled for both) |
+
+Upstream [`watch_connectivity`](https://pub.dev/packages/watch_connectivity) is
+phone-side only, and its "platform interface" is explicitly not a federated one
+— there is no `instance` hook to implement — so a `*_watchos` implementation of
+it is not possible. It also has no `transferUserInfo`, which is the tier a
+companion app needs when the counterpart is asleep.
+
+See its [`example/`](packages/flutter_watch_link/example) for a worked
+companion app — one `main.dart`, running on both devices.
+
 ## List of plugins
 
 Every plugin below has a working watchOS implementation, verified on the
@@ -93,21 +112,32 @@ ported above).
 
 The upstream plugins do **not** endorse a watchOS implementation, so add
 the `*_watchos` package to your app **explicitly**, alongside the upstream
-plugin. Until the package is published to pub.dev, depend on it via git:
+plugin:
 
 ```yaml
 dependencies:
   path_provider: ^2.1.0
-  path_provider_watchos:
-    git:
-      url: https://github.com/flutterwatch/plugins.git
-      path: packages/path_provider_watchos
+  path_provider_watchos: ^0.0.1
 ```
+
+The version badges in the table above are the current published versions —
+use those, since these packages are still pre-1.0 and a caret constraint on
+`0.x` is narrower than you may expect.
 
 Then use the upstream plugin's API exactly as on iOS — the `*_watchos`
 implementation registers automatically via Flutter's federated plugin
-runner, with no imports or client code changes. Once published these
-become plain `^version` dependencies.
+runner, with no imports or client code changes.
+
+`flutter_watch_link` is the exception: it is not on pub.dev yet, so
+depend on it via git.
+
+```yaml
+dependencies:
+  flutter_watch_link:
+    git:
+      url: https://github.com/flutterwatch/plugins.git
+      path: packages/flutter_watch_link
+```
 
 A few packages need a writable directory and therefore also
 `path_provider_watchos`: e.g. `video_player_watchos` (for
