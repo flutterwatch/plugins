@@ -159,6 +159,70 @@ void main() {
     await sub.cancel();
   });
 
+  test('two subscriptions to one sensor both receive every sample', () async {
+    // Native holds a single callback pointer. Keying the fan-out by sensor
+    // alone let the second subscription overwrite the first's emit callback
+    // and silence it.
+    final List<AccelerometerEvent> first = <AccelerometerEvent>[];
+    final List<AccelerometerEvent> second = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> a =
+        sensors.accelerometerEventStream().listen(first.add);
+    final StreamSubscription<AccelerometerEvent> b =
+        sensors.accelerometerEventStream().listen(second.add);
+    await pumpEventQueue();
+
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+
+    expect(first, hasLength(1));
+    expect(second, hasLength(1));
+
+    await a.cancel();
+    await b.cancel();
+  });
+
+  test('cancelling one subscription leaves the sensor running for the other',
+      () async {
+    final List<AccelerometerEvent> kept = <AccelerometerEvent>[];
+    final StreamSubscription<AccelerometerEvent> a =
+        sensors.accelerometerEventStream().listen((_) {});
+    final StreamSubscription<AccelerometerEvent> b =
+        sensors.accelerometerEventStream().listen(kept.add);
+    await pumpEventQueue();
+
+    await a.cancel();
+    expect(fake.accelStops, 0, reason: 'one subscriber is still listening');
+    expect(fake.isRegistered, isTrue);
+
+    fake.deliver(kAccel);
+    await pumpEventQueue();
+    expect(kept, hasLength(1));
+
+    await b.cancel();
+    expect(fake.accelStops, 1, reason: 'the last cancel stops the sensor');
+    expect(fake.isRegistered, isFalse);
+  });
+
+  test('one sensor cancelling does not unregister another still listening',
+      () async {
+    final List<GyroscopeEvent> gyro = <GyroscopeEvent>[];
+    final StreamSubscription<AccelerometerEvent> accel =
+        sensors.accelerometerEventStream().listen((_) {});
+    final StreamSubscription<GyroscopeEvent> sub =
+        sensors.gyroscopeEventStream().listen(gyro.add);
+    await pumpEventQueue();
+
+    await accel.cancel();
+    expect(fake.isRegistered, isTrue);
+
+    fake.deliver(kGyro);
+    await pumpEventQueue();
+    expect(gyro, hasLength(1));
+
+    await sub.cancel();
+    expect(fake.isRegistered, isFalse);
+  });
+
   test('every sensor stream maps its triple', () async {
     Future<T> firstOf<T>(Stream<T> stream, int kind) async {
       final Future<T> first = stream.first;

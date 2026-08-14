@@ -6,9 +6,9 @@
 //
 // Method-channel plugins are not supported on watchOS, so this package follows
 // the FFI plugin model: `watchos/Classes/sensors_plus_watchos_ffi.m` streams
-// CoreMotion samples into a cached latest value, and this class polls that
-// value on a timer at the requested sampling period — the same poll-based
-// approach the battery_plus_watchos / connectivity_plus_watchos streams use.
+// CoreMotion samples into a cached latest value and wakes Dart through a
+// `NativeCallable.listener`, which re-reads the cache. One event per sample,
+// no timer.
 //
 // The barometer is intentionally not implemented: it is a separate CoreMotion
 // altimeter API, so `barometerEventStream` keeps the base UnimplementedError.
@@ -125,6 +125,11 @@ base class SensorsPlusWatchos extends SensorsPlatform {
   /// same nominal rate it would re-read a sample it had already emitted, or
   /// skip one entirely — aliasing that is invisible until you look at
   /// timestamps.
+  ///
+  /// Two subscriptions to the same sensor are independent: both receive every
+  /// sample, and the sensor stops only when the last of them cancels. They do
+  /// share one native sampling interval, though — the most recent `start`
+  /// wins, as it does in CoreMotion itself.
   Stream<T> _push<T>(
     int kind,
     Duration samplingPeriod,
@@ -137,20 +142,25 @@ base class SensorsPlusWatchos extends SensorsPlatform {
         ? SensorInterval.normalInterval.inMicroseconds
         : samplingPeriod.inMicroseconds;
     late StreamController<T> controller;
+    bool Function()? stopListening;
 
     controller = StreamController<T>.broadcast(
       onListen: () {
-        _b.setCallback(_sharedCallback(kind, () {
+        stopListening = _Emitters.listen(_b, kind, () {
           final List<double>? xyz = read();
           if (xyz != null) {
             controller.add(build(xyz, DateTime.now()));
           }
-        }));
+        });
         start(micros);
       },
       onCancel: () {
-        _unregister(kind);
-        stop();
+        // Only the last subscriber for this sensor may stop it.
+        final bool wasLast = stopListening?.call() ?? true;
+        stopListening = null;
+        if (wasLast) {
+          stop();
+        }
       },
     );
     return controller.stream;
@@ -160,32 +170,68 @@ base class SensorsPlusWatchos extends SensorsPlatform {
 /// Signature of the native→Dart sample signal.
 typedef SensorSampleNative = Void Function(Int64);
 
-/// Per-kind emit callbacks, and the single trampoline that fans out to them.
+/// Fan-out for the single native callback slot.
 ///
-/// Native holds one callback pointer, not one per sensor, so the four streams
-/// share a trampoline and dispatch on the kind it is handed.
-final Map<int, void Function()> _emitters = <int, void Function()>{};
-NativeCallable<SensorSampleNative>? _sharedCallable;
+/// Native holds **one** callback pointer, not one per sensor and not one per
+/// subscription, so every subscriber shares a trampoline that dispatches on
+/// the kind it is handed. Keying by sensor alone would let a second
+/// subscription to the same sensor overwrite the first's emit callback and
+/// silence it, and let either one's cancel stop the sensor under the other.
+class _Emitters {
+  static final Map<int, Set<void Function()>> _byKind =
+      <int, Set<void Function()>>{};
+  static NativeCallable<SensorSampleNative>? _callable;
 
-Pointer<NativeFunction<SensorSampleNative>> _sharedCallback(
-    int kind, void Function() emit) {
-  _emitters[kind] = emit;
-  final NativeCallable<SensorSampleNative> callable = _sharedCallable ??= () {
-    final NativeCallable<SensorSampleNative> c =
-        NativeCallable<SensorSampleNative>.listener(
-            (int k) => _emitters[k]?.call());
-    // A sensor subscription should not, by itself, keep the isolate alive.
-    c.keepIsolateAlive = false;
-    return c;
-  }();
-  return callable.nativeFunction;
-}
+  /// Which backend the trampoline is currently registered with, or null when
+  /// it is not registered at all.
+  ///
+  /// Tracked because the backend is swappable (`backendOverride`): registering
+  /// once and never again would leave a replaced backend permanently silent.
+  static SensorsPlusWatchosBackend? _registeredWith;
 
-void _unregister(int kind) {
-  _emitters.remove(kind);
-  // The trampoline itself is deliberately kept: native may be between reading
-  // the pointer and calling it, and an empty emitter map already makes any
-  // late signal a no-op.
+  /// Calls [emit] for every sample of [kind], and returns a function that
+  /// stops it and reports whether it was the last subscriber for that sensor.
+  static bool Function() listen(
+      SensorsPlusWatchosBackend backend, int kind, void Function() emit) {
+    _byKind.putIfAbsent(kind, () => <void Function()>{}).add(emit);
+    if (!identical(_registeredWith, backend)) {
+      final NativeCallable<SensorSampleNative> c = _callable ??= () {
+        final NativeCallable<SensorSampleNative> created =
+            NativeCallable<SensorSampleNative>.listener((int k) {
+          // Copied: an emitter may remove itself while being notified.
+          for (final void Function() e
+              in _byKind[k]?.toList() ?? const <void Function()>[]) {
+            e();
+          }
+        });
+        // A sensor subscription should not, by itself, keep the isolate alive.
+        created.keepIsolateAlive = false;
+        return created;
+      }();
+      _registeredWith = backend;
+      backend.setCallback(c.nativeFunction);
+    }
+    return () {
+      final Set<void Function()>? emitters = _byKind[kind];
+      if (emitters == null) {
+        return true;
+      }
+      emitters.remove(emit);
+      if (emitters.isNotEmpty) {
+        return false;
+      }
+      _byKind.remove(kind);
+      if (_byKind.isEmpty) {
+        backend.setCallback(nullptr);
+        // The trampoline itself is kept and reused on the next listen: native
+        // may be between reading the pointer and calling it, an empty map
+        // already makes a late signal a no-op, and a NativeCallable is only
+        // reclaimed by close() — so discarding it would leak one per cycle.
+        _registeredWith = null;
+      }
+      return true;
+    };
+  }
 }
 
 typedef _StartNative = Void Function(Int64);
