@@ -60,7 +60,9 @@ abstract class WatchLinkBackend {
   /// Payloads arriving from the counterpart, from every tier.
   Stream<WatchLinkMessage> get messages;
 
-  /// Session state changes. Emits the current state on listen.
+  /// Session state changes. Every subscriber is given the current state
+  /// first, so a widget that starts listening late does not sit blank until
+  /// something happens to change it.
   Stream<WatchLinkState> get states;
 
   /// Failures that arrive *after* the call that caused them returned.
@@ -73,5 +75,9 @@ abstract class WatchLinkBackend {
 
   /// Releases native resources. Rarely needed — a session normally lives as
   /// long as the app.
+  ///
+  /// Terminal and idempotent: every other member throws
+  /// [WatchLinkException] with code `disposed` afterwards, rather than
+  /// failing obscurely on a closed stream.
   Future<void> dispose();
 }

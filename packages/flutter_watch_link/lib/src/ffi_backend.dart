@@ -270,7 +270,21 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
 
   final WatchLinkFfiBindings _bindings;
 
+  /// The single trampoline native signals through.
+  ///
+  /// Allocated once and reused across listen/cancel cycles: it is never closed
+  /// before [dispose], because native can be between reading the pointer and
+  /// calling it at the moment a listener cancels.
   NativeCallable<SignalNative>? _callable;
+
+  /// Whether [_callable] is currently registered with native.
+  ///
+  /// Tracked separately from [_callable] so unregistering does not have to
+  /// throw the trampoline away — doing that leaked one per listen/cancel
+  /// cycle, since a [NativeCallable] is only reclaimed by `close()`.
+  bool _signalling = false;
+
+  bool _disposed = false;
   WatchLinkState _lastState = WatchLinkState.unknown;
 
   late final StreamController<WatchLinkMessage> _messages =
@@ -298,25 +312,22 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
 
   late final StreamController<WatchLinkState> _states =
       StreamController<WatchLinkState>.broadcast(
-    onListen: () {
-      _startSignals();
-      // Emit the currently known state so a fresh listener is not blank until
-      // something happens to change it.
-      _lastState = decodeState(_bindings.state());
-      _states.add(_lastState);
-    },
+    onListen: _startSignals,
     onCancel: _stopSignalsIfIdle,
   );
 
   void _startSignals() {
-    if (_callable != null) {
+    if (_disposed || _signalling) {
       return;
     }
-    final NativeCallable<SignalNative> callable =
-        NativeCallable<SignalNative>.listener(_onSignal);
-    // The session should not be a reason the isolate stays alive.
-    callable.keepIsolateAlive = false;
-    _callable = callable;
+    final NativeCallable<SignalNative> callable = _callable ??= () {
+      final NativeCallable<SignalNative> c =
+          NativeCallable<SignalNative>.listener(_onSignal);
+      // The session should not be a reason the isolate stays alive.
+      c.keepIsolateAlive = false;
+      return c;
+    }();
+    _signalling = true;
     _bindings.setCallback(callable.nativeFunction);
     // Payloads can already be buffered — they arrive from the moment the
     // session activates, which may be long before anything listens. Draining
@@ -335,11 +346,27 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
       return;
     }
     _bindings.setCallback(nullptr);
-    // The callable itself is deliberately *not* closed here. Native may
+    _signalling = false;
+    // The trampoline itself is deliberately *not* closed here. Native may
     // already be between reading the pointer and calling it, and closing under
-    // that race is what turns a dropped message into a crash. It is cheap to
-    // keep, and dispose() closes it once for good.
-    _callable = null;
+    // that race is what turns a dropped message into a crash. It is kept and
+    // re-registered on the next listen; dispose() closes it once for good.
+  }
+
+  /// Guards every entry point against use after [dispose].
+  ///
+  /// Without this the first call back in would reach a closed controller and
+  /// fail as `StateError: Cannot add new events after calling close`, which
+  /// says nothing about what actually went wrong.
+  void _checkAlive() {
+    if (_disposed) {
+      throw const WatchLinkException(
+        'This backend was disposed. A disposed session cannot be reused — '
+        'construct a new backend, or leave WatchLink.instance undisposed, '
+        'which is what an app normally wants.',
+        code: 'disposed',
+      );
+    }
   }
 
   /// Handles one native wake-up.
@@ -353,6 +380,12 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
   ///
   /// Visible for tests, which drive it directly rather than through native.
   void drainOnce() {
+    // A signal can still arrive from native after dispose has unregistered
+    // the callback — it may have been in flight — and the controllers are
+    // closed by then.
+    if (_disposed) {
+      return;
+    }
     // Loop rather than taking one per signal — signals can coalesce, and a
     // burst that arrived while the app was backgrounded would otherwise
     // trickle out one item at a time.
@@ -428,10 +461,14 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
   }
 
   @override
-  Future<bool> isSupported() async => _bindings.isSupported();
+  Future<bool> isSupported() async {
+    _checkAlive();
+    return _bindings.isSupported();
+  }
 
   @override
   Future<void> activate() async {
+    _checkAlive();
     // Register before activating, so the activation callback itself is not the
     // signal that gets missed.
     _startSignals();
@@ -439,11 +476,16 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
   }
 
   @override
-  Future<WatchLinkState> readState() async => decodeState(_bindings.state());
+  Future<WatchLinkState> readState() async {
+    _checkAlive();
+    return decodeState(_bindings.state());
+  }
 
   @override
-  Future<void> sendMessage(Map<String, Object?> payload) async =>
-      _check(_bindings.sendMessage(jsonEncode(payload)), 'sendMessage');
+  Future<void> sendMessage(Map<String, Object?> payload) async {
+    _checkAlive();
+    _check(_bindings.sendMessage(jsonEncode(payload)), 'sendMessage');
+  }
 
   @override
   Future<Map<String, Object?>> sendMessageWithReply(
@@ -456,6 +498,7 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
     //
     // Registered before the send, because the reply can be delivered before
     // this method returns.
+    _checkAlive();
     final int id = _nextCorrelationId++;
     final Completer<Map<String, Object?>> completer =
         Completer<Map<String, Object?>>();
@@ -482,36 +525,51 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
 
   @override
   Future<void> transferFile(String path,
-          {Map<String, Object?>? metadata}) async =>
-      _check(
-        _bindings.transferFile(
-            path, metadata == null ? null : jsonEncode(metadata)),
-        'transferFile',
-      );
+      {Map<String, Object?>? metadata}) async {
+    _checkAlive();
+    _check(
+      _bindings.transferFile(
+          path, metadata == null ? null : jsonEncode(metadata)),
+      'transferFile',
+    );
+  }
 
   @override
-  Future<int> outstandingFileTransferCount() async =>
-      _bindings.outstandingFileTransferCount();
+  Future<int> outstandingFileTransferCount() async {
+    _checkAlive();
+    return _bindings.outstandingFileTransferCount();
+  }
 
   @override
-  Stream<WatchLinkFile> get files => _files.stream;
+  Stream<WatchLinkFile> get files {
+    _checkAlive();
+    return _files.stream;
+  }
 
   @override
-  Future<void> updateApplicationContext(Map<String, Object?> payload) async =>
-      _check(_bindings.updateApplicationContext(jsonEncode(payload)),
-          'updateApplicationContext');
+  Future<void> updateApplicationContext(Map<String, Object?> payload) async {
+    _checkAlive();
+    _check(_bindings.updateApplicationContext(jsonEncode(payload)),
+        'updateApplicationContext');
+  }
 
   @override
-  Future<void> transferUserInfo(Map<String, Object?> payload) async => _check(
-      _bindings.transferUserInfo(jsonEncode(payload)), 'transferUserInfo');
+  Future<void> transferUserInfo(Map<String, Object?> payload) async {
+    _checkAlive();
+    _check(_bindings.transferUserInfo(jsonEncode(payload)), 'transferUserInfo');
+  }
 
   @override
-  Future<Map<String, Object?>?> receivedApplicationContext() async =>
-      _decodeContext(_bindings.applicationContext());
+  Future<Map<String, Object?>?> receivedApplicationContext() async {
+    _checkAlive();
+    return _decodeContext(_bindings.applicationContext());
+  }
 
   @override
-  Future<Map<String, Object?>?> sentApplicationContext() async =>
-      _decodeContext(_bindings.sentApplicationContext());
+  Future<Map<String, Object?>?> sentApplicationContext() async {
+    _checkAlive();
+    return _decodeContext(_bindings.sentApplicationContext());
+  }
 
   static Map<String, Object?>? _decodeContext(String? json) {
     if (json == null) {
@@ -522,8 +580,10 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
   }
 
   @override
-  Future<int> outstandingTransferCount() async =>
-      _bindings.outstandingTransferCount();
+  Future<int> outstandingTransferCount() async {
+    _checkAlive();
+    return _bindings.outstandingTransferCount();
+  }
 
   /// Inbound payloads the native ring buffer had to drop.
   ///
@@ -532,17 +592,57 @@ class WatchLinkFfiBackend implements WatchLinkBackend {
   Future<int> droppedInboundCount() async => _bindings.droppedInboundCount();
 
   @override
-  Stream<WatchLinkMessage> get messages => _messages.stream;
+  Stream<WatchLinkMessage> get messages {
+    _checkAlive();
+    return _messages.stream;
+  }
+
+  /// Session state changes, seeded with the current state for *every*
+  /// subscriber.
+  ///
+  /// [Stream.multi] rather than the broadcast controller's stream directly,
+  /// because a broadcast `onListen` fires only when the listener count goes
+  /// from zero to one. Seeding there left a second concurrent listener sitting
+  /// on [WatchLinkState.unknown] — reporting "not activated" on an activated
+  /// session — until something happened to change the state.
+  @override
+  Stream<WatchLinkState> get states {
+    _checkAlive();
+    return Stream<WatchLinkState>.multi(
+      (MultiStreamController<WatchLinkState> out) {
+        final WatchLinkState current = decodeState(_bindings.state());
+        // Only the first subscriber records the seed as the last known state.
+        // A later subscriber must not, or the change it just observed would be
+        // suppressed for everyone else on the next drain.
+        if (!_states.hasListener) {
+          _lastState = current;
+        }
+        out.add(current);
+        final StreamSubscription<WatchLinkState> sub = _states.stream.listen(
+          out.add,
+          onError: out.addError,
+          onDone: out.close,
+        );
+        out.onCancel = sub.cancel;
+      },
+      isBroadcast: true,
+    );
+  }
 
   @override
-  Stream<WatchLinkState> get states => _states.stream;
-
-  @override
-  Stream<String> get errors => _errors.stream;
+  Stream<String> get errors {
+    _checkAlive();
+    return _errors.stream;
+  }
 
   @override
   Future<void> dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     _bindings.setCallback(nullptr);
+    _signalling = false;
     _callable?.close();
     _callable = null;
     // Fail anything still waiting rather than leaving futures pending for ever.

@@ -474,6 +474,184 @@ void main() {
           reason: 'states is still listening');
       await states.cancel();
     });
+
+    test('reuses one trampoline across listen/cancel cycles', () async {
+      // A NativeCallable is only reclaimed by close(), which cannot be called
+      // while native might be mid-signal — so allocating a fresh one per cycle
+      // would leak one per subscription for the life of the app.
+      for (int i = 0; i < 3; i++) {
+        final StreamSubscription<WatchLinkMessage> sub =
+            backend.messages.listen((_) {});
+        await Future<void>.delayed(Duration.zero);
+        await sub.cancel();
+      }
+
+      final List<Pointer<NativeFunction<SignalNative>>> registered = bindings
+          .callbacks
+          .where((Pointer<NativeFunction<SignalNative>> p) => p != nullptr)
+          .toList();
+      expect(registered, hasLength(3), reason: 'three listen cycles');
+      expect(registered.toSet(), hasLength(1),
+          reason: 'the same trampoline, re-registered');
+    });
+  });
+
+  group('states seeding', () {
+    late FakeBindings bindings;
+    late WatchLinkFfiBackend backend;
+
+    setUp(() {
+      bindings = FakeBindings();
+      backend = WatchLinkFfiBackend.forTesting(bindings);
+      bindings.stateWord = kBitActivated | kBitReachable;
+    });
+
+    tearDown(() => backend.dispose());
+
+    test('seeds every subscriber, not just the first', () async {
+      final List<WatchLinkState> first = <WatchLinkState>[];
+      final StreamSubscription<WatchLinkState> a =
+          backend.states.listen(first.add);
+      await Future<void>.delayed(Duration.zero);
+      expect(first.single.activated, isTrue);
+
+      // A second listener while the first is still subscribed. A broadcast
+      // controller's onListen does not fire again, so seeding there would
+      // leave this one on WatchLinkState.unknown until the state moved.
+      final List<WatchLinkState> second = <WatchLinkState>[];
+      final StreamSubscription<WatchLinkState> b =
+          backend.states.listen(second.add);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(second, hasLength(1));
+      expect(second.single.activated, isTrue);
+      expect(second.single.reachable, isTrue);
+      expect(first, hasLength(1), reason: 'the seed goes only to the newcomer');
+
+      await a.cancel();
+      await b.cancel();
+    });
+
+    test('a late subscriber does not suppress a change for the others',
+        () async {
+      final List<WatchLinkState> first = <WatchLinkState>[];
+      final StreamSubscription<WatchLinkState> a =
+          backend.states.listen(first.add);
+      await Future<void>.delayed(Duration.zero);
+
+      // The state moves, then a second listener arrives before the drain that
+      // reports it. Recording the newcomer's seed as the last known state
+      // would make that drain a no-op and the change would never reach `a`.
+      bindings.stateWord = kBitActivated;
+      final StreamSubscription<WatchLinkState> b =
+          backend.states.listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+      backend.drainOnce();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(first, hasLength(2));
+      expect(first.last.reachable, isFalse);
+
+      await a.cancel();
+      await b.cancel();
+    });
+
+    test('both subscribers see subsequent changes', () async {
+      final List<WatchLinkState> first = <WatchLinkState>[];
+      final List<WatchLinkState> second = <WatchLinkState>[];
+      final StreamSubscription<WatchLinkState> a =
+          backend.states.listen(first.add);
+      final StreamSubscription<WatchLinkState> b =
+          backend.states.listen(second.add);
+      await Future<void>.delayed(Duration.zero);
+
+      bindings.stateWord = 0;
+      backend.drainOnce();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(first.last.activated, isFalse);
+      expect(second.last.activated, isFalse);
+
+      await a.cancel();
+      await b.cancel();
+    });
+
+    test('cancelling one subscriber leaves the other listening', () async {
+      final List<WatchLinkState> kept = <WatchLinkState>[];
+      final StreamSubscription<WatchLinkState> a =
+          backend.states.listen((_) {});
+      final StreamSubscription<WatchLinkState> b =
+          backend.states.listen(kept.add);
+      await Future<void>.delayed(Duration.zero);
+      await a.cancel();
+
+      expect(bindings.callbacks.last, isNot(nullptr),
+          reason: 'one subscriber is left, so native must keep signalling');
+
+      bindings.stateWord = 0;
+      backend.drainOnce();
+      await Future<void>.delayed(Duration.zero);
+      expect(kept.last.activated, isFalse);
+
+      await b.cancel();
+      expect(bindings.callbacks.last, nullptr);
+    });
+  });
+
+  group('dispose', () {
+    late FakeBindings bindings;
+    late WatchLinkFfiBackend backend;
+
+    setUp(() {
+      bindings = FakeBindings();
+      backend = WatchLinkFfiBackend.forTesting(bindings);
+    });
+
+    test('reports use-after-dispose instead of failing on a closed stream',
+        () async {
+      // WatchLink.instance is a singleton, so a stray dispose() used to
+      // poison it: the next call reached a closed controller and threw
+      // `StateError: Cannot add new events after calling close`, which says
+      // nothing about what actually went wrong.
+      await backend.dispose();
+
+      Matcher disposed() => throwsA(isA<WatchLinkException>()
+          .having((WatchLinkException e) => e.code, 'code', 'disposed'));
+
+      expect(backend.activate(), disposed());
+      expect(backend.readState(), disposed());
+      expect(backend.isSupported(), disposed());
+      expect(backend.sendMessage(<String, Object?>{}), disposed());
+      expect(backend.sendMessageWithReply(<String, Object?>{}), disposed());
+      expect(backend.updateApplicationContext(<String, Object?>{}), disposed());
+      expect(backend.transferUserInfo(<String, Object?>{}), disposed());
+      expect(backend.transferFile('/tmp/x'), disposed());
+      expect(backend.receivedApplicationContext(), disposed());
+      expect(backend.sentApplicationContext(), disposed());
+      expect(backend.outstandingTransferCount(), disposed());
+      expect(backend.outstandingFileTransferCount(), disposed());
+      expect(() => backend.messages, disposed());
+      expect(() => backend.states, disposed());
+      expect(() => backend.errors, disposed());
+      expect(() => backend.files, disposed());
+    });
+
+    test('a native signal that lands after dispose is harmless', () async {
+      backend.messages.listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+      await backend.dispose();
+
+      // Native can be between reading the callback pointer and calling it
+      // when dispose runs; the drain it triggers must not reach the closed
+      // controllers.
+      bindings.inbound.add(envelope('message', <String, Object?>{'late': 1}));
+      expect(backend.drainOnce, returnsNormally);
+    });
+
+    test('is idempotent', () async {
+      await backend.dispose();
+      await expectLater(backend.dispose(), completes);
+    });
   });
 
   group('reply handlers', () {
