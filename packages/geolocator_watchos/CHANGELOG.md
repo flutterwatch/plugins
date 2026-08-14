@@ -25,6 +25,12 @@ First release beyond the generated scaffold.
   `getCurrentPosition`, a pending `requestPermission` — now share one native
   callback. The native side holds a single callback pointer, so registering
   per caller let whichever finished first silence the others.
+* The shared `NativeCallable` is now reused across listen/cancel cycles instead
+  of being discarded when the last waiter left. A `NativeCallable` is only
+  reclaimed by `close()`, which is exactly what cannot be called while native
+  might be between reading the pointer and calling it — so the old code leaked
+  one trampoline per cycle for the life of the app. Only the pointer is
+  unregistered now.
 
 ## 0.0.1
 

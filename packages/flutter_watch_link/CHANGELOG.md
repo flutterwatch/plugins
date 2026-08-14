@@ -41,4 +41,18 @@ for the iPhone and the Apple Watch.
 * **Web-safe to depend on.** `dart:ffi` is behind a conditional import, so an
   app that also targets web still builds; the session throws
   `UnsupportedError` there while the platform-neutral types keep working.
+* **Every `states` subscriber is seeded**, not just the first. A broadcast
+  stream's `onListen` fires only when the listener count goes zero-to-one, so a
+  second concurrent subscriber would otherwise wait for the next change to
+  learn where it stands. Each subscriber gets the current state on subscribe
+  and its own de-duplication, and the native callback is unregistered only once
+  the last one cancels.
+* **File metadata survives the trip.** `transferFile`'s metadata is carried as
+  JSON like every other tier rather than handed to `WCSession` as a decoded
+  dictionary. `WCSession` documents metadata as property-list values, and a
+  JSON null decodes to `NSNull`, which is not one; the same wrapping is what
+  keeps an int from arriving as a double after a property-list round trip.
+* **`dispose()` is terminal and idempotent.** Calling it twice is fine. Any
+  other call afterwards throws `WatchLinkException(code: 'disposed')` rather
+  than a `StateError` from a closed controller.
 * Requires Dart 3.1.0, where `NativeCallable.listener` landed.

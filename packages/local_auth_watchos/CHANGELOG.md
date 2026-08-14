@@ -21,6 +21,14 @@ First release beyond the generated scaffold.
   result is already there; the state is now checked once immediately after
   starting rather than only on a signal.
 * A timed-out authentication now cancels the native evaluation.
+* **Overlapping `authenticate()` calls no longer clobber each other.** The
+  native side holds a single callback pointer, so a second call registered over
+  the first's: the first then waited out its whole `timeout` and reported
+  failure for an authentication the user had actually completed. Concurrent
+  calls now share one trampoline and all settle together, and the callback is
+  kept until the last of them finishes — so a call that resolves immediately
+  (an unevaluatable policy) can no longer unregister the signal another call is
+  still waiting on.
 
 ## 0.0.1
 
