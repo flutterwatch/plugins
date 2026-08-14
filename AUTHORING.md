@@ -124,14 +124,33 @@ sensor kind), `geolocator_watchos` (a stream and two one-shots sharing one
 callback through a small notifier) and `local_auth_watchos` (a one-shot future
 that must also handle resolving *before* Dart registers).
 
-Two rules those three earned the hard way:
+Four rules those three earned the hard way:
 
 - **Native holds one callback pointer, not one per consumer.** If more than one
   thing can wait at once, fan out from a single trampoline — registering per
   consumer lets whichever finishes first silence the others.
+- **A consumer is a *subscription*, not a stream or a call site.** Keying the
+  fan-out by sensor, by stream, or by "the current call" is the same bug one
+  level down: a second `listen` on the same sensor, a second `authenticate()`,
+  a second listener on the same connectivity stream. Keep a `Set` of callbacks
+  per waited-on thing, notify all of them, and unregister native only when the
+  set empties — a copy of the set while notifying, since a listener may remove
+  itself as it settles.
 - **Check the state once immediately after starting.** A native operation can
   resolve synchronously inside the call that begins it, so the signal is gone
   before Dart could register for it, and waiting alone deadlocks.
+- **Keep the trampoline; unregister the pointer.** A `NativeCallable` is only
+  reclaimed by `close()`, and `close()` is exactly what cannot be called while
+  native might be between reading the pointer and calling it. So allocate one
+  per plugin, `setCallback(nullptr)` when nobody is waiting, and re-register
+  the *same* one on the next listen. Allocating a fresh one per cycle — or
+  appending each to a `_retained` list — leaks one per subscription for the
+  life of the app.
+
+A **broadcast controller's `onListen` fires only on zero-to-one**, so it is the
+wrong place to seed a "current value". A second concurrent subscriber gets
+nothing until something changes. Use `Stream.multi` and seed each subscriber:
+`connectivity_plus_watchos` and `flutter_watch_link`'s `states` both do.
 
 ## 2c. Native SwiftUI platform views
 
