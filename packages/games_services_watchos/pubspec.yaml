@@ -1,0 +1,49 @@
+name: games_services_watchos
+description: >-
+  watchOS implementation of the games_services plugin: Game Center
+  leaderboards over GameKit, bridged with dart:ffi.
+version: 0.0.1
+repository: https://github.com/flutterwatch/plugins
+issue_tracker: https://github.com/flutterwatch/plugins/issues
+
+environment:
+  sdk: ^3.12.2
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.1.0
+  games_services_platform_interface: ^4.1.1
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+  games_services: ^4.1.1
+
+flutter:
+  plugin:
+    # Federated implementation: games_services covers iOS, macOS and Android;
+    # this supplies the wrist, which it does not.
+    implements: games_services
+    platforms:
+      watchos:
+        # watchOS has no method channels, so the interface's default
+        # MethodChannelGamesServices cannot work here. FFI is the plugin model:
+        # the CLI compiles Classes/*.m into a static archive force-loaded into
+        # the watch binary, and Dart resolves the symbols via
+        # DynamicLibrary.process().
+        ffiPlugin: true
+        dartPluginClass: GamesServicesWatchos
+        ffiSymbols:
+          - games_services_watchos_authenticate
+          - games_services_watchos_auth_state
+          - games_services_watchos_player_alias
+          - games_services_watchos_submit
+          - games_services_watchos_submit_state
+          - games_services_watchos_load_entries
+          - games_services_watchos_entries_state
+          - games_services_watchos_entries_json
+          - games_services_watchos_last_error
+          - games_services_watchos_free

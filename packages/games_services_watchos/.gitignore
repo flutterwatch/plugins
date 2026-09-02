@@ -1,0 +1,26 @@
+# Dart / Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+
+# CocoaPods
+watchos/Pods/
+watchos/Podfile.lock
+watchos/.symlinks/
+watchos/Flutter/Flutter.framework
+watchos/Flutter/Flutter.podspec
+
+# Xcode / SwiftPM (per-user, generated when watchos/Package.swift is opened)
+**/.swiftpm/
+**/xcuserdata/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
