@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CA0000000000000000000001"
-               BuildableName = "path_provider_example.app"
+               BuildableName = "games_services_example.app"
                BlueprintName = "HostApp"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
@@ -44,7 +44,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA0000000000000000000001"
-            BuildableName = "path_provider_example.app"
+            BuildableName = "games_services_example.app"
             BlueprintName = "HostApp"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA0000000000000000000001"
-            BuildableName = "path_provider_example.app"
+            BuildableName = "games_services_example.app"
             BlueprintName = "HostApp"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
