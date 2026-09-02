@@ -69,10 +69,20 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
 | [`in_app_purchase_watchos`](packages/in_app_purchase_watchos) [![pub](https://img.shields.io/pub/v/in_app_purchase_watchos.svg)](https://pub.dev/packages/in_app_purchase_watchos) | [`in_app_purchase`](https://pub.dev/packages/in_app_purchase) | StoreKit (`SKProductsRequest`, `SKPaymentQueue`) |
+| [`games_services_watchos`](packages/games_services_watchos) [![pub](https://img.shields.io/pub/v/games_services_watchos.svg)](https://pub.dev/packages/games_services_watchos) | [`games_services`](https://pub.dev/packages/games_services) | GameKit (`GKLeaderboard`, `GKLocalPlayer`) — leaderboards only [†](#games-services-status) |
 | [`firebase_core_watchos`](packages/firebase_core_watchos) [![pub](https://img.shields.io/pub/v/firebase_core_watchos.svg)](https://pub.dev/packages/firebase_core_watchos) | [`firebase_core`](https://pub.dev/packages/firebase_core) | Firebase Apple SDK (`FirebaseCore`) |
 | [`firebase_auth_watchos`](packages/firebase_auth_watchos) [![pub](https://img.shields.io/pub/v/firebase_auth_watchos.svg)](https://pub.dev/packages/firebase_auth_watchos) | [`firebase_auth`](https://pub.dev/packages/firebase_auth) | Firebase Apple SDK (`FirebaseAuth`) |
 | [`firebase_storage_watchos`](packages/firebase_storage_watchos) [![pub](https://img.shields.io/pub/v/firebase_storage_watchos.svg)](https://pub.dev/packages/firebase_storage_watchos) | [`firebase_storage`](https://pub.dev/packages/firebase_storage) | Firebase Apple SDK (`FirebaseStorage`) |
 | [`firebase_messaging_watchos`](packages/firebase_messaging_watchos) [![pub](https://img.shields.io/pub/v/firebase_messaging_watchos.svg)](https://pub.dev/packages/firebase_messaging_watchos) | [`firebase_messaging`](https://pub.dev/packages/firebase_messaging) | Firebase Apple SDK (`FirebaseMessaging`) |
+
+<a name="games-services-status"></a>
+† `games_services_watchos` is staged at `0.0.1`. Sign-in and score
+submission have been observed working on a physical Apple Watch;
+**reading leaderboard entries has not** — `GKLocalPlayer` reports an
+authenticated player with an unresolved alias and GameKit then refuses
+the read. The app under test was side-loaded rather than installed
+through its companion, which is the leading suspect. See its
+[`PORTING_REPORT.md`](packages/games_services_watchos/PORTING_REPORT.md).
 
 First-party watch capabilities (platform detection, device info, haptics,
 Digital Crown) ship in
