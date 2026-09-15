@@ -18,6 +18,8 @@ dependencies:
   firebase_core_watchos:
     path: ../../firebase_core_watchos
   firebase_messaging: "^16.4.3"
+  firebase_messaging_watchos:
+    path: ../../firebase_messaging_watchos
   flutter_facebook_auth: "^7.1.5"
   google_sign_in: "^6.1.0"
   google_sign_in_dartio: "^0.3.0"
