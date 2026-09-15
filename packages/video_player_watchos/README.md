@@ -10,7 +10,8 @@ in Dart, matching upstream's texture semantics. `VideoEvent`s are derived by
 polling a natively cached state snapshot.
 
 > Requires a flutter-watchos with platform-view support and
-> `flutter_watchos` ≥ 0.1.0-beta.5.
+> `flutter_watchos` ≥ 0.1.0-beta.9. With flutter-watchos 0.1.0-beta.12 and an
+> older `flutter_watchos`, playback works but the video area stays black.
 
 ## Usage
 
