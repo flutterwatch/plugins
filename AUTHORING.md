@@ -178,14 +178,17 @@ discovery is by shape, like the `.m` sources:
    survives the static link.
 3. **Dart** — call the registration symbol from `registerWith()`, and embed
    the view with `WatchPlatformView` from `package:flutter_watchos`
-   (≥ 0.1.0-beta.5). Pick the layer deliberately: `belowFlutter` when
-   Flutter content must draw over the view and gestures stay in Dart (what
-   `video_player_watchos` does), the default overlay when the native view
-   itself is interactive.
+   (≥ 0.1.0-beta.5). Since flutter-watchos 0.1.0-beta.12 the engine
+   composites the view in paint order — Flutter content painted after it
+   draws over it — and `layer:` only decides who gets touches:
+   `belowFlutter` when gestures should stay in Dart (what
+   `video_player_watchos` does), the default `aboveFlutter` when the native
+   view itself is interactive.
 
-Constraints to document in your README: the view rect is axis-aligned (no
-`Transform` of the native surface), and scene snapshots (golden tests)
-don't capture native pixels. On an app created by an older flutter-watchos
+Constraints to document in your README: scene snapshots (golden tests)
+don't capture native pixels, and on flutter-watchos releases before
+0.1.0-beta.12 the view rect is axis-aligned (no `Transform` of the native
+surface). On an app created by an older flutter-watchos
 the views simply don't render (`WatchPlatformView.isSupported`).
 
 **Threading rule:** FFI entry points run on the Flutter UI thread, not the

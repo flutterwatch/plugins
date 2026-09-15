@@ -9,10 +9,10 @@
 // follows the FFI plugin model: `watchos/Classes/video_player_watchos_ffi.m`
 // drives AVFoundation (AVPlayer) and this class resolves the symbols via
 // `DynamicLibrary.process()`. Rendering is a `WatchPlatformView`
-// (package:flutter_watchos): the plugin's Swift side overlays AVKit's SwiftUI
-// `VideoPlayer` in the UNDERLAY layer, so Flutter content (controls,
-// progress overlays) draws over the video and gestures stay in Dart — the
-// same contract as upstream's texture-based rendering.
+// (package:flutter_watchos) showing AVKit's SwiftUI `VideoPlayer`. Flutter
+// content painted after it (controls, progress overlays) draws over the video,
+// and with `belowFlutter` every gesture stays in Dart — the same contract as
+// upstream's texture-based rendering.
 //
 // Events are poll-derived (the repo's standard cache-and-poll pattern):
 // native KVO keeps a state snapshot current, and [videoEventsFor] diffs
@@ -504,10 +504,12 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
 
   @override
   Widget buildView(int playerId) {
-    // Underlay layer: the native AVKit surface sits UNDER the Flutter frame
-    // (the widget punches a transparent hole), so Flutter content stacked
-    // over the video — controls, progress overlays — draws on top and
-    // gestures are handled in Dart, matching upstream's texture semantics.
+    // The engine composites the AVKit surface in paint order, so Flutter
+    // content stacked over the video — controls, progress overlays — draws on
+    // top; `belowFlutter` sends every touch to Flutter, so gestures are
+    // handled in Dart, matching upstream's texture semantics. (Engines that
+    // predate the compositor put the view under the whole frame and punch a
+    // transparent hole for it, with the same visible result.)
     return WatchPlatformView(
       viewType: viewType,
       creationParams: '$playerId',

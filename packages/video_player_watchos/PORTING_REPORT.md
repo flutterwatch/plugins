@@ -47,15 +47,17 @@ flutter-watchos provides.
 | `play` / `pause` / `seekTo` / `getPosition` | ✅ (`seekTo` is frame-accurate; position reports the seek target while in flight) |
 | `setVolume` / `setPlaybackSpeed` / `setLooping` | ✅ |
 | `videoEventsFor` | ✅ initialized / completed / bufferingStart / bufferingEnd / bufferingUpdate / isPlayingStateUpdate, poll-derived |
-| `buildView` / `buildViewWithOptions` | ✅ `WatchPlatformView` underlay |
+| `buildView` / `buildViewWithOptions` | ✅ `WatchPlatformView` (`layer: belowFlutter`) |
 | `setMixWithOthers` | ✅ `AVAudioSession` category options |
 | `getAudioTracks` / `selectAudioTrack` / `isAudioTrackSupportAvailable` | ✅ via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS, same as the upstream Apple impl (the item-level read is unavailable on watchOS, so it goes through `currentMediaSelection`) |
 
 ## Platform notes
 
-- The video surface is composited by the watch host (underlay layer), not
-  drawn into the Flutter scene: the rect is axis-aligned, and snapshot-based
-  tests capture the transparent hole rather than video pixels.
+- The video surface is composited by the watch host, not drawn into the
+  Flutter scene, so snapshot-based tests do not capture video pixels. Since
+  flutter-watchos 0.1.0-beta.12 the engine places it in paint order with the
+  layer tree's clips, opacity and transforms; older releases put it under the
+  frame in a transparent hole, axis-aligned.
 - `flutter_watchos` ≥ 0.1.0-beta.5 (platform views) is required; on an app
   created by an older CLI the plugin builds and controls playback, but the
   video surface does not appear (`WatchPlatformView.isSupported` reports it).

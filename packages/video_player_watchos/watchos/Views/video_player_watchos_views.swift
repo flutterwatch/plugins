@@ -28,9 +28,9 @@ public func videoPlayerWatchosRegisterViews() {
             return AnyView(EmptyView())
         }
         let player = Unmanaged<AVPlayer>.fromOpaque(raw).takeRetainedValue()
-        // The Dart side embeds this in the underlay layer (below the Flutter
-        // frame), so Flutter draws its own controls over the video and owns
-        // every touch.
+        // The Dart side embeds this with `layer: belowFlutter`: Flutter
+        // content painted after it (its own controls) draws over the video,
+        // and Flutter owns every touch.
         //
         // Caveat: AVKit still draws its own chrome (Done button, remaining
         // time, play glyph, scrubber) whenever the player is PAUSED, and

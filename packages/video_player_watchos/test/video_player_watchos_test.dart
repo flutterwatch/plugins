@@ -280,7 +280,7 @@ void main() {
   });
 
   group('buildView', () {
-    test('embeds the platform view in the underlay layer', () {
+    test('embeds the platform view with touches going to Flutter', () {
       final Widget view = player.buildViewWithOptions(
         const VideoViewOptions(playerId: 7),
       );

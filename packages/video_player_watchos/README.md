@@ -33,18 +33,19 @@ explicit imports required from app code.
 | Network / file / asset sources | supported (`AVPlayer`; HLS included) |
 | Play, pause, seek, position, duration | supported |
 | Volume, playback speed, looping | supported |
-| `VideoPlayer` widget rendering | supported (native AVKit surface in the underlay layer) |
+| `VideoPlayer` widget rendering | supported (native AVKit surface as a platform view; Flutter content stacked over it draws on top) |
 | Buffering / play-state / completed events | supported (poll-derived) |
 | `setMixWithOthers` | supported (`AVAudioSession`) |
 | Content URIs | not supported (Android-only concept) |
 | Audio track selection (`getAudioTracks` / `selectAudioTrack`) | supported via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS streams (same as the upstream Apple impl) |
 | Subtitles/captions rendering | as upstream: `ClosedCaptionFile` is Dart-side and works; embedded-track selection is not implemented |
 
-Because the video surface is composited by the watch host rather than drawn
-into the Flutter scene, two platform constraints apply: the video rect is
-axis-aligned (no `Transform` rotations of the video itself), and widgets that
-rely on snapshotting the scene (e.g. screenshot-based golden tests) capture
-the UI hole, not the video pixels.
+Because the video surface is a native view composited by the watch host rather
+than drawn into the Flutter scene, widgets that rely on snapshotting the scene
+(e.g. screenshot-based golden tests) do not capture the video pixels. With
+flutter-watchos 0.1.0-beta.12 and later the view follows the layer tree
+(ancestor clips, opacity and transforms apply); with older releases its rect is
+axis-aligned and it sits in a transparent hole under the Flutter frame.
 
 ### Paused playback shows AVKit's controls
 
