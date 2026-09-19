@@ -18,18 +18,19 @@ class ExampleApp extends StatefulWidget {
 class _ExampleAppState extends State<ExampleApp> {
   String _status = 'Pick a URL';
 
-  Future<void> _open(String url) async {
+  Future<void> _open(String url,
+      {LaunchMode mode = LaunchMode.platformDefault}) async {
     final Uri uri = Uri.parse(url);
     if (!await canLaunchUrl(uri)) {
       setState(() => _status = 'unsupported: ${uri.scheme}:');
       return;
     }
-    final bool ok = await launchUrl(uri);
+    final bool ok = await launchUrl(uri, mode: mode);
     if (!mounted) {
       return;
     }
-    // For http/https this means "offered via Handoff", not "opened here" —
-    // the watch has no browser to open it in.
+    // "Handed to the system", not "the user followed it": watchOS reports no
+    // completion for any of these.
     setState(() => _status = ok ? 'handed to system' : 'refused');
   }
 
@@ -44,8 +45,15 @@ class _ExampleAppState extends State<ExampleApp> {
               Text(_status, textAlign: TextAlign.center),
               const SizedBox(height: 8),
               _Button(
-                label: 'https (→ iPhone)',
+                label: 'https (on watch)',
                 onTap: () => _open('https://example.com'),
+              ),
+              _Button(
+                label: 'https (→ iPhone)',
+                onTap: () => _open(
+                  'https://example.com',
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
               _Button(label: 'tel', onTap: () => _open('tel:+15551234567')),
               _Button(label: 'sms', onTap: () => _open('sms:+15551234567')),

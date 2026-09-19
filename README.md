@@ -58,7 +58,7 @@ porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
 | [`shared_preferences_watchos`](packages/shared_preferences_watchos) [![pub](https://img.shields.io/pub/v/shared_preferences_watchos.svg)](https://pub.dev/packages/shared_preferences_watchos) | [`shared_preferences`](https://pub.dev/packages/shared_preferences) | `NSUserDefaults` |
 | [`package_info_plus_watchos`](packages/package_info_plus_watchos) [![pub](https://img.shields.io/pub/v/package_info_plus_watchos.svg)](https://pub.dev/packages/package_info_plus_watchos) | [`package_info_plus`](https://pub.dev/packages/package_info_plus) | `NSBundle` |
 | [`device_info_plus_watchos`](packages/device_info_plus_watchos) [![pub](https://img.shields.io/pub/v/device_info_plus_watchos.svg)](https://pub.dev/packages/device_info_plus_watchos) | [`device_info_plus`](https://pub.dev/packages/device_info_plus) | `WKInterfaceDevice` |
-| [`url_launcher_watchos`](packages/url_launcher_watchos) [![pub](https://img.shields.io/pub/v/url_launcher_watchos.svg)](https://pub.dev/packages/url_launcher_watchos) | [`url_launcher`](https://pub.dev/packages/url_launcher) | `WKApplication.openSystemURL` (`tel:`/`sms:`), `NSUserActivity` Handoff (web) |
+| [`url_launcher_watchos`](packages/url_launcher_watchos) [![pub](https://img.shields.io/pub/v/url_launcher_watchos.svg)](https://pub.dev/packages/url_launcher_watchos) | [`url_launcher`](https://pub.dev/packages/url_launcher) | `ASWebAuthenticationSession` (web pages on the watch), `WKApplication.openSystemURL` (`tel:`/`sms:`), `NSUserActivity` Handoff (web, `externalApplication`) |
 | [`battery_plus_watchos`](packages/battery_plus_watchos) [![pub](https://img.shields.io/pub/v/battery_plus_watchos.svg)](https://pub.dev/packages/battery_plus_watchos) | [`battery_plus`](https://pub.dev/packages/battery_plus) | `WKInterfaceDevice` battery |
 | [`connectivity_plus_watchos`](packages/connectivity_plus_watchos) [![pub](https://img.shields.io/pub/v/connectivity_plus_watchos.svg)](https://pub.dev/packages/connectivity_plus_watchos) | [`connectivity_plus`](https://pub.dev/packages/connectivity_plus) | `nw_path_monitor` |
 | [`flutter_secure_storage_watchos`](packages/flutter_secure_storage_watchos) [![pub](https://img.shields.io/pub/v/flutter_secure_storage_watchos.svg)](https://pub.dev/packages/flutter_secure_storage_watchos) | [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) | Keychain (`SecItem*`) |
@@ -96,8 +96,7 @@ published package would be misleading:
 
 | Plugin | Why not on watchOS |
 |---|---|
-| [`webview_flutter`](https://pub.dev/packages/webview_flutter) | No WebKit on watchOS — no web view or HTML rendering |
-| [`url_launcher`](https://pub.dev/packages/url_launcher) | No generic URL launching; only system `tel:`/`sms:` handoff exists |
+| [`webview_flutter`](https://pub.dev/packages/webview_flutter) | No WebKit in the watchOS SDK, so no embeddable web view; a page can only be shown as a full-screen system sheet, which `url_launcher_watchos` does |
 | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | No GoogleSignIn watchOS SDK; sign-in is delegated to the paired iPhone |
 | [`image_picker`](https://pub.dev/packages/image_picker) | No camera and no photo-picker UI on the watch |
 | [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | No Google Maps SDK for watchOS (an Apple MapKit backend would not honestly implement the interface) |

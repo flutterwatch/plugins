@@ -7,8 +7,9 @@
 // unit tests, which fake the bindings, cannot.
 //
 // What it deliberately does NOT assert: that a URL actually opened. Neither
-// `openSystemURL:` nor Handoff reports completion to the app, and the watch
-// has no API to observe the paired phone. Those need a human with a wrist.
+// the on-watch browser, `openSystemURL:` nor Handoff reports completion to the
+// app, and the watch has no API to observe the paired phone. Those need a
+// human with a wrist.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -26,15 +27,29 @@ void main() {
     });
 
     test('refuses schemes with no watchOS mechanism', () async {
-      expect(await canLaunchUrl(Uri.parse('mailto:hello@example.com')), isFalse);
+      expect(
+          await canLaunchUrl(Uri.parse('mailto:hello@example.com')), isFalse);
       expect(await canLaunchUrl(Uri.parse('ftp://example.com')), isFalse);
     });
   });
 
   group('launchUrl (real FFI)', () {
-    test('a web URL is accepted for Handoff', () async {
-      // True means "published as an NSUserActivity", not "opened".
+    test('a web URL is accepted for the on-watch browser', () async {
+      // True means "handed to ASWebAuthenticationSession", not "rendered".
       expect(await launchUrl(Uri.parse('https://flutterwatch.dev')), isTrue);
+      await closeInAppWebView();
+    });
+
+    test('a web URL is accepted for Handoff with externalApplication',
+        () async {
+      // True means "published as an NSUserActivity", not "opened".
+      expect(
+        await launchUrl(
+          Uri.parse('https://flutterwatch.dev'),
+          mode: LaunchMode.externalApplication,
+        ),
+        isTrue,
+      );
     });
 
     test('an unsupported scheme is refused, not silently swallowed', () async {
@@ -45,7 +60,10 @@ void main() {
 
     test('closeWebView withdraws the Handoff activity without throwing',
         () async {
-      await launchUrl(Uri.parse('https://flutterwatch.dev'));
+      await launchUrl(
+        Uri.parse('https://flutterwatch.dev'),
+        mode: LaunchMode.externalApplication,
+      );
       await closeInAppWebView();
     });
   });

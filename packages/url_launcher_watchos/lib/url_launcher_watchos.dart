@@ -42,6 +42,14 @@ class UrlLauncherWatchosBindings {
       .lookupFunction<Void Function(), void Function()>(
           'url_launcher_watchos_close_handoff');
 
+  late final int Function(Pointer<Utf8>) _openInApp = _lib!.lookupFunction<
+      Int32 Function(Pointer<Utf8>),
+      int Function(Pointer<Utf8>)>('url_launcher_watchos_open_in_app');
+
+  late final void Function() _closeInApp = _lib!
+      .lookupFunction<Void Function(), void Function()>(
+          'url_launcher_watchos_close_in_app');
+
   T _withUrl<T>(String url, T Function(Pointer<Utf8>) body) {
     final Pointer<Utf8> p = url.toNativeUtf8();
     try {
@@ -59,21 +67,28 @@ class UrlLauncherWatchosBindings {
 
   /// Withdraws a published Handoff activity.
   void closeHandoff() => _closeHandoff();
+
+  /// Shows an http:/https: [url] in the system browser on the watch.
+  bool openInApp(String url) => _withUrl(url, (p) => _openInApp(p) != 0);
+
+  /// Dismisses the browser opened by [openInApp].
+  void closeInApp() => _closeInApp();
 }
 
 /// watchOS implementation of [UrlLauncherPlatform].
 ///
-/// watchOS has no general URL-opening API and no WebKit, so the two
-/// mechanisms it does have are mapped by scheme:
+/// watchOS has no general URL-opening API and no WebKit in its SDK, so each
+/// URL goes to the one mechanism that fits it:
 ///
-/// | Scheme | Behaviour |
+/// | URL and mode | Behaviour |
 /// |---|---|
+/// | `http:`/`https:`, [PreferredLaunchMode.platformDefault], `inAppBrowserView` or `inAppWebView` | Shown in the system browser on the watch, a full-screen sheet with an address bar and a close button. |
+/// | `http:`/`https:`, [PreferredLaunchMode.externalApplication] | The system sheet tells the user the link can be viewed on their iPhone, and a Handoff activity is published so the phone can pick it up. |
 /// | `tel:`, `sms:` | Opened by the system handler on the watch. |
-/// | `http:`, `https:` | The system sheet tells the user the link can be viewed on their iPhone, and a Handoff activity is published so the phone can pick it up. The watch will not render a page for a third-party app. |
 /// | anything else | [launchUrl] returns `false`. |
 ///
 /// A `true` result means the URL was handed to the system, not that the user
-/// followed it: watchOS reports no completion for either mechanism.
+/// followed it: watchOS reports no completion for any of these mechanisms.
 class UrlLauncherWatchos extends UrlLauncherPlatform {
   /// Test hook: set before first use to replace the FFI bindings.
   static UrlLauncherWatchosBindings? bindingsOverride;
@@ -106,30 +121,63 @@ class UrlLauncherWatchos extends UrlLauncherPlatform {
     required Map<String, String> headers,
     String? webOnlyWindowName,
   }) async {
-    // Every in-app-webview flag is meaningless here: there is no WebKit in
-    // the watchOS SDK, so a web URL can only ever leave the watch.
+    // The legacy API's useSafariVC is what url_launcher sets for web URLs by
+    // default, so it maps to the on-watch browser as it does to
+    // SFSafariViewController on iOS. The JavaScript, DOM storage and header
+    // options have nothing to act on: the system browser is not configurable.
+    if ((useSafariVC || useWebView) && _isWebUrl(url)) {
+      return _b.openInApp(url);
+    }
     return _b.launch(url);
   }
 
   @override
-  Future<bool> launchUrl(String url, LaunchOptions options) async =>
-      _b.launch(url);
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    switch (options.mode) {
+      case PreferredLaunchMode.inAppWebView:
+      case PreferredLaunchMode.inAppBrowserView:
+        // url_launcher itself rejects a non-web URL for these modes before it
+        // gets here; refuse rather than guess if one arrives anyway.
+        return _isWebUrl(url) && _b.openInApp(url);
+      case PreferredLaunchMode.externalApplication:
+      case PreferredLaunchMode.externalNonBrowserApplication:
+        return _b.launch(url);
+      case PreferredLaunchMode.platformDefault:
+      // The enum lives in another package; a mode added there must fall back
+      // to the default rather than stop this switch compiling.
+      // ignore: unreachable_switch_default
+      default:
+        // Web URLs open on the watch, as they open in-app on iOS.
+        return _isWebUrl(url) ? _b.openInApp(url) : _b.launch(url);
+    }
+  }
 
   @override
   Future<void> closeWebView() async {
-    // No in-app web view exists; the nearest equivalent is withdrawing the
-    // Handoff offer published for a web URL.
+    _b.closeInApp();
+    // Also withdraw a Handoff offer published for an externalApplication
+    // launch; there is no other way to take it back.
     _b.closeHandoff();
   }
 
   @override
   Future<bool> supportsMode(PreferredLaunchMode mode) async {
-    // Only the platform default is meaningful: in-app web views cannot exist
-    // on watchOS, and there is no external-app-vs-browser distinction.
+    // externalNonBrowserApplication is not claimed: the watch cannot tell
+    // whether the iPhone will open a web URL in an app or in Safari. It still
+    // launches, falling back to externalApplication as the interface asks.
     return mode == PreferredLaunchMode.platformDefault ||
+        mode == PreferredLaunchMode.inAppWebView ||
+        mode == PreferredLaunchMode.inAppBrowserView ||
         mode == PreferredLaunchMode.externalApplication;
   }
 
   @override
-  Future<bool> supportsCloseForMode(PreferredLaunchMode mode) async => false;
+  Future<bool> supportsCloseForMode(PreferredLaunchMode mode) async =>
+      mode == PreferredLaunchMode.inAppWebView ||
+      mode == PreferredLaunchMode.inAppBrowserView;
+
+  static bool _isWebUrl(String url) {
+    final String scheme = Uri.tryParse(url)?.scheme.toLowerCase() ?? '';
+    return scheme == 'http' || scheme == 'https';
+  }
 }

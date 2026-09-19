@@ -12,7 +12,8 @@ import PackageDescription
 let package = Package(
     name: "url_launcher_watchos",
     platforms: [
-        // -[WKApplication openSystemURL:] is watchOS 7.0+.
+        // -[WKApplication openSystemURL:] is watchOS 7.0+
+        // (ASWebAuthenticationSession is 6.2+).
         .watchOS(.v7),
     ],
     products: [
@@ -27,6 +28,7 @@ let package = Package(
                 .headerSearchPath("."),
             ],
             linkerSettings: [
+                .linkedFramework("AuthenticationServices"),
                 .linkedFramework("Foundation"),
                 .linkedFramework("WatchKit"),
             ]
