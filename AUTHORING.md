@@ -178,7 +178,7 @@ discovery is by shape, like the `.m` sources:
    survives the static link.
 3. **Dart** — call the registration symbol from `registerWith()`, and embed
    the view with `WatchPlatformView` from `package:flutter_watchos` (depend
-   on its current version, as `video_player_watchos` does). On an engine
+   on its current version, `flutter_watchos: ^0.1.0`). On an engine
    that composites platform views (`WatchPlatformView.isComposited`; the
    engine of every flutter-watchos from 0.1.0 does) the view sits in paint
    order — Flutter content painted after it draws over it — and `layer:`
