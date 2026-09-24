@@ -8,10 +8,9 @@ These are companions to [flutter-watchos](https://github.com/flutterwatch/flutte
 implementations of popular pub.dev plugins, produced with the
 `flutter-watchos plugin port` tool and finished/verified by hand.
 
-> **Publishing to pub.dev** under the `flutterwatch.dev` publisher is in
-> progress. Each version badge below lights up automatically once its
-> package is published; until then, add the package as a git dependency
-> (see [Usage](#usage)).
+Every package here is on pub.dev under the
+[`flutterwatch.dev`](https://pub.dev/publishers/flutterwatch.dev/packages)
+publisher (see [Usage](#usage)).
 
 ## How watchOS plugins work
 
@@ -35,7 +34,7 @@ between a watch and its phone, and it needs an implementation on *both* sides.
 
 | Plugin | What it is | Backend |
 |---|---|---|
-| [`flutter_watch_link`](packages/flutter_watch_link) | First-party. One Dart API for phone↔watch messaging, application context, and guaranteed transfers — the same code on both devices. | `WCSession` (one FFI implementation, compiled for both) |
+| [`flutter_watch_link`](packages/flutter_watch_link) [![pub](https://img.shields.io/pub/v/flutter_watch_link.svg)](https://pub.dev/packages/flutter_watch_link) | First-party. One Dart API for phone↔watch messaging, application context, and guaranteed transfers — the same code on both devices. | `WCSession` (one FFI implementation, compiled for both) |
 
 Upstream [`watch_connectivity`](https://pub.dev/packages/watch_connectivity) is
 phone-side only, and its "platform interface" is explicitly not a federated one
@@ -137,15 +136,13 @@ Then use the upstream plugin's API exactly as on iOS — the `*_watchos`
 implementation registers automatically via Flutter's federated plugin
 runner, with no imports or client code changes.
 
-`flutter_watch_link` is the exception: it is not on pub.dev yet, so
-depend on it via git.
+`flutter_watch_link` is the exception: it is not an implementation of an
+upstream plugin, so depend on it on its own and call its API directly —
+in the iPhone app and the watch app alike.
 
 ```yaml
 dependencies:
-  flutter_watch_link:
-    git:
-      url: https://github.com/flutterwatch/plugins.git
-      path: packages/flutter_watch_link
+  flutter_watch_link: ^0.1.0
 ```
 
 A few packages need a writable directory and therefore also
