@@ -291,3 +291,10 @@ plugins/
 
 BSD-3-Clause — see [LICENSE](LICENSE). Ported packages retain their upstream
 copyright; watchOS additions are © The FlutterWatch Authors.
+
+---
+
+_These packages are an independent project and are not affiliated with,
+endorsed by, or sponsored by Google LLC, Apple Inc., or the authors of the
+upstream plugins. Flutter, Dart and Firebase are trademarks of Google LLC.
+Apple Watch and watchOS are trademarks of Apple Inc._
