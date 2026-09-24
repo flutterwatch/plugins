@@ -177,19 +177,21 @@ discovery is by shape, like the `.m` sources:
 2. **Pubspec** — list the registration symbol under `ffiSymbols` so it
    survives the static link.
 3. **Dart** — call the registration symbol from `registerWith()`, and embed
-   the view with `WatchPlatformView` from `package:flutter_watchos`
-   (≥ 0.1.0-beta.5). Since flutter-watchos 0.1.0-beta.12 the engine
-   composites the view in paint order — Flutter content painted after it
-   draws over it — and `layer:` only decides who gets touches:
-   `belowFlutter` when gestures should stay in Dart (what
-   `video_player_watchos` does), the default `aboveFlutter` when the native
-   view itself is interactive.
+   the view with `WatchPlatformView` from `package:flutter_watchos` (depend
+   on its current version, as `video_player_watchos` does). On an engine
+   that composites platform views (`WatchPlatformView.isComposited`; the
+   engine of every flutter-watchos from 0.1.0 does) the view sits in paint
+   order — Flutter content painted after it draws over it — and `layer:`
+   only decides who gets touches: `belowFlutter` when gestures should stay
+   in Dart (what `video_player_watchos` does), the default `aboveFlutter`
+   when the native view itself is interactive.
 
 Constraints to document in your README: scene snapshots (golden tests)
-don't capture native pixels, and on flutter-watchos releases before
-0.1.0-beta.12 the view rect is axis-aligned (no `Transform` of the native
-surface). On an app created by an older flutter-watchos
-the views simply don't render (`WatchPlatformView.isSupported`).
+don't capture native pixels, and on an engine that predates the compositor
+(`WatchPlatformView.isComposited` is false) the view rect is axis-aligned
+(no `Transform` of the native surface). On an app created by an older
+flutter-watchos the views simply don't render
+(`WatchPlatformView.isSupported`).
 
 **Threading rule:** FFI entry points run on the Flutter UI thread, not the
 main thread. Any native object your platform view displays (an `AVPlayer`
