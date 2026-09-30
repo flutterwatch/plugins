@@ -90,6 +90,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The version check compares each package with the commit it was
+          # last published from, so it needs the history.
+          fetch-depth: 0
 
       - uses: subosito/flutter-action@v2
         with:
@@ -121,6 +125,14 @@ jobs:
       - name: Generated files are ignored
         if: success() || failure()
         run: tool/check_generated_ignored.sh
+
+      # Spec 0006 criterion 4: a package whose publishable files changed
+      # since tool/published.yaml's commit has a new version and a matching
+      # top CHANGELOG heading, and no package is at a pre-release.
+      - name: Versions and CHANGELOG headings
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_versions.dart
 
       # CI logs print every test and group name.
       - name: Test and group names

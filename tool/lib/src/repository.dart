@@ -10,14 +10,16 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 /// Runs `git` with [arguments] in [root] and returns its standard output.
+/// Paths in the output are not quoted, even when they hold non-ASCII
+/// characters.
 ///
 /// Throws a [ProcessException] when git fails.
 String git(String root, List<String> arguments) {
-  final ProcessResult result = Process.runSync(
-    'git',
-    arguments,
-    workingDirectory: root,
-  );
+  final ProcessResult result = Process.runSync('git', <String>[
+    '-c',
+    'core.quotePath=false',
+    ...arguments,
+  ], workingDirectory: root);
   if (result.exitCode != 0) {
     throw ProcessException(
       'git',

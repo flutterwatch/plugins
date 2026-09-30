@@ -1,0 +1,7 @@
+packages:
+  a:
+    version: 0.1.0
+    commit: BASE
+  gone:
+    version: 0.1.0
+    commit: BASE

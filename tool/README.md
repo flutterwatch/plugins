@@ -11,6 +11,7 @@ Run them from the repository root:
 tool/check_words.sh
 tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_test_names.dart)
+(cd tool && dart run bin/check_versions.dart)
 ```
 
 ## Word check
@@ -41,3 +42,13 @@ each word with a trailing "s".
 root `.gitignore` alone. `check_clean_tree.sh` fails when the tree has a
 modified or new file that git does not ignore; CI runs it after the package
 tests.
+
+## Versions
+
+`bin/check_versions.dart` compares each package's publishable files (what
+`pub publish` would take: not hidden, not ignored) with the commit that
+`published.yaml` records for its last version on pub.dev. A package that
+changed needs a higher version and a top CHANGELOG heading equal to it, and
+no package may be at a pre-release. A package without a row is checked as
+unpublished. After each publish, record the version and the commit it was
+published from in `published.yaml`.
