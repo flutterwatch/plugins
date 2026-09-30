@@ -14,7 +14,7 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseStorage`)
 | Implementation (Dart + FFI + native) | ✅ complete (putBlob is web-only) |
 | watchOS capability | ✅ FirebaseStorage is source-built and watch-capable |
 | Host unit tests | ✅ 14/14 pass (native FirebaseStorage faked) |
-| On-simulator build + link + run | ✅ links the Firebase Apple SDK; smoke test passes |
+| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator. The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_storage pub example (smoke test added) |
 

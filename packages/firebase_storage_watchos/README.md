@@ -13,10 +13,11 @@ a SwiftPM dependency on
 bridge; uploads and downloads run as native SDK tasks whose progress
 snapshots the Dart side polls.
 
-> **Experimental.** Firebase support on watchOS is new. This package builds,
-> links the Firebase Apple SDK, and passes its host tests and an on-simulator
-> smoke test, but has not yet been proven on physical watch hardware; it is
-> published as a pre-release.
+> Firebase support on watchOS is new.
+>
+> **What has been checked:** the example app builds and starts on the
+> watchOS 27.0 Simulator, and the host unit tests pass. It has not yet been
+> run on a physical Apple Watch.
 >
 > Requires `firebase_core_watchos` (the initialization + app registry
 > foundation) and a `flutter-watchos` CLI with external-SwiftPM-dependency
@@ -43,9 +44,9 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.0.1-beta.1
+  firebase_core_watchos: ^0.1.0
   firebase_storage: ^13.0.0
-  firebase_storage_watchos: ^0.0.1-beta.1
+  firebase_storage_watchos: ^0.1.0
 ```
 
 Then use `firebase_storage`'s API exactly as on iOS — the watchOS
