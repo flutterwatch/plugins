@@ -76,6 +76,46 @@ jobs:
             exit 1
           fi
 
+  # Checks of the repository as a whole, by the scripts in tool/. Each step
+  # runs even when an earlier one failed, so one run reports every problem.
+  checks:
+    name: repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Fetch the tool dependencies
+        working-directory: tool
+        run: dart pub get
+
+      # The scripts are test infrastructure; their own tests run their
+      # fixtures, each of which must fail or pass as its `expect` file says.
+      - name: Analyze and test the tool
+        if: success() || failure()
+        working-directory: tool
+        run: |
+          dart analyze --fatal-infos
+          dart test
+
+      # Spec 0006 Decision 2d and 0007 D8: no forbidden word in any file,
+      # outside tool/words/forbidden_words_allow.txt and tool/words/pending.txt.
+      - name: Word check
+        if: success() || failure()
+        run: tool/check_words.sh
+
+      # CI logs print every test and group name.
+      - name: Test and group names
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_test_names.dart
+
   # No `dart format` gate yet. Many files under packages/*/lib and
   # packages/*/test are not formatted today, so a gate would fail on its first
   # run and force a mechanical reformat of published sources as a side effect.

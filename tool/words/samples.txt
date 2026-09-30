@@ -1,0 +1,24 @@
+# Samples for the word rule, one per line: "hit" or "clean", a tab, the text.
+# tool/test/forbidden_words_test.dart runs the Dart rule and the shell form of
+# tool/check_words.sh over them and expects the same answers from both. The
+# first samples are 0007 D8's.
+hit	two previews
+hit	rawPrice
+hit	release_not_in_beta
+hit	0.0.1-beta.1
+hit	will find a random free port
+hit	PAID
+hit	Betas and Trials
+hit	pricing
+hit	must NOT free it
+hit	calloc.free(p);
+hit	# Widget Preview related
+clean	freeze
+clean	industrial
+clean	unpaid
+clean	priced
+clean	freedom
+clean	betamax
+clean	a plain sentence
+clean	could be freed in between
+clean	alphabetical

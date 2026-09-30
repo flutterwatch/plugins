@@ -1,0 +1,1 @@
+packages/a/test/a_test.dart | missing rawPrice falls back | rename it
