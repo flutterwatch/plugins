@@ -81,6 +81,6 @@ packages/in_app_purchase_watchos/watchos/Classes/in_app_purchase_watchos_ffi.m |
 packages/in_app_purchase_watchos/watchos/Classes/in_app_purchase_watchos_ffi.m | @"rawPrice" | The rawPrice key of the product JSON; a string key.
 packages/in_app_purchase_watchos/watchos/Classes/in_app_purchase_watchos_ffi.m | .price | SKProduct's price and priceLocale properties; StoreKit API names.
 packages/in_app_purchase_watchos/example/watchos/Configuration.storekit | "displayPrice" | A key of Xcode's StoreKit configuration file format.
-packages/in_app_purchase_watchos/example/lib/main.dart | showPriceConsentIfNeeded | A method of in_app_purchase_storekit's platform addition; an API name.
+packages/in_app_purchase_watchos/** | showPriceConsentIfNeeded | A method of in_app_purchase_storekit's platform addition, in the upstream example and in each place this package implements or names it; an API name.
 packages/in_app_purchase_watchos/example/lib/main.dart | confirmPriceChange | A method of the upstream example; a code identifier.
 packages/in_app_purchase_watchos/example/lib/main.dart | shouldShowPriceConsent | A method of the upstream example; a code identifier.
