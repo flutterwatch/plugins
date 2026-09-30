@@ -150,6 +150,14 @@ jobs:
         working-directory: tool
         run: dart run bin/symcheck.dart
 
+      # Spec 0006 criterion 14a: an example that depends on `any` builds
+      # against whatever is newest that day, so no example pubspec names
+      # `any`, or no constraint, under dependencies or dev_dependencies.
+      - name: Example constraints
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_example_constraints.dart
+
       # CI logs print every test and group name.
       - name: Test and group names
         if: success() || failure()

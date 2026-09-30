@@ -14,6 +14,7 @@ tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_versions.dart)
 (cd tool && dart run bin/check_readme_snippets.dart)
 (cd tool && dart run bin/symcheck.dart)
+(cd tool && dart run bin/check_example_constraints.dart)
 ```
 
 ## Word check
@@ -75,3 +76,12 @@ the symbol names `lib/` looks up. It fails on any difference that
 `symcheck_allow.yaml` does not list with its reason, and on an entry there
 that no longer matches. It moved here from
 `specs/research/2026-09-29/plugins-evidence/symcheck.py`, which only printed.
+
+## Example constraints
+
+`bin/check_example_constraints.dart` fails when a package's
+`example/pubspec.yaml` names `any`, or no constraint, under `dependencies`
+or `dev_dependencies`. An example built against whatever is newest that day
+can break with no change in this repository. Use a caret constraint on the
+version the example was last run with; `path:` and `sdk:` entries and
+`dependency_overrides` are not checked.
