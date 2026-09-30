@@ -19,6 +19,11 @@ dependencies:
   games_services_watchos: ^0.1.0
 ```
 
+This release implements `games_services_platform_interface` 4.x, so it works
+with `games_services` 4.x. `games_services` 5.x requires the 5.x interface,
+which this package does not implement yet, so `games_services: ^5` does not
+resolve alongside it.
+
 Then use `games_services` as normal:
 
 ```dart

@@ -15,6 +15,9 @@
   `analysis_options.yaml`.
 * Example: `pubspec.yaml` names `games_services: ^4.1.1` and
   `games_services_platform_interface: ^4.1.1` instead of `any`.
+* README: says this release works with `games_services` 4.x, and that
+  `games_services` 5.x, which needs the 5.x interface, does not resolve
+  alongside it yet.
 
 ## 0.0.1
 
