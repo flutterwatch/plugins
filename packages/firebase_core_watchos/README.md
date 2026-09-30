@@ -10,11 +10,14 @@ dependency on [`firebase-ios-sdk`](https://github.com/firebase/firebase-ios-sdk)
 `FirebaseCore` product, and Dart resolves the symbols via
 `DynamicLibrary.process()`.
 
-> **Experimental.** Firebase support on watchOS is new. `firebase_core_watchos`
-> is the foundation the other `firebase_*_watchos` plugins build on
-> (initialization + app registry). It builds, links the Firebase Apple SDK,
-> and passes its host tests and an on-simulator smoke test, but has not yet
-> been proven on physical watch hardware; it is published as a pre-release.
+> Firebase support on watchOS is new. `firebase_core_watchos` is the
+> foundation the other `firebase_*_watchos` plugins build on (initialization
+> + app registry).
+>
+> **What has been checked:** the example app builds and starts on the
+> watchOS 27.0 Simulator, the host unit tests pass, and a smoke test that
+> initializes the default app and a named app passes there. It has not yet
+> been run on a physical Apple Watch.
 >
 > Requires `flutter-watchos` with external-SwiftPM-dependency linking (the CLI
 > builds the plugin's SwiftPM package — pulling in `FirebaseCore` — and
@@ -49,7 +52,7 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.0.1-beta.1
+  firebase_core_watchos: ^0.1.0
 ```
 
 Then use `firebase_core`'s API exactly as on iOS — the watchOS implementation
