@@ -8,6 +8,7 @@
 | watchOS capability | Partial — Wi-Fi IP only; SSID/BSSID unsupported on watchOS |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim |
+| Example deviations | `example/lib/main.dart`: both permission requests use `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch), because `permission_handler` has no watchOS implementation and the upstream example started with a `MissingPluginException`; `example/pubspec.yaml` adds `flutter_watchos: ^0.1.0` for it. `example/integration_test/watchos_example_start_test.dart` checks that the example starts cleanly; not yet run on a watch Simulator |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.

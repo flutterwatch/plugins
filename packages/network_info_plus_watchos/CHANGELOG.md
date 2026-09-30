@@ -15,6 +15,12 @@
   3.1.0, audited by hand.
 * README: `getWifiGatewayIP` was listed as unimplemented; it returns null.
 * Example: `pubspec.yaml` names `network_info_plus: ^8.2.1` instead of `any`.
+* Example: the location-permission requests are guarded with
+  `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS`, which is true on
+  the watch, where `permission_handler` has no implementation; the example no
+  longer starts with a `MissingPluginException`. The example depends on
+  `flutter_watchos: ^0.1.0`, and a new integration test checks that it starts
+  cleanly. The README and PORTING_REPORT list the deviations.
 
 ## 0.0.1
 

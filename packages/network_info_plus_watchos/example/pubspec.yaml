@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # For FlutterWatchosPlatform.isIos, which the watchOS guard in lib/main.dart
+  # uses.
+  flutter_watchos: ^0.1.0
   network_info_plus: ^8.2.1
   network_info_plus_watchos:
     path: ../
