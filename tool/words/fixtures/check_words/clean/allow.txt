@@ -1,1 +1,1 @@
-packages/**/*.dart | calloc.free( | package:ffi call
+packages/a/**/*.dart | calloc.free( | package:ffi call

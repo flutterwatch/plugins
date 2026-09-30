@@ -1,0 +1,4 @@
+1
+would match packages/flutter_watchos/
+allow.txt:1: packages/**
+allow.txt:2: packages/*_watchos/lib/a.dart

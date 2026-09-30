@@ -21,7 +21,11 @@
 #   3. `git grep -i` finds the first word of the list anywhere, even inside
 #      another word (no entry applies to this one);
 #   4. an entry is stale: its glob matches files here but its text is in none
-#      of them, or its glob is under packages/ and matches nothing.
+#      of them, or its glob is under packages/ and matches nothing;
+#   5. an allow-list entry for this repository's packages could match
+#      packages/flutter_watchos/, the package in the CLI repository: the
+#      CLI's copy of the list would apply it to that package, and the CLI's
+#      test would find its text missing there.
 #
 # Entries come from two files, both "<path glob> | <exact text> | <reason>"
 # per line:
@@ -173,6 +177,33 @@ run_awk 'BEGIN { read_all(); exit 0 }' > "$work/bad_entries"
 if [ -s "$work/bad_entries" ]; then
   echo "Malformed entries:"
   cat "$work/bad_entries"
+  failed=1
+fi
+
+# 5 (checked first, like 0). An allow-list entry under packages/ names this
+# repository's packages, never a pattern such as `packages/**` or `*_watchos`
+# that packages/flutter_watchos/ would match too. The package part of the
+# glob (up to the first "/") is tested against that name.
+run_awk '
+  BEGIN {
+    read_all()
+    for (e = 1; e <= n_entries; e++) {
+      if (files_of[e] != allow) continue
+      g = globs[e]
+      if (g !~ /^packages\// || g ~ /^packages\/flutter_watchos\//) continue
+      seg = substr(g, length("packages/") + 1)
+      k = index(seg, "/")
+      if (k > 0) seg = substr(seg, 1, k - 1)
+      if (seg ~ /^\*\*/ || "flutter_watchos" ~ glob_to_ere(seg)) {
+        printf "  %s:%d: %s\n", files_of[e], lines[e], g
+      }
+    }
+    exit 0
+  }' > "$work/cli_package"
+if [ -s "$work/cli_package" ]; then
+  echo "Allow-list entries that would match packages/flutter_watchos/ in the"
+  echo "CLI's copy of the list. Name this repository's packages instead:"
+  cat "$work/cli_package"
   failed=1
 fi
 

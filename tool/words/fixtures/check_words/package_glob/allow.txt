@@ -1,0 +1,2 @@
+packages/b_*_watchos/lib/b.dart | x.y( | a call
+packages/flutter_watchos/lib/a.dart | x.y( | an entry for the CLI package

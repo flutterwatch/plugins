@@ -30,6 +30,7 @@ void main() {
         'stale_glob',
         'pending_stale',
         'untracked',
+        'cli_package_glob',
       ]),
     );
     expect(fixtures.where((Fixture f) => f.expectedExitCode == 0), isNotEmpty);
