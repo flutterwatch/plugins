@@ -16,6 +16,16 @@
   unit tests pass at both lower bounds (`flutter pub downgrade`).
 * README: the install snippet names `in_app_purchase: ^3.3.1` and this
   version.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `in_app_purchase_platform_interface` 1.4.1
+  and the StoreKit addition, audited by hand.
+* `pubspec.yaml`: `topics` (watchos, ffi, in-app-purchase, storekit).
 
 ## 0.0.1
 

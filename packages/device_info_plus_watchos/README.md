@@ -41,6 +41,11 @@ Populates the `IosDeviceInfo` fields from `WKInterfaceDevice`, `uname()`,
 | `isPhysicalDevice` | `TARGET_OS_SIMULATOR` |
 | `isiOSAppOnMac` / `isiOSAppOnVision` | always false (impossible on a watch) |
 
+## Not supported on watchOS
+
+Nothing: every member of `device_info_plus_platform_interface` 8.1.0 is implemented.
+`PORTING_REPORT.md` lists each member under "Interface coverage".
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

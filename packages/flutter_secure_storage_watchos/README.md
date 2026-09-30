@@ -64,6 +64,15 @@ This lays the app out in a proportionally larger logical space rendered
 smaller — same layout, smaller components — without touching the example's
 Dart code.
 
+## Not supported on watchOS
+
+These members of `flutter_secure_storage_platform_interface` 2.1.1 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `checkUpgradeStatus` | returns `SecureStorageUpgradeStatus.unsupported` | the interface default; there is no earlier watchOS storage format to check |
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

@@ -32,6 +32,12 @@ print(await battery.batteryState);       // charging / full / discharging
 | `isInBatterySaveMode` | ✅ `NSProcessInfo.isLowPowerModeEnabled` (watchOS 9+, else false) |
 | `onBatteryStateChanged` | ✅ poll-based — watchOS has no battery-change notification, so the stream polls every `BatteryPlusWatchos.pollInterval` (default 2s) and emits on change |
 
+## Not supported on watchOS
+
+Nothing: every member of `battery_plus_platform_interface` 2.0.1 is implemented.
+`batteryLevel` fails with an `Exception` while watchOS reports no level (-1), which some Simulators do.
+`PORTING_REPORT.md` lists each member under "Interface coverage".
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

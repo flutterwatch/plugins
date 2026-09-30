@@ -107,6 +107,20 @@ StoreKit products, so product lookup returns "not found" and a purchase cannot
 complete — add a `.storekit` test configuration (or use a sandbox account) to
 exercise it end to end.
 
+## Not supported on watchOS
+
+These members of `in_app_purchase_platform_interface` 1.4.1 and `in_app_purchase_storekit` 0.4.13 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `countryCode` | throws `UnimplementedError` when called | the storefront is not read yet |
+| addition `presentCodeRedemptionSheet` | fails with an `UnsupportedError` that names watchOS | StoreKit has no code redemption sheet on watchOS |
+| addition `showPriceConsentIfNeeded` | fails with an `UnsupportedError` that names watchOS | StoreKit has no price consent sheet on watchOS |
+| addition `sync` | fails with an `UnsupportedError` that names watchOS | not implemented yet (StoreKit 2) |
+| addition `refreshPurchaseVerificationData` | fails with an `UnsupportedError` that names watchOS | the receipt refresh is not implemented yet |
+| addition `setDelegate` | fails with an `UnsupportedError` that names watchOS | the payment queue delegate is not implemented yet |
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

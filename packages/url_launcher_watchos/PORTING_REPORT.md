@@ -34,8 +34,9 @@ exported symbols and every method body are the human half it leaves behind.
 ✅ WORKING FFI implementation:
 
 - `watchos/Classes/url_launcher_watchos_ffi.m` exports three C symbols
-  (`used` + default-visibility, plus the `ffiSymbols` forced references, so
-  the statically linked symbols survive `-dead_strip`).
+  (`used` + default-visibility, so the statically linked symbols survive
+  `-dead_strip`; the CLI force-loads the archive, and `ffiSymbols` lists
+  the exports).
 - `lib/url_launcher_watchos.dart` extends `UrlLauncherPlatform` and resolves
   the symbols via `DynamicLibrary.process()`.
 
@@ -65,23 +66,33 @@ That refusal is worth triggering anyway: it is the only on-wrist feedback the
 user gets. Publishing the Handoff activity alone would look like nothing
 happened.
 
-## API coverage
+## Interface coverage
 
-| Method | watchOS backing | Status |
-|---|---|---|
-| `canLaunch` | scheme whitelist | ✅ |
-| `launchUrl` / `launch` | `openSystemURL:` or Handoff, by scheme | ◐ see below |
-| `closeWebView` | invalidates the published `NSUserActivity` | ◐ nearest equivalent |
-| `supportsMode` | `platformDefault`, `externalApplication` only | ◐ |
-| `supportsCloseForMode` | always `false` | ✗ nothing is closable |
-| `linkDelegate` | `null` (framework default) | ✅ |
+Every public member of `url_launcher_platform_interface` 2.3.2
+(`UrlLauncherPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `canLaunch` | ✅ true for `http:`, `https:`, `tel:` and `sms:` |
+| `launchUrl` / `launch` | ✅ web URLs in the system browser on the watch (or handed to the iPhone for `externalApplication`); `tel:` and `sms:` through `openSystemURL:` |
+| `closeWebView` | ✅ dismisses the browser and withdraws a Handoff offer |
+| `supportsMode` | ✅ `platformDefault`, `inAppWebView`, `inAppBrowserView` and `externalApplication` |
+| `supportsCloseForMode` | ✅ true for the two in-app modes |
+| `linkDelegate` | ✅ null, so the `Link` widget calls `launchUrl` |
+| `launchUrl` / `launch` with a scheme other than `http:`, `https:`, `tel:` and `sms:` (`mailto:` included) | ✗ return false: `openSystemURL:` owns only `tel:` and `sms:`, and fails silently on other schemes |
+| `supportsMode(externalNonBrowserApplication)` | ✗ returns false: the watch cannot tell whether the iPhone opens a web URL in an app. `launchUrl` still launches it as `externalApplication` |
+| `WebViewConfiguration` in `LaunchOptions` | ◐ JavaScript, DOM storage and headers are not applied: the system browser is not configurable |
 
 ### Scheme behaviour
 
 | Scheme | Mechanism | Status |
 |---|---|---|
 | `tel:`, `sms:` | `-[WKApplication openSystemURL:]` (watchOS 7+) | ✅ opens on the watch — verified on hardware |
-| `http:`, `https:` | `openSystemURL:` **and** `NSUserActivity` + `becomeCurrent` | ✅ verified on hardware: the watch shows "can be viewed on your iPhone", and the Handoff icon appears on the paired iPhone and opens the page |
+| `http:`, `https:` (`platformDefault` and the in-app modes) | `ASWebAuthenticationSession`, the system browser on the watch | ✅ verified on the watchOS 26.5 Simulator (README) |
+| `http:`, `https:` (`externalApplication`) | `openSystemURL:` **and** `NSUserActivity` + `becomeCurrent` | ✅ verified on hardware: the watch shows "can be viewed on your iPhone", and the Handoff icon appears on the paired iPhone and opens the page |
 | `mailto:` | — | ✗ refused deliberately |
 | everything else | — | ✗ `launchUrl` returns `false` |
 
@@ -92,8 +103,9 @@ Returning `true` would report a success that never happened.
 ### `true` does not mean "opened"
 
 Neither mechanism reports completion, so a `true` result means the URL was
-accepted by the system — not that the user followed it. For a web link the
-user still has to pick the Handoff up on their phone.
+accepted by the system — not that the user followed it. For an
+`externalApplication` web link the user still has to pick the Handoff up on
+their phone.
 
 ## Threading
 

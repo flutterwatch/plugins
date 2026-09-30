@@ -3,6 +3,15 @@
 * The version moves from 0.0.1 to 0.1.0, so that a `^0.1.0` constraint
   admits later fixes; `^0.0.1` admits none.
 * README: the install snippet names `path_provider: ^2.1.6` and this version.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `path_provider_platform_interface` 2.1.3,
+  audited by hand.
 
 ## 0.0.1
 

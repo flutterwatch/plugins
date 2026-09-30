@@ -22,25 +22,24 @@ implementation — method-channel plugins are not supported on watchOS.
 ✅ WORKING FFI implementation:
 
 - `watchos/Classes/package_info_plus_watchos_ffi.m` exports one C symbol
-  per `NSBundle` Info.plist field (`used` + default-visibility, plus the
-  `ffiSymbols` forced references, so the statically linked symbols survive
-  `-dead_strip`).
+  per `NSBundle` Info.plist field (`used` + default-visibility, so the
+  statically linked symbols survive `-dead_strip`; the CLI force-loads the
+  archive, and `ffiSymbols` lists the exports).
 - `lib/package_info_plus_watchos.dart` extends `PackageInfoPlatform`,
   resolves the symbols via `DynamicLibrary.process()`, and returns a
   `PackageInfoData` from `getAll()`.
 
-## API coverage
+## Interface coverage
 
-| Field | Source | watchOS |
-|---|---|---|
-| `appName` | `CFBundleDisplayName` / `CFBundleName` | ✅ |
-| `packageName` | `CFBundleIdentifier` | ✅ |
-| `version` | `CFBundleShortVersionString` | ✅ |
-| `buildNumber` | `CFBundleVersion` | ✅ |
-| `buildSignature` | — | empty (Android APK-signing concept; iOS reports it empty too) |
-| `installerStore` | App Store receipt path | ✅ `com.apple.simulator`, `com.apple.testflight` (sandbox receipt) or `com.apple` |
-| `installTime` | creation date of the Documents directory | ✅ (null if it cannot be read) |
-| `updateTime` | modification date of the app bundle | ✅ (null if it cannot be read) |
+Every public member of `package_info_plus_platform_interface` 4.1.0
+(`PackageInfoPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `getAll` | ✅ every field of `PackageInfoData` from the app bundle, the App Store receipt path and file dates; `buildSignature` is empty, as on iOS |
 
 ---
 

@@ -38,6 +38,11 @@ stream sends the real value when it arrives.
 `SCNetworkReachability` (which `connectivity_plus` uses on iOS) does not
 exist on watchOS, so this uses the Network framework (watchOS 6+) instead.
 
+## Not supported on watchOS
+
+Nothing: every member of `connectivity_plus_platform_interface` 2.1.0 is implemented.
+`PORTING_REPORT.md` lists each member under "Interface coverage".
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

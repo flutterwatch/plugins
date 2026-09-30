@@ -42,22 +42,31 @@ Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable
   successive states into the `AudioEvent` stream; `registerWith()` also
   installs `GlobalAudioplayersWatchos` for the global interface.
 
-## API coverage
+## Interface coverage
 
-| Method | watchOS |
+Every public member of `audioplayers_platform_interface` 7.2.0
+(`AudioplayersPlatformInterface` and `GlobalAudioplayersPlatformInterface`),
+audited by hand against this package's code. The static `instance` is set by
+`registerWith()`. ✅ implemented · ◐ implemented with a limit · ✗ throws or
+fails on watchOS. The README's "Not supported on watchOS" table lists the ✗
+rows.
+
+| Member | watchOS |
 |---|---|
-| `create` / `dispose` | ✅ |
-| `setSourceUrl` (remote / `isLocal`) | ✅ `AVPlayerItem` |
-| `setSourceBytes` | ✅ spooled to a temp file (`mimeType` → container hint) |
+| `create` / `dispose` | ✅ one native `AVPlayer` per player id |
+| `setSourceUrl` | ✅ `AVPlayerItem`, remote URLs and local files |
+| `setSourceBytes` | ✅ spooled to a temporary file and played from there; pass `mimeType` so the container is known |
 | `resume` / `pause` / `stop` / `release` / `seek` | ✅ |
 | `setVolume` / `setPlaybackRate` | ✅ |
-| `setReleaseMode` (release / loop / stop) | ✅ handled natively at play-to-end |
-| `getDuration` / `getCurrentPosition` | ✅ (null while unknown; position reports the seek target while a seek is in flight) |
-| `getEventStream` (prepared / duration / seekComplete / complete / log / error) | ✅ poll-derived |
-| `setAudioContext` | ◐ `AudioContextIOS` category + `mixWithOthers`/`duckOthers` map to the watch `AVAudioSession`; iOS-only options (e.g. `defaultToSpeaker`) do not exist on watchOS and are ignored |
-| `setBalance` | ✗ no per-channel balance on `AVPlayer` — emits a log event (upstream iOS behaviour) |
-| `setPlayerMode` | ✗ no low-latency pool on watchOS — no-op |
-| `getGlobalEventStream` / `emitGlobal*` | ✅ |
+| `setReleaseMode` | ✅ release, loop and stop, handled natively at the end of playback |
+| `getDuration` / `getCurrentPosition` | ✅ null while unknown |
+| `getEventStream` | ✅ prepared, duration, seek-complete, complete, log and error events |
+| `emitLog` / `emitError` | ✅ |
+| `setAudioContext` | ◐ the `AudioContextIOS` category and `mixWithOthers` / `duckOthers` map onto the watch `AVAudioSession`; iOS-only options such as `defaultToSpeaker` are ignored |
+| `setBalance` | ✗ no effect: it emits a log event instead. `AVPlayer` has no per-channel balance (the iOS implementation does the same) |
+| `setPlayerMode` | ✗ no effect: `lowLatency` plays as `mediaPlayer`. watchOS has no low-latency player |
+| `GlobalAudioplayersPlatformInterface.init` / `emitGlobalLog` / `emitGlobalError` / `getGlobalEventStream` | ✅ |
+| `GlobalAudioplayersPlatformInterface.setGlobalAudioContext` | ◐ the same mapping as `setAudioContext` |
 
 ## Platform notes
 

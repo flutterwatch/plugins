@@ -4,7 +4,7 @@ description: >-
   leaderboards over GameKit, bridged with dart:ffi.
 version: 0.1.0
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/games_services_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos

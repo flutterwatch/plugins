@@ -27,6 +27,16 @@ explicit imports required from app code.
 | Apple Watch (`watchos`) | yes |
 | Watch simulator (`watchsimulator`) | yes |
 
+## Not supported on watchOS
+
+These members of `path_provider_platform_interface` 2.1.3 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `getDownloadsPath` | throws `UnimplementedError` | watchOS has no Downloads directory |
+| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | throw `UnimplementedError` | external storage is an Android concept |
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

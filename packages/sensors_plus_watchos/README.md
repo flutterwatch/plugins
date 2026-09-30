@@ -33,7 +33,6 @@ explicit imports required from app code.
 | `userAccelerometerEventStream` | supported (gravity removed, via device motion) |
 | `gyroscopeEventStream` | supported (rad/s) |
 | `magnetometerEventStream` | supported (µT) |
-| `barometerEventStream` | not supported: the stream's only event is an `UnsupportedError` (the CoreMotion altimeter is not read) |
 
 Units and axis signs match the `sensors_plus` iOS implementation.
 
@@ -46,6 +45,15 @@ Units and axis signs match the `sensors_plus` iOS implementation.
 |----------|-------------|
 | Apple Watch (`watchos`) | yes (accelerometer, gyroscope, magnetometer, user-accel) |
 | Watch simulator (`watchsimulator`) | builds/links; no samples (no hardware) |
+
+## Not supported on watchOS
+
+These members of `sensors_plus_platform_interface` 2.0.2 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `barometerEventStream` | returns a stream whose only event is an `UnsupportedError` | the CoreMotion altimeter is not read yet |
 
 ## License
 

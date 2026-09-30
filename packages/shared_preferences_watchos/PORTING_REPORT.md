@@ -23,8 +23,8 @@ implementation — method-channel plugins are not supported on watchOS.
 - `watchos/Classes/shared_preferences_watchos_ffi.m` persists the whole
   store as one JSON string in `NSUserDefaults` and exposes three symbols
   (`load` / `save` / `free`). All symbols carry `used` +
-  default-visibility and `ffiSymbols` forced references, so they survive
-  the static link.
+  default-visibility, so they survive the static link; the CLI force-loads
+  the archive, and `ffiSymbols` lists the exports.
 - `lib/src/watchos_prefs_store.dart` is the Dart-side store; typing and
   filtering live here so JSON round-trips each value type exactly.
 - `lib/shared_preferences_watchos.dart` registers BOTH platform interfaces
@@ -39,6 +39,24 @@ implementation — method-channel plugins are not supported on watchOS.
   keys are ours.
 - The legacy store defaults to the `flutter.` key prefix (as the iOS impl
   does); the async store uses raw keys with an optional allowList filter.
+
+## Interface coverage
+
+Every public member of `shared_preferences_platform_interface` 2.4.2
+(`SharedPreferencesStorePlatform` and `SharedPreferencesAsyncPlatform`),
+audited by hand against this package's code. The static `instance` is set by
+`registerWith()`. ✅ implemented · ◐ implemented with a limit · ✗ throws or
+fails on watchOS. The README's "Not supported on watchOS" table lists the ✗
+rows.
+
+| Member | watchOS |
+|---|---|
+| `remove` / `setValue` / `clear` / `clearWithParameters` / `getAll` / `getAllWithParameters` | ✅ one JSON object in `NSUserDefaults` |
+| `clearWithPrefix` / `getAllWithPrefix` | ✗ fail with `UnimplementedError` (the interface default): deprecated, and `shared_preferences` 2.3 and later calls the `WithParameters` forms |
+| async `setString` / `setBool` / `setDouble` / `setInt` / `setStringList` | ✅ the same store |
+| async `getString` / `getBool` / `getDouble` / `getInt` / `getStringList` | ✅ |
+| async `clear` / `getPreferences` / `getKeys` | ✅ |
+| async `SharedPreferencesOptions` | ◐ platform options (for example a suite name) are ignored: there is one store |
 
 ---
 

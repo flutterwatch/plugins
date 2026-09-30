@@ -25,7 +25,8 @@ package is the hand-finished FFI equivalent.
 - `watchos/Classes/connectivity_plus_watchos_ffi.m` runs a single long-lived
   `NWPathMonitor` on a background queue and caches the current connectivity
   code atomically; the exported getter reads that cache (`used` +
-  default-visibility, plus the `ffiSymbols` forced reference).
+  default-visibility; the CLI force-loads the archive, and `ffiSymbols`
+  lists the exports).
 - `lib/connectivity_plus_watchos.dart` extends `ConnectivityPlatform`,
   resolves the symbol via `DynamicLibrary.process()`, and maps the code to
   `ConnectivityResult`.
@@ -47,6 +48,19 @@ package is the hand-finished FFI equivalent.
   `example/integration_test/watchos_connectivity_test.dart` checks on the
   Simulator that neither reports `none` with the host online. It is a
   supplementary test next to the upstream one, not a replacement.
+
+## Interface coverage
+
+Every public member of `connectivity_plus_platform_interface` 2.1.0
+(`ConnectivityPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `checkConnectivity` | ✅ `NWPathMonitor`: wifi, mobile, ethernet, other or none; waits at most 1 s for the first path |
+| `onConnectivityChanged` | ✅ pushed by the path monitor; each listener first gets the current value |
 
 ---
 

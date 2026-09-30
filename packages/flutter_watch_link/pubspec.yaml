@@ -2,7 +2,7 @@ name: flutter_watch_link
 description: "WatchConnectivity for Flutter companion apps: one Dart API for iPhone-to-Apple-Watch messaging, application context, and guaranteed background transfers."
 version: 0.1.1
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/flutter_watch_link
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -39,8 +39,10 @@ flutter:
       watchos:
         ffiPlugin: true
         dartPluginClass: FlutterWatchLink
-        # C symbols exported for dart:ffi lookup. The CLI emits a forced
-        # reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - flutter_watch_link_set_callback
           - flutter_watch_link_activate

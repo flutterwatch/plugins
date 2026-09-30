@@ -28,8 +28,6 @@ explicit imports required from app code.
 |---|---|
 | `getWifiIP` / `getWifiIPv6` | supported (active interface, preferring `en0`) |
 | `getWifiSubmask` / `getWifiBroadcast` | supported |
-| `getWifiName` (SSID) / `getWifiBSSID` | **null** — watchOS has no CaptiveNetwork / NEHotspotNetwork |
-| `getWifiGatewayIP` | unimplemented (no watchOS routing-table API) |
 
 ## Status
 
@@ -39,6 +37,16 @@ explicit imports required from app code.
 | Watch simulator (`watchsimulator`) | yes |
 
 Verified end-to-end on the watch simulator (`example/integration_test`).
+
+## Not supported on watchOS
+
+These members of `network_info_plus_platform_interface` 3.1.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `getWifiName` / `getWifiBSSID` | always null | watchOS has no CaptiveNetwork or NEHotspotNetwork |
+| `getWifiGatewayIP` | always null | watchOS has no routing-table API |
 
 ## License
 

@@ -30,6 +30,15 @@ filtering is done in Dart, so the five supported value types (`bool`, `int`,
 `SharedPreferencesStorePlatform` and the async `SharedPreferencesAsyncPlatform`
 are registered against the same store, mirroring `shared_preferences_foundation`.
 
+## Not supported on watchOS
+
+These members of `shared_preferences_platform_interface` 2.4.2 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `clearWithPrefix` / `getAllWithPrefix` | fail with `UnimplementedError` | deprecated in the interface; `shared_preferences` 2.3 and later calls `clearWithParameters` and `getAllWithParameters` |
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

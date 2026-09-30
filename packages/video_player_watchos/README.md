@@ -20,7 +20,7 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   video_player: ^2.14.0
-  video_player_watchos: ^0.1.0
+  video_player_watchos: ^0.1.1
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -36,7 +36,6 @@ explicit imports required from app code.
 | `VideoPlayer` widget rendering | supported (native AVKit surface as a platform view; Flutter content stacked over it draws on top) |
 | Buffering / play-state / completed events | supported (poll-derived) |
 | `setMixWithOthers` | supported (`AVAudioSession`) |
-| Content URIs | not supported (Android-only concept) |
 | Audio track selection (`getAudioTracks` / `selectAudioTrack`) | supported via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS streams (same as the upstream Apple impl) |
 | Subtitles/captions rendering | as upstream: `ClosedCaptionFile` is Dart-side and works; embedded-track selection is not implemented |
 
@@ -93,6 +92,19 @@ the example's runner opts into the flutter-watchos content scale
 This lays the app out in a proportionally larger logical space rendered
 smaller — same layout, smaller components — without touching the example's
 Dart code.
+
+## Not supported on watchOS
+
+These members of `video_player_platform_interface` 6.9.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `create` with a content URI | throws `UnsupportedError` | content URIs are an Android concept |
+| `setAllowBackgroundPlayback` | throws `UnimplementedError` when called | not implemented |
+| `setPreventsDisplaySleepDuringVideoPlayback` | no effect | not implemented; the interface default does nothing |
+| `getVideoTracks` / `selectVideoTrack` | throw `UnimplementedError` when called | not implemented; `isVideoTrackSupportAvailable` returns false, so `video_player` does not call them |
+| `setWebOptions` | throws `UnimplementedError` when called | web only |
 
 ## License
 

@@ -6,8 +6,9 @@
 #define DEVICE_INFO_PLUS_WATCHOS_FFI_H
 
 // See path_provider_watchos_ffi.h for why the export is `used` +
-// default-visibility. The CLI also emits a forced reference for the symbol
-// listed under `flutter.plugin.platforms.watchos.ffiSymbols`.
+// default-visibility. The CLI force-loads the plugin archive and keeps
+// global symbols through the App Store strip; `ffiSymbols` in pubspec.yaml
+// lists the export.
 #define DEVICE_INFO_PLUS_WATCHOS_EXPORT \
   __attribute__((visibility("default"))) __attribute__((used))
 

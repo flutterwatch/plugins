@@ -10,8 +10,9 @@
 // table, where `DynamicLibrary.process()` / dlsym can resolve it. The watch
 // app links this archive statically, so without `used` the linker would drop
 // these (FFI has no compile-time caller). The flutter-watchos CLI
-// additionally emits a forced reference for each symbol listed under
-// `flutter.plugin.platforms.watchos.ffiSymbols` in pubspec.yaml.
+// force-loads the plugin archive, so no object is left out, and keeps global
+// symbols through the App Store strip. `ffiSymbols` in pubspec.yaml lists the
+// exports.
 #define PATH_PROVIDER_WATCHOS_EXPORT \
   __attribute__((visibility("default"))) __attribute__((used))
 

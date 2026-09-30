@@ -1,8 +1,8 @@
 name: video_player_watchos
 description: "watchOS implementation of the video_player plugin, using AVFoundation via dart:ffi with a native AVKit platform view for on-watch playback."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/video_player_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -40,8 +40,10 @@ flutter:
         # not supported on watchOS, so this is the supported plugin model.
         ffiPlugin: true
         dartPluginClass: VideoPlayerWatchos
-        # C symbols exported for dart:ffi lookup. The CLI emits a forced
-        # reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - video_player_watchos_create
           - video_player_watchos_dispose

@@ -32,7 +32,6 @@ The watch has **no Face ID / Touch ID**, so only device-owner authentication
 | Method | watchOS |
 |---|---|
 | `authenticate` (device-owner) | supported (watchOS 9+) |
-| `authenticate` with `biometricOnly: true` | fails (no biometry) |
 | `deviceSupportsBiometrics` | always false |
 | `getEnrolledBiometrics` | always empty |
 | `isDeviceSupported` | true when a passcode is set |
@@ -47,6 +46,15 @@ The watch has **no Face ID / Touch ID**, so only device-owner authentication
 
 The query methods are verified on the simulator (`example/integration_test`);
 the interactive passcode prompt is verified on a physical Apple Watch.
+
+## Not supported on watchOS
+
+These members of `local_auth_platform_interface` 1.1.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `authenticate` with `biometricOnly: true` | returns false | the watch has no Face ID or Touch ID |
 
 ## License
 

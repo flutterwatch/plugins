@@ -95,3 +95,26 @@ this as a plugin defect.
 
 Until that is resolved, a host app should confirm a read succeeds before
 offering a leaderboard UI on watchOS.
+
+## Interface coverage
+
+Every public member of `games_services_platform_interface` 4.1.1
+(`GamesServicesPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `signIn` | ✅ `GKLocalPlayer.authenticateHandler` |
+| `submitScore` | ✅ `GKLeaderboard.submitScore` |
+| `loadLeaderboardScores` | ✅ `loadEntriesForPlayerScope`; null when the read failed, an empty list when there are no entries |
+| `getPlayerScore` | ✅ from the local player's own entry |
+| `showLeaderboards` / `showAchievements` | ✗ fails with `UnimplementedError`: `GKGameCenterViewController` does not exist on watchOS |
+| `showAccessPoint` / `hideAccessPoint` | ✗ fails with `UnimplementedError`: `GKAccessPoint` does not exist on watchOS |
+| `unlock` / `increment` / `loadAchievements` / `resetAchievements` | ✗ fails with `UnimplementedError`: achievements are not implemented yet |
+| `getPlayerScoreObject` | ✗ fails with `UnimplementedError`: not implemented yet (`getPlayerScore` gives the local score) |
+| `player` | ✗ throws `UnimplementedError` when read: not implemented yet |
+| `getAuthCode` | ✗ throws `UnimplementedError` when called: a Play Games server code, Android only |
+| `getPlayerHiResImage` | ✗ fails with `UnimplementedError`: not implemented yet |
+| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | ✗ fails with `UnimplementedError`: saved games are not implemented yet |

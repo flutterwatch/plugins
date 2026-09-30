@@ -16,6 +16,15 @@
 
 * README: the install snippet names `connectivity_plus: ^7.3.1` and this
   version, and says to add this package alongside `connectivity_plus`.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `connectivity_plus_platform_interface`
+  2.1.0, audited by hand.
 
 ## 0.2.0
 

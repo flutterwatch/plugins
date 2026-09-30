@@ -73,6 +73,16 @@ If watchOS refuses to present the sheet (another one is already up, or the app
 is not in front), the URL goes to the iPhone as it would for
 `externalApplication`, so the tap is never silently lost.
 
+## Not supported on watchOS
+
+These members of `url_launcher_platform_interface` 2.3.2 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `launchUrl` / `launch` with a scheme other than `http:`, `https:`, `tel:` and `sms:` (`mailto:` included) | return false | `openSystemURL:` owns only `tel:` and `sms:` and fails silently on other schemes |
+| `supportsMode(externalNonBrowserApplication)` | returns false | the watch cannot tell whether the iPhone opens a web URL in an app; `launchUrl` still launches it as `externalApplication` |
+
 ## Testing
 
 `UrlLauncherWatchos.bindingsOverride` accepts a fake extending

@@ -2,7 +2,7 @@ name: flutter_secure_storage_watchos
 description: "watchOS implementation of the flutter_secure_storage plugin, storing secrets in the Keychain via the SecItem APIs over dart:ffi."
 version: 0.1.0
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/flutter_secure_storage_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -39,8 +39,10 @@ flutter:
         # so this is the supported plugin model.
         ffiPlugin: true
         dartPluginClass: FlutterSecureStorageWatchos
-        # C symbols exported for dart:ffi lookup. The CLI emits a
-        # forced reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - flutter_secure_storage_watchos_write
           - flutter_secure_storage_watchos_read

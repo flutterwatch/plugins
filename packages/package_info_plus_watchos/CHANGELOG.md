@@ -8,6 +8,15 @@
   date and the app bundle's modification date. The README gives the real
   integration-test result on the watch: 1 of 2 (the `example` case looks for
   more of the demo's list than the watch screen shows).
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `package_info_plus_platform_interface`
+  4.1.0, audited by hand.
 
 ## 0.1.0
 

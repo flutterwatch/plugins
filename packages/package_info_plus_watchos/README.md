@@ -53,6 +53,11 @@ Dart code. With it, the official integration test gives 1 of 2 on the watchOS
 case fails because it looks for more of the demo's list than the watch screen
 shows.
 
+## Not supported on watchOS
+
+Nothing: every member of `package_info_plus_platform_interface` 4.1.0 is implemented.
+`PORTING_REPORT.md` lists each member under "Interface coverage".
+
 ## License
 
 The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.

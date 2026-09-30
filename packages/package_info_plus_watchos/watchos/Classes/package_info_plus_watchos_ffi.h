@@ -8,8 +8,9 @@
 // See path_provider_watchos_ffi.h for why every symbol is `used` +
 // default-visibility: the watch app links this archive statically, so
 // without the attributes the linker would drop these (FFI has no
-// compile-time caller). The CLI additionally emits a forced reference for
-// each symbol listed under `flutter.plugin.platforms.watchos.ffiSymbols`.
+// compile-time caller). The CLI force-loads the plugin archive and keeps
+// global symbols through the App Store strip; `ffiSymbols` in pubspec.yaml
+// lists the exports.
 #define PACKAGE_INFO_PLUS_WATCHOS_EXPORT \
   __attribute__((visibility("default"))) __attribute__((used))
 

@@ -4,6 +4,16 @@
   admits later fixes; `^0.0.1` admits none.
 * README: the install snippet names `network_info_plus: ^8.2.1` and this
   version.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `network_info_plus_platform_interface`
+  3.1.0, audited by hand.
+* README: `getWifiGatewayIP` was listed as unimplemented; it returns null.
 
 ## 0.0.1
 

@@ -2,7 +2,7 @@ name: network_info_plus_watchos
 description: "watchOS implementation of the network_info_plus plugin, exposing Wi-Fi IPv4 and IPv6 addresses via getifaddrs and dart:ffi (SSID is unavailable on watchOS)."
 version: 0.1.0
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/network_info_plus_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -38,8 +38,10 @@ flutter:
         # so this is the supported plugin model.
         ffiPlugin: true
         dartPluginClass: NetworkInfoPlusWatchos
-        # C symbols exported for dart:ffi lookup. The CLI emits a
-        # forced reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - network_info_plus_watchos_wifi_ip
           - network_info_plus_watchos_wifi_ipv6
