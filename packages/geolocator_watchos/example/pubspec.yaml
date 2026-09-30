@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  geolocator: any
+  geolocator: ^14.1.1
   geolocator_watchos:
     path: ../
 

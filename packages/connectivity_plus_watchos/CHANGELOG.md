@@ -25,6 +25,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `connectivity_plus_platform_interface`
   2.1.0, audited by hand.
+* Example: `pubspec.yaml` names `connectivity_plus: ^7.3.1` instead of `any`.
 
 ## 0.2.0
 

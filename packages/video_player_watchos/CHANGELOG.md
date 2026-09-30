@@ -10,6 +10,8 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `video_player_platform_interface` 6.9.0,
   audited by hand.
+* Example: `pubspec.yaml` names `video_player: ^2.14.0` and `path_provider:
+  ^2.1.6` instead of `any`.
 
 ## 0.1.0
 

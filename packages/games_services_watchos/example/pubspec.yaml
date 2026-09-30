@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  games_services: any
-  games_services_platform_interface: any
+  games_services: ^4.1.1
+  games_services_platform_interface: ^4.1.1
   games_services_watchos:
     path: ../
 

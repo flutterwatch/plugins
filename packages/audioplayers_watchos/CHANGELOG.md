@@ -14,6 +14,7 @@
   audited by hand.
 * README: no longer says `AudioPlayer` works as on the other platforms; it
   points at the watch notes and the table.
+* Example: `pubspec.yaml` names `audioplayers: ^6.8.1` instead of `any`.
 
 ## 0.0.1
 

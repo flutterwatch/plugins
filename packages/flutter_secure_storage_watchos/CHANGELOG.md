@@ -13,6 +13,8 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of
   `flutter_secure_storage_platform_interface` 2.1.1, audited by hand.
+* Example: `pubspec.yaml` names `flutter_secure_storage: ^11.2.0` instead of
+  `any`.
 
 ## 0.0.1
 

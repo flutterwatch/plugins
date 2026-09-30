@@ -14,6 +14,7 @@
   coverage" list of every member of `network_info_plus_platform_interface`
   3.1.0, audited by hand.
 * README: `getWifiGatewayIP` was listed as unimplemented; it returns null.
+* Example: `pubspec.yaml` names `network_info_plus: ^8.2.1` instead of `any`.
 
 ## 0.0.1
 

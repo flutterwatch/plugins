@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  local_auth: any
+  local_auth: ^3.0.2
   local_auth_watchos:
     path: ../
   local_auth_android: ^2.0.0

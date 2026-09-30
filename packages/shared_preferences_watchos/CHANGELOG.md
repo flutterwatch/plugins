@@ -11,6 +11,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `shared_preferences_platform_interface`
   2.4.2, audited by hand.
+* Example: `pubspec.yaml` names `shared_preferences: ^2.5.5` instead of `any`.
 
 ## 0.1.0
 

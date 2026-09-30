@@ -12,6 +12,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `path_provider_platform_interface` 2.1.3,
   audited by hand.
+* Example: `pubspec.yaml` names `path_provider: ^2.1.6` instead of `any`.
 
 ## 0.0.1
 

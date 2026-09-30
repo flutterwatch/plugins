@@ -11,6 +11,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `local_auth_platform_interface` 1.1.0,
   audited by hand.
+* Example: `pubspec.yaml` names `local_auth: ^3.0.2` instead of `any`.
 
 ## 0.1.0
 

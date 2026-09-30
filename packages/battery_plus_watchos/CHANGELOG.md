@@ -11,6 +11,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `battery_plus_platform_interface` 2.0.1,
   audited by hand.
+* Example: `pubspec.yaml` names `battery_plus: ^7.1.1` instead of `any`.
 
 ## 0.1.0
 

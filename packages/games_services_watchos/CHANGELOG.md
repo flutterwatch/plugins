@@ -13,6 +13,8 @@
   table.
 * Dartdoc on every public member, and `public_member_api_docs` is on in
   `analysis_options.yaml`.
+* Example: `pubspec.yaml` names `games_services: ^4.1.1` and
+  `games_services_platform_interface: ^4.1.1` instead of `any`.
 
 ## 0.0.1
 

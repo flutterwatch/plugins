@@ -13,6 +13,7 @@
   audited by hand.
 * Dartdoc on every public member, and `public_member_api_docs` is on in
   `analysis_options.yaml`.
+* Example: `pubspec.yaml` names `geolocator: ^14.1.1` instead of `any`.
 
 ## 0.1.0
 

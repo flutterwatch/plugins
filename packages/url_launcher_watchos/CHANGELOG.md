@@ -14,6 +14,7 @@
 * `pubspec.yaml`: the description is 172 characters (pub.dev allows 180).
 * PORTING_REPORT: the interface list and the scheme table describe the browser
   on the watch, and `supportsMode` and `supportsCloseForMode` as they are.
+* Example: `pubspec.yaml` names `url_launcher: ^6.3.2` instead of `any`.
 
 ## 0.1.0
 

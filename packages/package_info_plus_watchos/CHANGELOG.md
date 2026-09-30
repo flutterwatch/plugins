@@ -17,6 +17,7 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `package_info_plus_platform_interface`
   4.1.0, audited by hand.
+* Example: `pubspec.yaml` names `package_info_plus: ^10.2.1` instead of `any`.
 
 ## 0.1.0
 

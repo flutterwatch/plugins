@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  device_info_plus: any
+  device_info_plus: ^13.2.0
   device_info_plus_watchos:
     path: ../
 

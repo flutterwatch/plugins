@@ -26,6 +26,7 @@
   coverage" list of every member of `in_app_purchase_platform_interface` 1.4.1
   and the StoreKit addition, audited by hand.
 * `pubspec.yaml`: `topics` (watchos, ffi, in-app-purchase, storekit).
+* Example: `pubspec.yaml` names `in_app_purchase: ^3.3.1` instead of `any`.
 
 ## 0.0.1
 
