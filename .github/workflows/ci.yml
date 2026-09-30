@@ -34,14 +34,18 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # The Flutter release flutter-watchos pins (bin/internal/flutter.version
+          # in the CLI repo), so the packages are checked against the SDK their
+          # users build with. It moves with the CLI's flutter.version.
+          flutter-version: 3.47.5
           cache: true
 
       - run: flutter --version
 
-      # One job looping rather than a 20-way matrix: each matrix leg would
-      # re-install Flutter to run about ten seconds of tests. The loop keeps
-      # going after a failure and reports every package, so one broken package
-      # does not hide the state of the other nineteen.
+      # One job looping rather than a matrix leg per package: each leg would
+      # re-install Flutter to run a few seconds of tests. The loop keeps going
+      # after a failure and reports every package, so one broken package does
+      # not hide the state of the others.
       - name: Analyze and test every package
         run: |
           failed=()
@@ -72,7 +76,7 @@ jobs:
             exit 1
           fi
 
-  # No `dart format` gate yet. 46 of the 109 files under packages/*/lib and
-  # packages/*/test are not currently formatted, so adding one would fail on
-  # its first run and force a mechanical reformat of published sources as a
-  # side effect of turning CI on. Worth doing as its own change, not this one.
+  # No `dart format` gate yet. Many files under packages/*/lib and
+  # packages/*/test are not formatted today, so a gate would fail on its first
+  # run and force a mechanical reformat of published sources as a side effect.
+  # The reformat is a change of its own, and the gate follows it.
