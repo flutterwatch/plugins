@@ -1,0 +1,5 @@
+1
+FAIL battery_plus_watchos 0.1.0 (60 KB): 1 warning
+       * 1 checked-in file is modified in git.
+       README.md
+Publish dry-run: 1 of 1 packages have warnings or errors.

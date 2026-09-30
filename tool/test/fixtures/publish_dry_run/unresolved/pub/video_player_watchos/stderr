@@ -1,0 +1,4 @@
+Because video_player_watchos depends on flutter_watchos ^0.1.0 which doesn't match any versions, version solving failed.
+
+
+You can try the following suggestion to make the pubspec resolve:

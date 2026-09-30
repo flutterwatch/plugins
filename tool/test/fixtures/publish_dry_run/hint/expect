@@ -1,0 +1,4 @@
+0
+ok   foo 0.1.0 (1 KB): 0 warnings, 1 hint
+       * The package foo has no example.
+Publish dry-run: all 1 packages have 0 warnings.

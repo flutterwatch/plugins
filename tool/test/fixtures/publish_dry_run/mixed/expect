@@ -1,0 +1,4 @@
+1
+ok   battery_plus_watchos 0.1.0 (60 KB): 0 warnings
+FAIL device_info_plus_watchos 0.1.0 (60 KB): 1 warning
+Publish dry-run: 1 of 2 packages have warnings or errors.

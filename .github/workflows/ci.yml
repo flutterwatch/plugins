@@ -82,6 +82,18 @@ jobs:
         if: success() || failure()
         run: tool/check_clean_tree.sh
 
+      # Spec 0007 criterion 32 (M165): pub's own checks on every package, so
+      # a warning or a refusal shows before the publish round, not during
+      # it. It reads pub.dev as `pub get` does and publishes nothing. The
+      # log is public, so the script withholds any line of pub's output that
+      # holds a forbidden word (0007 D8).
+      - name: Publish dry-run
+        if: success() || failure()
+        working-directory: tool
+        run: |
+          dart pub get
+          dart run bin/publish_dry_run.dart
+
   # Checks of the repository as a whole, by the scripts in tool/. Each step
   # runs even when an earlier one failed, so one run reports every problem.
   checks:

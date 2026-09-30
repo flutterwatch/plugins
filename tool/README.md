@@ -15,6 +15,7 @@ tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_readme_snippets.dart)
 (cd tool && dart run bin/symcheck.dart)
 (cd tool && dart run bin/check_example_constraints.dart)
+(cd tool && dart run bin/publish_dry_run.dart)
 ```
 
 ## Word check
@@ -85,3 +86,12 @@ or `dev_dependencies`. An example built against whatever is newest that day
 can break with no change in this repository. Use a caret constraint on the
 version the example was last run with; `path:` and `sdk:` entries and
 `dependency_overrides` are not checked.
+
+## Publish dry-run
+
+`bin/publish_dry_run.dart` runs `dart pub publish --dry-run` in every
+package and fails when pub reports a warning or an error for one, or prints
+no summary. It reads pub.dev, as `pub get` does, and publishes nothing; CI
+runs it in the package job, after the tests. Its report goes into a public
+log, so a line of pub's output that holds a forbidden word is withheld and
+fails the package.
