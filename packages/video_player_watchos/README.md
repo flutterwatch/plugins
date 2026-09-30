@@ -9,9 +9,8 @@ content (controls, progress overlays) draws over the video and gestures stay
 in Dart, matching upstream's texture semantics. `VideoEvent`s are derived by
 polling a natively cached state snapshot.
 
-> Requires a flutter-watchos with platform-view support and
-> `flutter_watchos` ≥ 0.1.0-beta.9. With flutter-watchos 0.1.0-beta.12 and an
-> older `flutter_watchos`, playback works but the video area stays black.
+> Requires flutter-watchos 0.1.0 or later and `flutter_watchos` 0.1.0 or
+> later.
 
 ## Usage
 
@@ -20,8 +19,8 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  video_player: ^<latest>
-  video_player_watchos: ^0.0.1
+  video_player: ^2.14.0
+  video_player_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -43,10 +42,8 @@ explicit imports required from app code.
 
 Because the video surface is a native view composited by the watch host rather
 than drawn into the Flutter scene, widgets that rely on snapshotting the scene
-(e.g. screenshot-based golden tests) do not capture the video pixels. With
-flutter-watchos 0.1.0-beta.12 and later the view follows the layer tree
-(ancestor clips, opacity and transforms apply); with older releases its rect is
-axis-aligned and it sits in a transparent hole under the Flutter frame.
+(e.g. screenshot-based golden tests) do not capture the video pixels. The view
+follows the layer tree: ancestor clips, opacity and transforms apply.
 
 ### Paused playback shows AVKit's controls
 

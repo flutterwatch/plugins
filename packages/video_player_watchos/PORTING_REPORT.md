@@ -54,13 +54,13 @@ flutter-watchos provides.
 ## Platform notes
 
 - The video surface is composited by the watch host, not drawn into the
-  Flutter scene, so snapshot-based tests do not capture video pixels. Since
-  flutter-watchos 0.1.0-beta.12 the engine places it in paint order with the
-  layer tree's clips, opacity and transforms; older releases put it under the
-  frame in a transparent hole, axis-aligned.
-- `flutter_watchos` ≥ 0.1.0-beta.5 (platform views) is required; on an app
-  created by an older CLI the plugin builds and controls playback, but the
-  video surface does not appear (`WatchPlatformView.isSupported` reports it).
+  Flutter scene, so snapshot-based tests do not capture video pixels. The
+  engine places it in paint order with the layer tree's clips, opacity and
+  transforms.
+- flutter-watchos 0.1.0 or later and `flutter_watchos` 0.1.0 or later are
+  required. On an app created by an older flutter-watchos, the plugin builds
+  and controls playback, but the video surface does not appear
+  (`WatchPlatformView.isSupported` reports it).
 
 ---
 
