@@ -13,10 +13,11 @@ package exports C symbols from
 bridge; received messages queue natively and a Dart pump drains them into the
 platform interface's `onMessage` / `onMessageOpenedApp` streams.
 
-> **Experimental.** Firebase support on watchOS is new. This package builds,
-> links the Firebase Apple SDK, and passes its host tests and an on-simulator
-> smoke test, but has not yet been proven on physical watch hardware; it is
-> published as a pre-release.
+> Firebase support on watchOS is new.
+>
+> **What has been checked:** the example app builds and starts on the
+> watchOS 27.0 Simulator, and the host unit tests pass. It has not yet been
+> run on a physical Apple Watch.
 >
 > Requires `firebase_core_watchos` (the initialization + app registry
 > foundation) and a `flutter-watchos` CLI with external-SwiftPM-dependency
@@ -37,8 +38,9 @@ private var flutterAppDelegate
 
 Apps created with a current `flutter-watchos` template already include this.
 Add `remote-notification` to `UIBackgroundModes` and the push entitlement to
-receive messages on device. The watch simulator has no APNs environment, so
-`getToken` returns `null` there.
+receive messages on device. The watch Simulator has no APNs environment, so
+there `getToken` fails with `[firebase_messaging/unknown]` ("No APNS token
+specified before fetching FCM Token").
 
 ## Implemented surface
 
@@ -64,9 +66,9 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.0.1-beta.1
-  firebase_messaging: ^15.0.0
-  firebase_messaging_watchos: ^0.0.1-beta.1
+  firebase_core_watchos: ^0.1.0
+  firebase_messaging: ^16.0.0
+  firebase_messaging_watchos: ^0.1.0
 ```
 
 Then use `firebase_messaging`'s API exactly as on iOS — the watchOS
