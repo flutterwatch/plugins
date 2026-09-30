@@ -15,6 +15,10 @@
   `flutter_secure_storage_platform_interface` 2.1.1, audited by hand.
 * Example: `pubspec.yaml` names `flutter_secure_storage: ^11.2.0` instead of
   `any`.
+* Example: the app and `integration_test/app_test.dart` are ported again from
+  `flutter_secure_storage` 11.2.0, so the upstream test compiles against the
+  version the example resolves (the 10.x test used cipher names 11.x removed).
+  The README and PORTING_REPORT say so.
 
 ## 0.0.1
 
