@@ -1,0 +1,9 @@
+name: flutter_watch_link
+version: 0.1.0
+flutter:
+  plugin:
+    platforms:
+      ios:
+        ffiPlugin: true
+      watchos:
+        ffiPlugin: true

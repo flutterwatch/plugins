@@ -18,6 +18,14 @@ tool/check_generated_ignored.sh
 (cd tool && dart run bin/publish_dry_run.dart)
 ```
 
+The weekly workflow `.github/workflows/upstream.yml` runs two more, which
+read pub.dev and so are not part of the per-change checks:
+
+```sh
+(cd tool && dart run bin/upstream_compat.dart)
+(cd tool && dart run bin/pana_scores.dart --reports <dir>)
+```
+
 ## Word check
 
 `check_words.sh` fails on any forbidden word in a file or a file path, and
@@ -95,3 +103,21 @@ no summary. It reads pub.dev, as `pub get` does, and publishes nothing; CI
 runs it in the package job, after the tests. Its report goes into a public
 log, so a line of pub's output that holds a forbidden word is withheld and
 fails the package.
+
+## Weekly upstream compatibility
+
+`.github/workflows/upstream.yml` runs every Monday and by hand, and never
+gates a change. It fails when an upstream plugin or pub.dev's scoring has
+moved on:
+
+- `bin/upstream_compat.dart` compares each upstream's latest version on
+  pub.dev with `upstream_versions.yaml`, and fails on a new major: check the
+  package against it, then move the table and the README snippets together.
+  It also resolves a scratch app with the latest upstream and the package,
+  once from this repository and once at its latest version on pub.dev.
+- `bin/pana_scores.dart` reads one `pana --json` report per package. Every
+  section must be full, except "Platform support" for a package that
+  declares only watchOS, which pana does not score (`AUTHORING.md`
+  section 4).
+
+Both withhold a line that holds a forbidden word, as the log is public.

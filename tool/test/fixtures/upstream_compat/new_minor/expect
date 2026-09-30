@@ -1,0 +1,3 @@
+0
+ok   battery_plus_watchos
+pub.dev has battery_plus 7.2.0; tool/upstream_versions.yaml says 7.1.1 (the same major).

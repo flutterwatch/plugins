@@ -1,0 +1,8 @@
+name: games_services_watchos
+version: 0.1.0
+flutter:
+  plugin:
+    implements: games_services
+    platforms:
+      watchos:
+        ffiPlugin: true

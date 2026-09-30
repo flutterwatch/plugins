@@ -1,0 +1,8 @@
+name: battery_plus_watchos
+version: 0.1.0
+flutter:
+  plugin:
+    implements: battery_plus
+    platforms:
+      watchos:
+        ffiPlugin: true
