@@ -20,7 +20,9 @@ time). A working watchOS plugin therefore ships native code as
    functions marked `__attribute__((visibility("default")))
    __attribute__((used))`.
    Objective-C is fine (the CLI compiles `.m/.mm/.c` with `-fobjc-arc
-   -fmodules`); Swift is not compiled for FFI plugins today.
+   -fmodules`). Swift is compiled too: the `.swift` files under `watchos/`
+   (not `Package.swift`) go into a module of the plugin's own, which is how
+   a plugin ships native views (§2c).
 2. **Manifest** — `watchos/Package.swift` (the CLI discovers the plugin
    through it and links every `.linkedFramework(...)` you declare).
 3. **Pubspec** — declare the model and the exported symbols:
@@ -72,7 +74,6 @@ Document the decision in a table in your `README.md` /
 - No SFSpeechRecognizer, CoreNFC, Vision, PDFKit, CoreTelephony
 - No SystemConfiguration reachability (use `NWPathMonitor`, watchOS 6+);
   for the Wi-Fi SSID use `NEHotspotNetwork.fetchCurrent`, watchOS 7+
-- Platform views are not supported by the embedder
 
 And, unlike tvOS, these DO work — don't stub them reflexively:
 
@@ -86,6 +87,7 @@ And, unlike tvOS, these DO work — don't stub them reflexively:
 - NetworkExtension hotspot — `NEHotspotNetwork` / `NEHotspotConfiguration`
   (watchOS 7+)
 - Haptics via `WKInterfaceDevice.current().play(_:)`
+- Native SwiftUI views, embedded as platform views (§2c)
 
 The porter's `PORTING_REPORT.md` lists exactly which handlers hit which of
 these — trust it as the checklist.

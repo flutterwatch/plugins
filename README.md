@@ -47,9 +47,16 @@ companion app — one `main.dart`, running on both devices.
 
 ## List of plugins
 
-Every plugin below has a working watchOS implementation, verified on the
-watch simulator. Full details (API coverage, watchOS capability, and
-porting notes) are in each package's `README.md` and `PORTING_REPORT.md`.
+Every plugin below has a watchOS implementation, and each package's example
+builds and starts on the watchOS 27.0 Simulator. Three of those examples
+start with an error: `sensors_plus_watchos` (the barometer is not
+implemented), `in_app_purchase_watchos` (the StoreKit platform addition it
+asks for fails) and `network_info_plus_watchos` (the example's
+`permission_handler` has no watchOS implementation). What each package
+covers and what it leaves out are in its `README.md`. Its
+`PORTING_REPORT.md` records how the package was ported and what was checked
+at the time; the last full run on the Simulator is under
+[Examples & tests](#examples--tests).
 
 | Plugin | Upstream | watchOS backend |
 |---|---|---|
@@ -151,12 +158,13 @@ A few packages need a writable directory and therefore also
 
 ## Examples & tests
 
-Each package ships the **upstream plugin's own example** (its demo `lib/` and
-its official `integration_test/`) ported verbatim by `flutter-watchos plugin
-port --include-example` with a watchOS runner on top, plus a host-side unit
-test. The examples and tests are **unmodified** — the example imports only the
-app-facing plugin, and the `*_watchos` implementation registers federatedly
-with no client code changes. Each is verified on the watch simulator:
+Each ported package ships the **upstream plugin's own example** (its demo
+`lib/` and, where upstream has one, its official `integration_test/`), ported
+by `flutter-watchos plugin port --include-example` with a watchOS runner on
+top, plus host-side unit tests. The example imports only the app-facing
+plugin, and the `*_watchos` implementation registers itself through
+federation. The four Firebase packages add a smoke test, because their
+upstream examples have none. To run an integration test on the Simulator:
 
 ```sh
 cd packages/<plugin>_watchos/example
@@ -165,22 +173,32 @@ flutter-watchos drive \
   --target=integration_test/<test-file> -d <watch-sim>
 ```
 
-The official integration tests **pass on the watch** for path_provider,
-network_info_plus, sensors_plus, local_auth, device_info_plus, battery_plus,
-connectivity_plus, shared_preferences (64/64), in_app_purchase, and
-package_info_plus's plugin-level `fromPlatform` case — some cases self-skip on non-Android, as
-upstream intends. Two upstream tests are written as **phone-UI sweeps** that
-pump the demo's scrolling list and find widgets that a ~200 px watch screen
-never materialises: package_info_plus's `example` test and
-flutter_secure_storage's page-object `app_test`. Those fail on the watch for
-viewport reasons, not plugin defects — the FFI implementations are proven by
-the plugin-level cases, the host unit tests, and the unified demo. geolocator's
-upstream example has **no** `integration_test/` (its Baseflow demo is manual),
-so that package is verified by building and running the example on the sim.
-`in_app_purchase_watchos` additionally ships a `purchase_test` covering the full
-StoreKit round trip (buy → `purchaseStream` → `completePurchase`); it needs
-StoreKit *testing*, which only an Xcode launch activates, so a CLI run skips its
-product assertions rather than failing — see that package's README.
+On the watchOS 27.0 Simulator, on 29 September 2026:
+
+- **Pass:** path_provider, shared_preferences, battery_plus,
+  connectivity_plus, sensors_plus, network_info_plus, local_auth,
+  games_services, device_info_plus, url_launcher, video_player (both of its
+  tests), in_app_purchase (`in_app_purchase_test` and `registration_test`),
+  and firebase_core's smoke test. Some cases skip themselves off Android, as
+  upstream intends.
+- **Fail, for reasons outside the plugin's native code:**
+  - package_info_plus: `fromPlatform` passes; the `example` test is a
+    phone-UI sweep that looks for more of the demo's list than a watch
+    screen shows.
+  - flutter_watch_link: two of its tests wait for the session to activate,
+    which needs an iPhone Simulator paired with the watch Simulator. On an
+    unpaired one they fail.
+  - flutter_secure_storage: the upstream `app_test` was written for
+    `flutter_secure_storage` 10.x. The example resolves 11.x, which no longer
+    has two cipher names the test uses, so the test does not compile.
+  - audioplayers (`lib_test`): one case streams a file from a remote server
+    that now answers 404.
+- **Not run:** the firebase_auth, firebase_messaging and firebase_storage
+  smoke tests; audioplayers' `app_test` and `platform_test`; and
+  in_app_purchase's `purchase_test` and `storekit_products_test`, which need
+  StoreKit test products (see that package's README). geolocator's upstream
+  example has no `integration_test/` (its demo is manual); its example
+  builds and starts.
 
 Where an official test surfaced a genuine behavioural gap, the fix went into the
 **implementation, not the test** — e.g. `shared_preferences_watchos` now throws
