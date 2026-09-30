@@ -12,10 +12,11 @@ dependency on [`firebase-ios-sdk`](https://github.com/firebase/firebase-ios-sdk)
 asynchronous: Dart starts a native operation and polls for its completion,
 and the auth-state streams poll the SDK's change notifications.
 
-> **Experimental.** Firebase support on watchOS is new. This package builds,
-> links the Firebase Apple SDK, and passes its host tests and an on-simulator
-> smoke test, but has not yet been proven on physical watch hardware; it is
-> published as a pre-release.
+> Firebase support on watchOS is new.
+>
+> **What has been checked:** the example app builds and starts on the
+> watchOS 27.0 Simulator, and the host unit tests pass. It has not yet been
+> run on a physical Apple Watch.
 >
 > Requires `firebase_core_watchos` (the initialization + app registry
 > foundation) and a `flutter-watchos` CLI with external-SwiftPM-dependency
@@ -43,6 +44,12 @@ present): provider/OAuth sign-in (`signInWithProvider`, popup/redirect),
 phone-number authentication, reCAPTCHA verification, and multi-factor
 enrollment. These throw `UnimplementedError` or report `unimplemented`.
 
+**Not implemented yet** (they throw `UnimplementedError`):
+`User.reauthenticateWithCredential`, `User.linkWithCredential`,
+`User.unlink`, `sendSignInLinkToEmail`, `checkActionCode` and `setSettings`.
+Without reauthentication, Firebase rejects `updatePassword` and `delete` with
+`requires-recent-login` once the last sign-in is too old.
+
 ## Usage
 
 This is a federated plugin implementation. Apps that already depend on
@@ -52,9 +59,9 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.0.1-beta.1
+  firebase_core_watchos: ^0.1.0
   firebase_auth: ^6.0.0
-  firebase_auth_watchos: ^0.0.1-beta.1
+  firebase_auth_watchos: ^0.1.0
 ```
 
 Then use `firebase_auth`'s API exactly as on iOS — the watchOS implementation

@@ -1,6 +1,6 @@
 name: firebase_auth_watchos
 description: "watchOS implementation of firebase_auth, bridging the Firebase Apple SDK (FirebaseAuth) over dart:ffi for email, anonymous, and token sign-in."
-version: 0.0.1-beta.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues
