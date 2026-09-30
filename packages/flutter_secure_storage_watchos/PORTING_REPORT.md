@@ -8,6 +8,7 @@
 | watchOS capability | Partial — baseline Keychain; no Secure Enclave / biometric-gated options |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ◐ 12 of 16 non-skipped cases pass verbatim (`FlutterWatchOSContentScale` = 0.4 + the synchronizable query fix); 3 blocked by `tester.enterText` not landing on the watch text-input path (under investigation, test-harness interplay — manual entry works); 1 needs Secure Enclave-gated storage (not implemented) |
+| Simulator run, 29 September 2026 (watchOS 27.0) | the upstream integration test does not compile: the example resolves `flutter_secure_storage` 11.x, which no longer has the `RSA_ECB_PKCS1Padding` and `AES_CBC_PKCS7Padding` names the test uses |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.

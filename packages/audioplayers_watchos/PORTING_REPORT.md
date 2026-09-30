@@ -15,6 +15,7 @@ then written against `audioplayers_platform_interface` 7.x.
 | Upstream `lib_test.dart` | ✅ passes verbatim (15 + 4 platform-skipped, local fixture server) |
 | Upstream `platform_test.dart` | ✅ passes verbatim (39) |
 | Upstream `app_test.dart` | ✅ passes verbatim (3, content scale 0.5) |
+| Simulator run, 29 September 2026 (watchOS 27.0) | ◐ `lib_test.dart`: 14 pass, 4 skipped, 1 fails ("test url source with special char" streams a remote file that now answers 404); `platform_test.dart` and `app_test.dart` not run |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
