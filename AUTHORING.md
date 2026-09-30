@@ -17,7 +17,8 @@ time). A working watchOS plugin therefore ships native code as
 **exported C symbols** consumed over `dart:ffi`:
 
 1. **Native** — `watchos/Classes/<name>_watchos_ffi.{h,m}` exporting
-   functions marked `__attribute__((visibility("default"))) used`.
+   functions marked `__attribute__((visibility("default")))
+   __attribute__((used))`.
    Objective-C is fine (the CLI compiles `.m/.mm/.c` with `-fobjc-arc
    -fmodules`); Swift is not compiled for FFI plugins today.
 2. **Manifest** — `watchos/Package.swift` (the CLI discovers the plugin
@@ -36,9 +37,14 @@ time). A working watchOS plugin therefore ships native code as
              - <name>_watchos_bar
    ```
 
-   `ffiSymbols` matters: the CLI emits a forced reference for each so the
-   statically linked symbols survive `-dead_strip` and stay resolvable via
-   `DynamicLibrary.process()`.
+   `ffiSymbols` lists the C symbols your Dart code looks up, so keep it
+   complete. The list is not what keeps them in the app; the build is. The
+   CLI compiles the plugin sources into one static archive and links it with
+   `-force_load`, so no object is left out. `used` keeps each function
+   through dead-stripping, and default visibility puts it in the binary's
+   export table, where `DynamicLibrary.process()` finds it. The CLI also sets
+   `STRIP_STYLE = non-global`, so the strip of an App Store build keeps the
+   exports. §3 shows how to check a build.
 4. **Dart** — a class extending the upstream `*_platform_interface`, with
    a `static void registerWith()` that installs itself as the default
    instance, and methods that call the FFI bindings. Keep the bindings in
@@ -174,8 +180,8 @@ discovery is by shape, like the `.m` sources:
    The factory runs on the main thread; `params` is the Dart widget's
    `creationParams` string. To reach the plugin's own C functions from
    Swift, declare them with `@_silgen_name` (see `video_player_watchos`).
-2. **Pubspec** — list the registration symbol under `ffiSymbols` so it
-   survives the static link.
+2. **Pubspec** — list the registration symbol under `ffiSymbols`, next to
+   the plugin's other exports.
 3. **Dart** — call the registration symbol from `registerWith()`, and embed
    the view with `WatchPlatformView` from `package:flutter_watchos` (depend
    on its current version, `flutter_watchos: ^0.1.0`). On an engine
@@ -259,14 +265,21 @@ flutter test && flutter analyze          # Dart side
 cd example && flutter-watchos build watchos --simulator --debug
 ```
 
-Then confirm the symbols actually made it into the binary:
+Then confirm the exports made it into the app. A debug build puts the app's
+code in `Runner.debug.dylib`, next to a small `Runner` launcher, so check
+that file:
 
 ```sh
-nm build/watchos/Debug-watchsimulator/Runner.app/Runner | grep <name>_watchos_
+dyld_info -exports build/watchos/Debug-watchsimulator/Runner.app/Runner.debug.dylib | grep <name>_watchos_
 ```
 
-Every `ffiSymbols` entry must appear (type `T`). If one is missing, it was
-dead-stripped — check the pubspec list and the `used` attribute.
+`dyld_info -exports` prints the export table, which is what
+`DynamicLibrary.process()` searches. Every `ffiSymbols` entry must be listed.
+If one is missing, check the `used` attribute and the default visibility on
+its definition. A release build keeps the app's code in `Runner` itself: run
+`dyld_info -arch arm64 -exports` on
+`build/watchos/Release-watchos/Runner.app/Runner` (its `arm64_32` slice is a
+stub without Flutter code).
 
 Finally, run the real native code end-to-end on the simulator. Ship the
 **upstream plugin's own example and its official `integration_test` verbatim** —
