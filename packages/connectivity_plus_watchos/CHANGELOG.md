@@ -1,3 +1,22 @@
+## 0.2.1
+
+**Fixed**
+
+* **The first value is the real one, not `none`.** The native cache started as
+  "none", and the path monitor starts only on first use, so the first
+  `checkConnectivity()` and the first event of `onConnectivityChanged`
+  reported `[none]`, followed a few milliseconds later by the real value. The
+  cache now starts as "unknown". Both register for changes before they read,
+  and while the value is unknown they wait for the monitor's first path, for at
+  most one second, and then report `none`.
+* Comments and `PORTING_REPORT.md` no longer say that Dart polls the cache.
+  Changes are pushed.
+
+**Docs**
+
+* README: the install snippet names `connectivity_plus: ^7.3.1` and this
+  version, and says to add this package alongside `connectivity_plus`.
+
 ## 0.2.0
 
 **Breaking**

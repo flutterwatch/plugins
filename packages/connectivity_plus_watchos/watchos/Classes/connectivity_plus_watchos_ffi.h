@@ -14,8 +14,10 @@
   __attribute__((visibility("default"))) __attribute__((used))
 
 // Connectivity codes (kept in sync with the Dart mapping):
+//   -1 = unknown (the monitor has not delivered a path yet),
 //   0 = none, 1 = wifi, 2 = mobile (cellular), 3 = ethernet, 4 = other.
 enum {
+  kConnectivityWatchosUnknown = -1,
   kConnectivityWatchosNone = 0,
   kConnectivityWatchosWifi = 1,
   kConnectivityWatchosMobile = 2,
@@ -40,6 +42,10 @@ CONNECTIVITY_PLUS_WATCHOS_EXPORT void connectivity_plus_watchos_set_callback(
 /// Current connectivity code. On the first call this starts a persistent
 /// `NWPathMonitor` on a background queue; subsequent calls read the latest
 /// path status it has cached.
+///
+/// Returns `kConnectivityWatchosUnknown` until the monitor has delivered its
+/// first path. That first path always calls the registered callback, so a
+/// caller that registers before it reads never misses it.
 CONNECTIVITY_PLUS_WATCHOS_EXPORT int32_t connectivity_plus_watchos_current(void);
 
 #endif  // CONNECTIVITY_PLUS_WATCHOS_FFI_H

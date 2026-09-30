@@ -12,9 +12,14 @@
 // SystemConfiguration's SCNetworkReachability is unavailable on watchOS, so
 // connectivity comes from the Network framework (watchOS 6+). A single
 // long-lived NWPathMonitor runs on a background queue and caches the latest
-// connectivity code; the FFI getter just reads that cache, and Dart polls it
-// for the change stream.
-static _Atomic int32_t s_current = kConnectivityWatchosNone;
+// connectivity code; the FFI getter just reads that cache. Changes are pushed:
+// the update handler calls the registered callback, and Dart re-reads the
+// cache. Dart does not poll.
+//
+// The cache starts as "unknown", not "none": the monitor delivers its first
+// path a moment after it starts, and until then nothing is known. Dart waits
+// for that first update (for at most one second) instead of reporting none.
+static _Atomic int32_t s_current = kConnectivityWatchosUnknown;
 static nw_path_monitor_t s_monitor = NULL;
 static _Atomic(connectivity_plus_watchos_cb) s_callback = NULL;
 
@@ -46,7 +51,8 @@ static void _ensure_monitor(void) {
       int32_t previous = atomic_exchange(&s_current, code);
       // Only wake Dart when the answer actually changed. NWPathMonitor fires
       // on path details Dart cannot observe through this API, and every
-      // spurious signal is an isolate wake-up on a watch.
+      // spurious signal is an isolate wake-up on a watch. The first path
+      // always wakes Dart, because it replaces "unknown".
       if (code != previous) {
         connectivity_plus_watchos_cb callback = atomic_load(&s_callback);
         if (callback != NULL) {

@@ -35,10 +35,18 @@ package is the hand-finished FFI equivalent.
 - `SCNetworkReachability` is unavailable on watchOS; the Network framework
   (`NWPathMonitor`, watchOS 6+) is the replacement — the same API the
   upstream iOS plugin already prefers.
-- `onConnectivityChanged`: the native monitor pushes updates into a cache
-  asynchronously, and Dart polls it (default every 2s), because watchOS
-  offers no push channel back across the FFI boundary. Tune via
-  `ConnectivityPlusWatchos.pollInterval`.
+- `onConnectivityChanged`: changes are pushed. The monitor's update handler
+  calls a `NativeCallable.listener` registered by Dart, and Dart re-reads the
+  cache. Dart does not poll, and native calls Dart only when the reported value
+  changes.
+- First value: the cache starts as "unknown" (-1) until the monitor delivers
+  its first path. `checkConnectivity()` and each new stream listener register
+  for changes before they read, and while the value is unknown they wait for
+  that first path, for at most one second
+  (`ConnectivityPlusWatchos.firstValueTimeout`), and then report `none`.
+  `example/integration_test/watchos_connectivity_test.dart` checks on the
+  Simulator that neither reports `none` with the host online. It is a
+  supplementary test next to the upstream one, not a replacement.
 
 ---
 
