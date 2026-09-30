@@ -58,6 +58,36 @@ void main() {
     expect((chip.decoration! as BoxDecoration).color, Colors.teal);
   });
 
+  // The watch screens this example runs on, in logical pixels: 40 mm,
+  // 41 mm, 42 mm (Series 10 and 11), 44 mm, 45 mm, 46 mm and 49 mm.
+  const List<Size> watchScreens = <Size>[
+    Size(162, 197),
+    Size(176, 215),
+    Size(187, 223),
+    Size(184, 224),
+    Size(198, 242),
+    Size(208, 248),
+    Size(205, 251),
+  ];
+
+  for (final Size screen in watchScreens) {
+    testWidgets(
+        'the watch layout fits a ${screen.width.toInt()}x'
+        '${screen.height.toInt()} screen', (WidgetTester tester) async {
+      tester.view.devicePixelRatio = 2;
+      tester.view.physicalSize = screen * 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const DemoApp(forceCompact: true));
+      await tester.pumpAndSettle();
+
+      // An overflow is reported as a FlutterError, which fails the test on
+      // its own; this names the case if it ever does.
+      expect(tester.takeException(), isNull);
+      expect(find.text('activated'), findsOneWidget);
+    });
+  }
+
   testWidgets('a send failure is reported rather than thrown',
       (WidgetTester tester) async {
     // The example's whole error story: sendMessage throws when the counterpart
