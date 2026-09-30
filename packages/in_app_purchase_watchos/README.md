@@ -11,8 +11,8 @@ Add this package alongside `in_app_purchase`:
 
 ```yaml
 dependencies:
-  in_app_purchase: ^<latest>
-  in_app_purchase_watchos: ^0.0.1
+  in_app_purchase: ^3.3.1
+  in_app_purchase_watchos: ^0.1.0
 ```
 
 That is all. Use the standard `in_app_purchase` API — no watchOS-specific setup:
@@ -50,10 +50,10 @@ app-side setup.
 
 ## Status
 
-**Working, and verified end to end on a watch** (see below). Versioned 0.0.1
-while the package settles. StoreKit purchasing is available on watchOS (from
-6.2), but the StoreKit *UI surfaces* (`SKStoreProductViewController`, the review prompt,
-code redemption) do not exist on the watch and are intentionally out of scope.
+**Working, and verified end to end on a watch** (see below). StoreKit
+purchasing is available on watchOS (from 6.2), but the StoreKit *UI surfaces*
+(`SKStoreProductViewController`, the review prompt, code redemption) do not
+exist on the watch and are intentionally out of scope.
 
 Implemented:
 
@@ -65,6 +65,14 @@ Implemented:
 
 Out of scope (no watchOS equivalent): the StoreKit UI surfaces
 (`SKStoreProductViewController`, the review prompt, code redemption).
+
+The platform addition: `InAppPurchase.instance.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>()`
+returns `InAppPurchaseWatchosPlatformAddition`, which extends StoreKit's addition
+so the upstream cast works. None of its methods is supported on watchOS yet:
+`sync`, `presentCodeRedemptionSheet`, `refreshPurchaseVerificationData`,
+`setDelegate` and `showPriceConsentIfNeeded` each return a `Future` that fails
+with an `UnsupportedError`. None of them throws when it is called, so code that
+awaits them inside `try`/`catch`, or skips them on the watch, keeps working.
 
 Verified end to end against real StoreKit on a watch simulator, using the
 bundled `watchos/Configuration.storekit` test configuration: product lookup

@@ -9,7 +9,9 @@
 // purchasing works on watchOS from 6.2, but the UI surfaces
 // (SKStoreProductViewController, the review prompt, code redemption) do not
 // exist on the watch — those platform-interface methods are intentionally not
-// implemented here.
+// implemented here. The StoreKit platform addition is replaced by
+// [InAppPurchaseWatchosPlatformAddition], whose methods fail with an
+// UnsupportedError instead of reaching a method channel.
 
 import 'dart:async';
 import 'dart:convert';
@@ -19,6 +21,10 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'
+    show InAppPurchaseStoreKitPlatformAddition;
+import 'package:in_app_purchase_storekit/store_kit_wrappers.dart'
+    show SKPaymentQueueDelegateWrapper;
 
 /// The watchOS implementation of [InAppPurchasePlatform].
 class InAppPurchaseWatchos extends InAppPurchasePlatform {
@@ -48,6 +54,10 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
   /// the app returns the memoised object without re-registering, and each
   /// `InAppPurchase` method resolves `InAppPurchasePlatform.instance` at call
   /// time — so this one wins for the life of the process.
+  ///
+  /// The same applies to the platform addition: upstream installs StoreKit's
+  /// method-channel addition, so each attempt also installs
+  /// [InAppPurchaseWatchosPlatformAddition] in its place.
   ///
   /// It cannot always be done in one go: the registrant runs before `main()`
   /// creates the binding, and upstream's selection installs a pigeon message
@@ -120,6 +130,11 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       // Upstream assigns its own instance before it can throw, so always take
       // the platform back — whether or not the pre-emption succeeded.
       InAppPurchasePlatform.instance = InAppPurchaseWatchos();
+      // Upstream's registerPlatform() also installs StoreKit's method-channel
+      // addition, on every attempt that runs it (even one that then throws),
+      // so the watchOS addition is put back here each time as well.
+      InAppPurchasePlatformAddition.instance =
+          InAppPurchaseWatchosPlatformAddition();
     }
   }
 
@@ -402,6 +417,54 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
         return PurchaseStatus.pending;
     }
   }
+}
+
+/// The watchOS platform addition for `in_app_purchase`.
+///
+/// Upstream code gets the StoreKit addition with
+/// `InAppPurchase.instance.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>()`.
+/// This class extends [InAppPurchaseStoreKitPlatformAddition], so that cast
+/// still works on the watch, and [InAppPurchaseWatchos.registerWith] installs
+/// it as `InAppPurchasePlatformAddition.instance`.
+///
+/// None of the StoreKit addition's methods is supported on watchOS yet. Each
+/// returns a [Future] that completes with an [UnsupportedError] naming
+/// watchOS; none throws when it is called. Without this class the calls would
+/// reach StoreKit's method channel, which does not exist on the watch, and
+/// fail with `channel-error`.
+class InAppPurchaseWatchosPlatformAddition
+    extends InAppPurchaseStoreKitPlatformAddition {
+  static Future<T> _unsupported<T>(String method) => Future<T>.error(
+        UnsupportedError(
+          '$method is not supported on watchOS by in_app_purchase_watchos.',
+        ),
+      );
+
+  /// Not supported on watchOS: completes with an [UnsupportedError].
+  @override
+  Future<void> sync() => _unsupported<void>('sync');
+
+  /// Not supported on watchOS, which has no code redemption sheet: completes
+  /// with an [UnsupportedError].
+  @override
+  Future<void> presentCodeRedemptionSheet() =>
+      _unsupported<void>('presentCodeRedemptionSheet');
+
+  /// Not supported on watchOS: completes with an [UnsupportedError].
+  @override
+  Future<PurchaseVerificationData?> refreshPurchaseVerificationData() =>
+      _unsupported<PurchaseVerificationData?>(
+          'refreshPurchaseVerificationData');
+
+  /// Not supported on watchOS: completes with an [UnsupportedError].
+  @override
+  Future<void> setDelegate(SKPaymentQueueDelegateWrapper? delegate) =>
+      _unsupported<void>('setDelegate');
+
+  /// Not supported on watchOS: completes with an [UnsupportedError].
+  @override
+  Future<void> showPriceConsentIfNeeded() =>
+      _unsupported<void>('showPriceConsentIfNeeded');
 }
 
 /// FFI bindings to the native in_app_purchase_watchos C functions.

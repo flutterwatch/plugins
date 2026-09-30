@@ -1,6 +1,6 @@
 name: in_app_purchase_watchos
 description: "watchOS implementation of the in_app_purchase plugin, using dart:ffi over StoreKit to query products and run purchases through SKPaymentQueue."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues
@@ -21,7 +21,11 @@ dependencies:
   # `InAppPurchase.instance`, so we trigger that one-time selection ourselves
   # and install this implementation afterwards. Not a layering violation in
   # practice — `in_app_purchase` does not depend on this package.
-  in_app_purchase: ^3.2.0
+  # 3.2.3 is the first version on in_app_purchase_storekit 0.4.x.
+  in_app_purchase: ^3.2.3
+  # The watchOS platform addition extends StoreKit's, whose sync() exists
+  # from 0.4.0.
+  in_app_purchase_storekit: ^0.4.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

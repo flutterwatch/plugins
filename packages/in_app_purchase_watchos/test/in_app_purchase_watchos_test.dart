@@ -7,6 +7,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_watchos/in_app_purchase_watchos.dart';
 
 /// Drives [InAppPurchaseWatchos] without touching FFI: [queryReady] reports
@@ -159,6 +160,114 @@ void main() {
       expect(probeCalls, 1, reason: 'the selection must be triggered exactly once');
       expect(InAppPurchaseWatchos.preemptExhausted, isFalse);
       expect(InAppPurchaseWatchos.preemptError, isNull);
+    });
+  });
+
+  group('platform addition', () {
+    setUp(() {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      InAppPurchasePlatformAddition.instance = null;
+    });
+
+    tearDown(() {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      InAppPurchasePlatformAddition.instance = null;
+    });
+
+    test('registerWith installs the watchOS addition, a StoreKit addition', () {
+      InAppPurchaseWatchos.preemptProbe = () {};
+
+      InAppPurchaseWatchos.registerWith();
+
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseWatchosPlatformAddition>());
+      // Upstream code casts the addition to this type.
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseStoreKitPlatformAddition>());
+    });
+
+    test('it replaces the StoreKit addition that a succeeding probe installs',
+        () {
+      // Upstream's registerPlatform() installs StoreKit's method-channel
+      // addition before it installs the platform.
+      InAppPurchaseWatchos.preemptProbe = () {
+        InAppPurchasePlatformAddition.instance =
+            InAppPurchaseStoreKitPlatformAddition();
+      };
+
+      InAppPurchaseWatchos.registerWith();
+
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseWatchosPlatformAddition>());
+    });
+
+    test(
+        'it is installed on the first attempt and after each retry when the '
+        'probe installs StoreKit\'s addition and then throws', () async {
+      int probeCalls = 0;
+      InAppPurchaseWatchos.preemptProbe = () {
+        probeCalls++;
+        InAppPurchasePlatformAddition.instance =
+            InAppPurchaseStoreKitPlatformAddition();
+        if (probeCalls <= 2) {
+          throw StateError('Binding has not yet been initialized.');
+        }
+      };
+
+      InAppPurchaseWatchos.registerWith();
+      expect(probeCalls, 1);
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseWatchosPlatformAddition>(),
+          reason: 'the first, failed attempt must install it');
+
+      // Each retry is a Timer.run; wait for the first retry, which fails too.
+      for (int i = 0; i < 40 && probeCalls < 2; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(probeCalls, 2);
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseWatchosPlatformAddition>(),
+          reason: 'a failed retry must install it again');
+
+      // The third attempt succeeds.
+      for (int i = 0; i < 40 && probeCalls < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(probeCalls, 3);
+      expect(InAppPurchaseWatchos.preemptError, isNull);
+      expect(InAppPurchasePlatformAddition.instance,
+          isA<InAppPurchaseWatchosPlatformAddition>(),
+          reason: 'the succeeding retry must install it too');
+    });
+
+    test('each of the five methods fails with a Future, never synchronously',
+        () async {
+      final InAppPurchaseWatchosPlatformAddition addition =
+          InAppPurchaseWatchosPlatformAddition();
+      final Map<String, Future<Object?> Function()> calls =
+          <String, Future<Object?> Function()>{
+        'sync': addition.sync,
+        'presentCodeRedemptionSheet': addition.presentCodeRedemptionSheet,
+        'refreshPurchaseVerificationData':
+            addition.refreshPurchaseVerificationData,
+        'setDelegate': () => addition.setDelegate(null),
+        'showPriceConsentIfNeeded': addition.showPriceConsentIfNeeded,
+      };
+
+      for (final MapEntry<String, Future<Object?> Function()> call
+          in calls.entries) {
+        late Future<Object?> result;
+        expect(() => result = call.value(), returnsNormally, reason: call.key);
+        await expectLater(
+          result,
+          throwsA(isA<UnsupportedError>()
+              .having((UnsupportedError e) => e.message, 'message',
+                  contains('watchOS'))
+              .having((UnsupportedError e) => e.message, 'message',
+                  contains(call.key))),
+          reason: call.key,
+        );
+      }
     });
   });
 
