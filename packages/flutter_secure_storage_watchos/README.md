@@ -17,8 +17,8 @@ alongside it:
 
 ```yaml
 dependencies:
-  flutter_secure_storage: ^<latest>
-  flutter_secure_storage_watchos: ^0.0.1
+  flutter_secure_storage: ^11.2.0
+  flutter_secure_storage_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no

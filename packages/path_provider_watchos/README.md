@@ -8,13 +8,13 @@ The watchOS implementation of [`path_provider`](https://pub.dev/packages/path_pr
 ## Usage
 
 This is a federated plugin implementation. Apps that already depend on
-`path_provider` and target watchOS only need to add this package
-as a dependency:
+`path_provider` and target watchOS only need to add this package alongside
+it:
 
 ```yaml
 dependencies:
-  path_provider: ^<latest>
-  path_provider_watchos: ^0.0.1
+  path_provider: ^2.1.6
+  path_provider_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no

@@ -1,6 +1,6 @@
 name: flutter_secure_storage_watchos
 description: "watchOS implementation of the flutter_secure_storage plugin, storing secrets in the Keychain via the SecItem APIs over dart:ffi."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

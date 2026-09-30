@@ -1,3 +1,14 @@
+## 0.1.1
+
+* README: the install snippet names `package_info_plus: ^10.2.1` and this
+  version.
+* README and PORTING_REPORT: the API table names what the package reads.
+  `installerStore`, `installTime` and `updateTime` were listed as null; they
+  come from the App Store receipt path, the Documents directory's creation
+  date and the app bundle's modification date. The README gives the real
+  integration-test result on the watch: 1 of 2 (the `example` case looks for
+  more of the demo's list than the watch screen shows).
+
 ## 0.1.0
 
 * First working release. FFI implementation over `NSBundle`

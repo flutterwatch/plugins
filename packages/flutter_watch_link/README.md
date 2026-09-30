@@ -42,7 +42,7 @@ branching at every call site.
 
 ```yaml
 dependencies:
-  flutter_watch_link: ^0.1.0
+  flutter_watch_link: ^0.1.1
 ```
 
 No entitlement and no Info.plist key is required. Both apps must be halves of

@@ -7,7 +7,7 @@
 | Implementation | ✅ Working (FFI) |
 | watchOS capability | Full |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
-| Upstream integration test | ✅ passes verbatim (the example runner sets `FlutterWatchOSContentScale` = 0.4 so the phone-designed UI materialises on the watch screen) |
+| Upstream integration test | ◐ runs verbatim (the example runner sets `FlutterWatchOSContentScale` = 0.4); `fromPlatform` passes, the `example` case does not fit the watch screen (see the next row) |
 | Simulator run, 29 September 2026 (watchOS 27.0) | ◐ `fromPlatform` passes; the `example` test fails: it looks for more of the demo's list than the watch screen shows |
 | Internal unified demo | ✅ included |
 
@@ -37,9 +37,10 @@ implementation — method-channel plugins are not supported on watchOS.
 | `packageName` | `CFBundleIdentifier` | ✅ |
 | `version` | `CFBundleShortVersionString` | ✅ |
 | `buildNumber` | `CFBundleVersion` | ✅ |
-| `buildSignature` | — | empty (Android APK-signing concept) |
-| `installerStore` | — | null (no watchOS installer-source API) |
-| `installTime` / `updateTime` | — | null (no watchOS API) |
+| `buildSignature` | — | empty (Android APK-signing concept; iOS reports it empty too) |
+| `installerStore` | App Store receipt path | ✅ `com.apple.simulator`, `com.apple.testflight` (sandbox receipt) or `com.apple` |
+| `installTime` | creation date of the Documents directory | ✅ (null if it cannot be read) |
+| `updateTime` | modification date of the app bundle | ✅ (null if it cannot be read) |
 
 ---
 

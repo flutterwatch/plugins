@@ -8,10 +8,13 @@ see `PORTING_REPORT.md`.
 
 ## Usage
 
+`battery_plus` does not include a watchOS implementation, so add this
+package alongside it:
+
 ```yaml
 dependencies:
-  battery_plus: ^6.0.0
-  battery_plus_watchos: ^0.1.0
+  battery_plus: ^7.1.1
+  battery_plus_watchos: ^0.1.1
 ```
 
 ```dart

@@ -1,3 +1,8 @@
+## 0.1.1
+
+* README: the install snippet names `shared_preferences: ^2.5.5` and this
+  version, and says to add this package alongside `shared_preferences`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `NSUserDefaults`

@@ -8,10 +8,13 @@ see `PORTING_REPORT.md`.
 
 ## Usage
 
+`device_info_plus` does not include a watchOS implementation, so add this
+package alongside it:
+
 ```yaml
 dependencies:
-  device_info_plus: ^11.0.0
-  device_info_plus_watchos: ^0.1.0
+  device_info_plus: ^13.2.0
+  device_info_plus_watchos: ^0.1.1
 ```
 
 watchOS reports as an iOS-family platform, so read it through the iOS

@@ -1,6 +1,6 @@
 name: flutter_watch_link
 description: "WatchConnectivity for Flutter companion apps: one Dart API for iPhone-to-Apple-Watch messaging, application context, and guaranteed background transfers."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

@@ -1,6 +1,6 @@
 name: local_auth_watchos
 description: "watchOS implementation of the local_auth plugin, authenticating the wearer with the device passcode through LocalAuthentication via dart:ffi."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

@@ -1,6 +1,6 @@
 name: audioplayers_watchos
 description: "watchOS implementation of the audioplayers plugin, playing audio through AVFoundation (AVPlayer) via dart:ffi."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

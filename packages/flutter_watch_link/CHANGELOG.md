@@ -1,3 +1,7 @@
+## 0.1.1
+
+* README: the install snippet names this version.
+
 ## 0.1.0
 
 Initial release. One `WatchLink` API over `WCSession` that compiles unchanged

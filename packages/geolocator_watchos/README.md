@@ -17,8 +17,8 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  geolocator: ^<latest>
-  geolocator_watchos: ^0.0.1
+  geolocator: ^14.1.1
+  geolocator_watchos: ^0.1.1
 ```
 
 The plugin registers automatically via Flutter's federated registry — no

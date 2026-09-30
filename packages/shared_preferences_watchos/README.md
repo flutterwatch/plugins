@@ -8,10 +8,13 @@ see `PORTING_REPORT.md`.
 
 ## Usage
 
+`shared_preferences` does not include a watchOS implementation, so add
+this package alongside it:
+
 ```yaml
 dependencies:
-  shared_preferences: ^2.3.0
-  shared_preferences_watchos: ^0.1.0
+  shared_preferences: ^2.5.5
+  shared_preferences_watchos: ^0.1.1
 ```
 
 Both the classic `SharedPreferences` API and the newer

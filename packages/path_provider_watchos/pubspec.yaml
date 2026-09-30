@@ -1,6 +1,6 @@
 name: path_provider_watchos
 description: "watchOS implementation of the path_provider plugin, using dart:ffi over Foundation to resolve the temporary, application-support, documents, and cache directories."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

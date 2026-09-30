@@ -1,3 +1,8 @@
+## 0.1.1
+
+* README: the install snippet names `local_auth: ^3.0.2` and this version.
+  It named `^0.0.1`, which does not admit 0.1.x.
+
 ## 0.1.0
 
 First release beyond the generated scaffold.

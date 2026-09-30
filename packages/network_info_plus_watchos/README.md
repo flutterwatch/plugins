@@ -15,8 +15,8 @@ alongside it:
 
 ```yaml
 dependencies:
-  network_info_plus: ^<latest>
-  network_info_plus_watchos: ^0.0.1
+  network_info_plus: ^8.2.1
+  network_info_plus_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no

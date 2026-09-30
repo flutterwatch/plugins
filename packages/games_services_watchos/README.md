@@ -10,12 +10,13 @@ itself in its place and talks to GameKit through exported C symbols over
 
 ## Usage
 
-Add both packages; the implementation registers itself.
+`games_services` does not include a watchOS implementation, so add this
+package alongside it; the implementation registers itself.
 
 ```yaml
 dependencies:
   games_services: ^4.1.1
-  games_services_watchos: ^0.0.1
+  games_services_watchos: ^0.1.0
 ```
 
 Then use `games_services` as normal:

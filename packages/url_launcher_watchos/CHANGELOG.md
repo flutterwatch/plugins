@@ -1,3 +1,8 @@
+## 0.1.1
+
+* README: the install snippet names `url_launcher: ^6.3.2` instead of `any`,
+  and this version.
+
 ## 0.1.0
 
 * **Web pages open on the watch.** `http:` and `https:` URLs launched with

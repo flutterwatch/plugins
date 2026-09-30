@@ -14,8 +14,8 @@ This is a federated plugin implementation. Apps that already depend on `audiopla
 
 ```yaml
 dependencies:
-  audioplayers: ^<latest>
-  audioplayers_watchos: ^0.0.1
+  audioplayers: ^6.8.1
+  audioplayers_watchos: ^0.1.0
 ```
 
 No other change — `AudioPlayer` and friends work as on the other platforms.

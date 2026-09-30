@@ -12,8 +12,8 @@ own API.
 
 ```yaml
 dependencies:
-  url_launcher: any
-  url_launcher_watchos: ^0.1.0
+  url_launcher: ^6.3.2
+  url_launcher_watchos: ^0.1.1
 ```
 
 ## What watchOS can actually do

@@ -1,6 +1,6 @@
 name: url_launcher_watchos
 description: "watchOS implementation of the url_launcher plugin: shows web pages in the system browser on the watch, opens tel:/sms: through the system handler, and can hand web links to the paired iPhone, over dart:ffi."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

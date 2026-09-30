@@ -1,6 +1,6 @@
 name: network_info_plus_watchos
 description: "watchOS implementation of the network_info_plus plugin, exposing Wi-Fi IPv4 and IPv6 addresses via getifaddrs and dart:ffi (SSID is unavailable on watchOS)."
-version: 0.0.1
+version: 0.1.0
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

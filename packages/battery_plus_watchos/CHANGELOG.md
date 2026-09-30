@@ -1,3 +1,8 @@
+## 0.1.1
+
+* README: the install snippet names `battery_plus: ^7.1.1` and this version,
+  and says to add this package alongside `battery_plus`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `WKInterfaceDevice`

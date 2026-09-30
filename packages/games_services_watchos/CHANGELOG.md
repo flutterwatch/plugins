@@ -1,3 +1,10 @@
+## 0.1.0
+
+* The version moves from 0.0.1 to 0.1.0, so that a `^0.1.0` constraint
+  admits later fixes; `^0.0.1` admits none.
+* README: the install snippet names this version, and says to add this
+  package alongside `games_services`.
+
 ## 0.0.1
 
 * Initial staged release: the watchOS implementation of `games_services`.

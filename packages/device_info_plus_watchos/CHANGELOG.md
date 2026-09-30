@@ -1,3 +1,8 @@
+## 0.1.1
+
+* README: the install snippet names `device_info_plus: ^13.2.0` and this
+  version, and says to add this package alongside `device_info_plus`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `WKInterfaceDevice`,

@@ -17,8 +17,8 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  local_auth: ^<latest>
-  local_auth_watchos: ^0.0.1
+  local_auth: ^3.0.2
+  local_auth_watchos: ^0.1.1
 ```
 
 The plugin registers automatically via Flutter's federated registry — no

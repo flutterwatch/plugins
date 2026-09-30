@@ -14,8 +14,8 @@ dependency, alongside the upstream plugin:
 
 ```yaml
 dependencies:
-  package_info_plus: ^8.0.0
-  package_info_plus_watchos: ^0.1.0
+  package_info_plus: ^10.2.1
+  package_info_plus_watchos: ^0.1.1
 ```
 
 `PackageInfo.fromPlatform()` then works on the watch — no imports needed
@@ -29,9 +29,10 @@ in app code.
 | `packageName` | ✅ `CFBundleIdentifier` |
 | `version` | ✅ `CFBundleShortVersionString` |
 | `buildNumber` | ✅ `CFBundleVersion` |
-| `buildSignature` | — empty (Android-only concept) |
-| `installerStore` | — null (no App Store installer-source API on watchOS) |
-| `installTime` / `updateTime` | — null (no watchOS API) |
+| `buildSignature` | — empty (an Android signing concept; iOS reports it empty too) |
+| `installerStore` | ✅ from the App Store receipt path: `com.apple.simulator` on the Simulator, `com.apple.testflight` for a sandbox receipt, otherwise `com.apple` |
+| `installTime` | ✅ creation date of the app's Documents directory, or null if it cannot be read |
+| `updateTime` | ✅ modification date of the app bundle, or null if it cannot be read |
 
 ## Example on the watch screen
 
@@ -47,8 +48,10 @@ flutter-watchos content scale (`watchos/Runner/Info.plist`):
 
 This lays the app out in a proportionally larger logical space rendered
 smaller — same layout, smaller components — without touching the example's
-Dart code. With it, the full official integration test passes on the watch
-simulator.
+Dart code. With it, the official integration test gives 1 of 2 on the watchOS
+27.0 Simulator (29 September 2026): `fromPlatform` passes, and the `example`
+case fails because it looks for more of the demo's list than the watch screen
+shows.
 
 ## License
 
