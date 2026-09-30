@@ -26,20 +26,41 @@ import 'package:sensors_plus_platform_interface/sensors_plus_platform_interface.
 /// Each `read*` returns the latest `[x, y, z]`, or null when no sample is
 /// available yet (e.g. on the Simulator, which has no motion hardware).
 abstract class SensorsPlusWatchosBackend {
+  /// Starts accelerometer updates every [intervalMicros] microseconds.
   void startAccelerometer(int intervalMicros);
+
+  /// The latest accelerometer sample, in m/s².
   List<double>? readAccelerometer();
+
+  /// Stops accelerometer updates.
   void stopAccelerometer();
 
+  /// Starts device-motion updates for user acceleration (gravity removed)
+  /// every [intervalMicros] microseconds.
   void startUserAccelerometer(int intervalMicros);
+
+  /// The latest user-acceleration sample, in m/s².
   List<double>? readUserAccelerometer();
+
+  /// Stops user-acceleration updates.
   void stopUserAccelerometer();
 
+  /// Starts gyroscope updates every [intervalMicros] microseconds.
   void startGyroscope(int intervalMicros);
+
+  /// The latest gyroscope sample, in rad/s.
   List<double>? readGyroscope();
+
+  /// Stops gyroscope updates.
   void stopGyroscope();
 
+  /// Starts magnetometer updates every [intervalMicros] microseconds.
   void startMagnetometer(int intervalMicros);
+
+  /// The latest magnetometer sample, in µT.
   List<double>? readMagnetometer();
+
+  /// Stops magnetometer updates.
   void stopMagnetometer();
 
   /// Registers the function native calls when a sample lands, or `nullptr`

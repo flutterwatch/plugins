@@ -14,6 +14,8 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `sensors_plus_platform_interface` 2.0.2,
   audited by hand.
+* Dartdoc on every public member, and `public_member_api_docs` is on in
+  `analysis_options.yaml`.
 
 ## 0.1.0
 

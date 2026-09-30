@@ -22,6 +22,7 @@ _GcState _state(int raw) => switch (raw) {
 
 /// One row of a leaderboard.
 class GcEntry {
+  /// Creates a leaderboard row.
   const GcEntry({
     required this.rank,
     required this.score,
@@ -29,8 +30,13 @@ class GcEntry {
     required this.isLocal,
   });
 
+  /// The row's rank, starting at 1.
   final int rank;
+
+  /// The submitted score.
   final int score;
+
+  /// The player's Game Center display name.
   final String player;
 
   /// True for the signed-in player's own row.
@@ -102,6 +108,7 @@ class _Symbols {
 /// [GamesServicesWatchosBindings.forTesting] constructor skips FFI resolution
 /// so a host test never touches `DynamicLibrary.process()`.
 class GamesServicesWatchosBindings {
+  /// Bindings that resolve the GameKit symbols on first use.
   GamesServicesWatchosBindings();
 
   /// Skips symbol resolution. For tests only.
@@ -110,6 +117,7 @@ class GamesServicesWatchosBindings {
   _Symbols? _bindings;
   bool _resolved = false;
 
+  /// Whether the GameKit symbols are linked into the app.
   bool get available => _resolve() != null;
 
   /// Whether the native side reports a signed-in local player. Read live, not
@@ -148,16 +156,22 @@ class GamesServicesWatchosBindings {
     return _state(b.authState()).name;
   }
 
+  /// The last GameKit error message, or null when there is none.
   String? get lastError {
     final b = _resolve();
     return b == null ? null : _takeString(b.lastError(), b);
   }
 
+  /// The signed-in local player's alias, or null when nobody is signed in.
   String? get playerAlias {
     final b = _resolve();
     return b == null ? null : _takeString(b.playerAlias(), b);
   }
 
+  /// Signs the local player in to Game Center.
+  ///
+  /// Returns true once signed in, or false when the GameKit symbols are not
+  /// linked, when GameKit refuses, or when [timeout] passes first.
   Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
     final b = _resolve();
     if (b == null) return false;
@@ -168,6 +182,10 @@ class GamesServicesWatchosBindings {
     return await _settle(() => _state(b.authState()), timeout) == _GcState.ok;
   }
 
+  /// Submits [score] to the leaderboard [leaderboardId].
+  ///
+  /// Returns false when the GameKit symbols are not linked, when nobody is
+  /// signed in, when GameKit refuses, or when [timeout] passes first.
   Future<bool> submitScore(
     int score,
     String leaderboardId, {

@@ -11,6 +11,8 @@
   audited by hand.
 * README: the supported table lists only what works; the rest moves to the new
   table.
+* Dartdoc on every public member, and `public_member_api_docs` is on in
+  `analysis_options.yaml`.
 
 ## 0.0.1
 

@@ -11,6 +11,8 @@
 * README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
   coverage" list of every member of `geolocator_platform_interface` 4.4.0,
   audited by hand.
+* Dartdoc on every public member, and `public_member_api_docs` is on in
+  `analysis_options.yaml`.
 
 ## 0.1.0
 
