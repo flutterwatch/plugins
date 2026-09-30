@@ -16,7 +16,7 @@
 
 // Each getter returns a UTF-8 C string owned by the plugin (cached for the
 // process lifetime — bundle metadata never changes after launch). Callers
-// must NOT free the returned pointer. A missing Info.plist key yields an
+// must NOT release the returned pointer. A missing Info.plist key yields an
 // empty string, matching the iOS package_info_plus behaviour.
 
 /// `CFBundleDisplayName`, falling back to `CFBundleName`.

@@ -400,7 +400,7 @@ void main() {
       expect(r.error?.code, 'bad_result');
     });
 
-    test('missing rawPrice / fields fall back to safe defaults', () {
+    test('missing product fields fall back to safe defaults', () {
       final json = jsonEncode(<String, dynamic>{
         'products': <dynamic>[
           <String, dynamic>{'id': 'only_id'},

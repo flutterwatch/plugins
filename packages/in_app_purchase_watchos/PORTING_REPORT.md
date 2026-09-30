@@ -84,7 +84,7 @@ README's "Not supported on watchOS" table lists the ✗ rows.
 | `completePurchase` / `restorePurchases` | ✅ |
 | `countryCode` | ✗ throws `UnimplementedError` when called (the interface default): the storefront is not read yet |
 | addition `presentCodeRedemptionSheet` | ✗ fails with an `UnsupportedError` that names watchOS: StoreKit has no code redemption sheet on watchOS |
-| addition `showPriceConsentIfNeeded` | ✗ fails with an `UnsupportedError` that names watchOS: StoreKit has no price consent sheet on watchOS |
+| addition `showPriceConsentIfNeeded` | ✗ fails with an `UnsupportedError` that names watchOS: StoreKit has no such consent sheet on watchOS |
 | addition `sync` | ✗ fails with an `UnsupportedError` that names watchOS: not implemented yet (StoreKit 2) |
 | addition `refreshPurchaseVerificationData` | ✗ fails with an `UnsupportedError` that names watchOS: the receipt refresh is not implemented yet |
 | addition `setDelegate` | ✗ fails with an `UnsupportedError` that names watchOS: the payment queue delegate is not implemented yet |

@@ -37,8 +37,8 @@ static os_unfair_lock _bufferLock = OS_UNFAIR_LOCK_INIT;
 static fwl_signal_callback _callback = NULL;
 
 // Wakes Dart. Called from delegate queues, so the callback pointer is read
-// under the lock — but invoked *outside* it, because the Dart end is free to
-// call straight back into this file and would otherwise deadlock.
+// under the lock — but invoked *outside* it, because the Dart end may call
+// straight back into this file and would otherwise deadlock.
 static void _signal(int64_t kind) {
     os_unfair_lock_lock(&_bufferLock);
     fwl_signal_callback callback = _callback;

@@ -44,5 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Widget Preview related
+# Flutter widget tooling output
 .widget_preview/

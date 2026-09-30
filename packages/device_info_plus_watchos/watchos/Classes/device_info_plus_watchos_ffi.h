@@ -21,7 +21,7 @@
 /// nested `utsname` object (sysname/nodename/release/version/machine).
 ///
 /// The returned pointer is owned by the plugin (resolved once, cached for
-/// the process lifetime); callers must NOT free it.
+/// the process lifetime); callers must NOT release it.
 DEVICE_INFO_PLUS_WATCHOS_EXPORT const char* device_info_plus_watchos_info_json(void);
 
 #endif  // DEVICE_INFO_PLUS_WATCHOS_FFI_H

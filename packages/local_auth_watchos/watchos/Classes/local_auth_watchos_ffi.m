@@ -35,7 +35,7 @@ static void _setState(int state) {
     _state = state;
     local_auth_watchos_cb callback = _callback;
     os_unfair_lock_unlock(&_lock);
-    // Wake Dart outside the lock: the callback is free to call straight back
+    // Wake Dart outside the lock: the callback may call straight back
     // into this file, and holding the lock across it would deadlock.
     if (state != kPending && callback != NULL) {
         callback(0);

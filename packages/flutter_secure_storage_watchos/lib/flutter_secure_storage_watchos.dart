@@ -178,7 +178,7 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   /// code can treat "" and NULL the same via its `_nonempty` check).
   Pointer<Utf8> _c(String? s) => (s ?? '').toNativeUtf8();
 
-  /// Copies a native string into Dart and releases it with the native free.
+  /// Copies a native string into Dart and releases its native memory.
   String? _take(Pointer<Utf8> p) {
     if (p == nullptr) {
       return null;

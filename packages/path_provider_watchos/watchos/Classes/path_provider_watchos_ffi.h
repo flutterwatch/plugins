@@ -19,7 +19,7 @@
 // Every function returns an absolute directory path as a UTF-8 C string, or
 // NULL when the directory cannot be resolved. Returned pointers are owned by
 // the plugin (cached for the lifetime of the process — the sandbox paths
-// never change after launch); callers must NOT free them.
+// never change after launch); callers must NOT release them.
 
 /// `NSTemporaryDirectory()`, trailing slash stripped.
 PATH_PROVIDER_WATCHOS_EXPORT const char* path_provider_watchos_temporary_path(void);
