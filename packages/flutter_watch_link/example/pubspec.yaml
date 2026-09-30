@@ -13,7 +13,7 @@ dependencies:
     path: ../
   # For `FlutterWatchosPlatform.isWatch` — a pure-Dart check with no FFI, so it
   # is safe to evaluate inside the iOS binary too.
-  flutter_watchos: ^0.1.0-beta.7
+  flutter_watchos: ^0.1.0
 
 dev_dependencies:
   flutter_test:
