@@ -10,8 +10,7 @@ build/
 watchos/Pods/
 watchos/Podfile.lock
 watchos/.symlinks/
-watchos/Flutter/Flutter.framework
-watchos/Flutter/Flutter.podspec
+watchos/Flutter/
 
 # Xcode / SwiftPM (per-user, generated when watchos/Package.swift is opened)
 **/.swiftpm/

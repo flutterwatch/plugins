@@ -7,6 +7,9 @@ build/
 .pub/
 pubspec.lock
 
+# Written into the package by `flutter-watchos test` (GeneratedPluginRegistrant.swift)
+watchos/Flutter/
+
 # Xcode / SwiftPM (per-user, generated when watchos/Package.swift is opened)
 **/.swiftpm/
 **/.build/
