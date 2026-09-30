@@ -30,8 +30,13 @@ upstreams:
 
 # A README may name an older major only when it is listed here, with the
 # exact constraint and the reason. Spec 0006 allows one, and only under the
-# fallback of its Decision 5:
-#   games_services:
-#     constraint: ^4.1.1
-#     reason: games_services_watchos implements the 4.x platform interface.
-exceptions: {}
+# fallback of its Decision 5, which holds while games_services_watchos
+# implements the 4.x platform interface. Remove it in the commit that moves
+# the package and its README to games_services 5.x.
+exceptions:
+  games_services:
+    constraint: ^4.1.1
+    reason: >-
+      games_services_watchos implements games_services_platform_interface
+      4.x, and games_services 5.x needs 5.x (spec 0006 Decision 5, its
+      fallback).
