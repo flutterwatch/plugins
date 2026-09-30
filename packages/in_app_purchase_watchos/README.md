@@ -107,6 +107,19 @@ StoreKit products, so product lookup returns "not found" and a purchase cannot
 complete — add a `.storekit` test configuration (or use a sandbox account) to
 exercise it end to end.
 
+The example's code is `in_app_purchase` 3.3.1's, unchanged except for these
+watchOS deviations:
+
+| Where | Change | Why |
+|---|---|---|
+| `example/lib/main.dart`, the four StoreKit addition calls (`setDelegate` at start and in `dispose`, the upgrade button, `showPriceConsentIfNeeded`) | `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` | `Platform.isIOS` is true on the watch, where those addition methods fail with an `UnsupportedError`; the example started with an unhandled exception from `setDelegate` |
+| `example/lib/main.dart`, the comment above `showPriceConsentIfNeeded` | reworded | the project's word rule |
+| `example/pubspec.yaml` | adds `flutter_watchos: ^0.1.0` and `shared_preferences_watchos: ^0.1.0` | for `FlutterWatchosPlatform`, and so the example's `shared_preferences` store works on the watch |
+
+`example/integration_test/watchos_example_start_test.dart` is a watchOS test
+beside the upstream ones: it starts the example and checks that it finishes
+its store check without an error.
+
 ## Not supported on watchOS
 
 These members of `in_app_purchase_platform_interface` 1.4.1 and `in_app_purchase_storekit` 0.4.13 throw or fail on watchOS.

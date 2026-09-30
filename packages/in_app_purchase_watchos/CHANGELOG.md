@@ -27,6 +27,14 @@
   and the StoreKit addition, audited by hand.
 * `pubspec.yaml`: `topics` (watchos, ffi, in-app-purchase, storekit).
 * Example: `pubspec.yaml` names `in_app_purchase: ^3.3.1` instead of `any`.
+* Example: the calls into the StoreKit addition are guarded with
+  `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS`, which is true on
+  the watch, where those calls fail; the example no longer starts with an
+  unhandled exception from `setDelegate`. The example depends on
+  `flutter_watchos: ^0.1.0` and on `shared_preferences_watchos`, which its
+  `shared_preferences` store needs on the watch, and a new integration test
+  checks that it starts cleanly. The README and PORTING_REPORT list the
+  deviations.
 
 ## 0.0.1
 

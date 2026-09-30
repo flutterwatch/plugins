@@ -20,6 +20,15 @@ that watchOS supports is done and verified on the simulator (builds, links, all
 Remaining: verifying a *real* purchase round-trip (needs a `.storekit` test
 config or an App Store Connect sandbox — the bare Simulator has no products).
 
+Example deviations (2026-09-30): `example/lib/main.dart` is `in_app_purchase`
+3.3.1's, except that the four calls into the StoreKit addition are guarded by
+`FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch,
+where the addition's methods fail with an `UnsupportedError`), and the comment
+above `showPriceConsentIfNeeded` is reworded. `example/pubspec.yaml` adds
+`flutter_watchos: ^0.1.0` and `shared_preferences_watchos: ^0.1.0`.
+`example/integration_test/watchos_example_start_test.dart` checks that the
+example starts cleanly; not yet run on a watch Simulator.
+
 ## This is an FFI scaffold
 
 Method-channel plugins are not supported on watchOS — a `pluginClass:`-only implementation builds, but its channel calls throw `MissingPluginException`. The supported plugin model is **dart:ffi**, so this package is an FFI scaffold, not a copy of the source plugin's native code:
