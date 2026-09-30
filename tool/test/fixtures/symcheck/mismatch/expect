@@ -1,0 +1,6 @@
+1
+FAIL foo_watchos
+declared, not defined: foo_watchos_b
+looked up by Dart, not declared: foo_watchos_d
+defined, not declared: foo_watchos_c
+declared, not looked up by Dart: foo_watchos_b

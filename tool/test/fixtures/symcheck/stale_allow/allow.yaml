@@ -1,0 +1,5 @@
+allow:
+  - package: foo_watchos
+    symbol: foo_watchos_e
+    kind: declared, not looked up by Dart
+    reason: Swift calls it.

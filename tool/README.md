@@ -13,6 +13,7 @@ tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_test_names.dart)
 (cd tool && dart run bin/check_versions.dart)
 (cd tool && dart run bin/check_readme_snippets.dart)
+(cd tool && dart run bin/symcheck.dart)
 ```
 
 ## Word check
@@ -65,3 +66,12 @@ pubspec version, and an upstream package at its latest version in
 reason. Each federated README, and the root README, must say to add the
 package alongside its upstream. Update `upstream_versions.yaml` in the same
 commit that moves the READMEs to a new upstream major.
+
+## FFI symbols
+
+`bin/symcheck.dart` compares, per package, the `ffiSymbols` of the pubspec,
+the C functions the native sources define (and Swift `@_cdecl` names), and
+the symbol names `lib/` looks up. It fails on any difference that
+`symcheck_allow.yaml` does not list with its reason, and on an entry there
+that no longer matches. It moved here from
+`specs/research/2026-09-29/plugins-evidence/symcheck.py`, which only printed.

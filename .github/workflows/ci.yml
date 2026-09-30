@@ -143,6 +143,13 @@ jobs:
         working-directory: tool
         run: dart run bin/check_readme_snippets.dart
 
+      # Spec 0006 criterion 14: each plugin's ffiSymbols, native definitions
+      # and Dart lookups agree, outside tool/symcheck_allow.yaml.
+      - name: FFI symbols
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/symcheck.dart
+
       # CI logs print every test and group name.
       - name: Test and group names
         if: success() || failure()

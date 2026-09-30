@@ -1,0 +1,10 @@
+name: foo_watchos
+version: 0.1.0
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        ffiSymbols:
+          - foo_watchos_a
+          - foo_watchos_e
