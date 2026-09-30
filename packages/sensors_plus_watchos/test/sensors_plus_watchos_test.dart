@@ -223,6 +223,23 @@ void main() {
     expect(fake.isRegistered, isFalse);
   });
 
+  test('barometerEventStream does not throw; its first event is an error',
+      () async {
+    // The base class throws UnimplementedError synchronously, which put a red
+    // error screen on the sensors_plus example. The stream must carry the
+    // error instead, so a listener's onError sees it.
+    late Stream<BarometerEvent> stream;
+    expect(() => stream = sensors.barometerEventStream(), returnsNormally);
+    await expectLater(
+      stream,
+      emitsInOrder(<Object>[
+        emitsError(isA<UnsupportedError>().having(
+            (UnsupportedError e) => e.message, 'message', contains('watchOS'))),
+        emitsDone,
+      ]),
+    );
+  });
+
   test('every sensor stream maps its triple', () async {
     Future<T> firstOf<T>(Stream<T> stream, int kind) async {
       final Future<T> first = stream.first;

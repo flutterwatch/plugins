@@ -10,8 +10,9 @@
 // `NativeCallable.listener`, which re-reads the cache. One event per sample,
 // no timer.
 //
-// The barometer is intentionally not implemented: it is a separate CoreMotion
-// altimeter API, so `barometerEventStream` keeps the base UnimplementedError.
+// The barometer is not implemented: it is a separate CoreMotion altimeter API
+// (`CMAltimeter`). `barometerEventStream` returns a stream whose only event is
+// an UnsupportedError, so a listener's `onError` handles it; it never throws.
 
 import 'dart:async';
 import 'dart:ffi';
@@ -115,6 +116,23 @@ base class SensorsPlusWatchos extends SensorsPlatform {
         _b.readMagnetometer,
         _b.stopMagnetometer,
         (List<double> v, DateTime t) => MagnetometerEvent(v[0], v[1], v[2], t),
+      );
+
+  /// The barometer is not supported on watchOS.
+  ///
+  /// Returns a stream whose only event is an [UnsupportedError] that names
+  /// watchOS, after which the stream closes. It never throws synchronously,
+  /// so a listener with an `onError` handler (as in the `sensors_plus`
+  /// example) treats the watch like a device without the sensor.
+  @override
+  Stream<BarometerEvent> barometerEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) =>
+      Stream<BarometerEvent>.error(
+        UnsupportedError(
+          'barometerEventStream is not supported on watchOS: '
+          'sensors_plus_watchos does not read the CoreMotion altimeter.',
+        ),
       );
 
   /// Builds a broadcast stream that starts native updates on first listen and

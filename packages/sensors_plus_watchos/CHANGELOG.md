@@ -1,3 +1,11 @@
+## 0.1.1
+
+* `barometerEventStream` no longer throws when it is called. It returns a
+  stream whose only event is an `UnsupportedError` that names watchOS, so a
+  listener's `onError` handler sees it (the `sensors_plus` example then shows
+  its "Sensor Not Found" dialog instead of an error screen).
+* README: the install snippet names `sensors_plus: ^7.1.0` and this version.
+
 ## 0.1.0
 
 First release beyond the generated scaffold.
