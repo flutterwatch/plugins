@@ -9,6 +9,7 @@ Run them from the repository root:
 ```sh
 (cd tool && dart pub get && dart analyze --fatal-infos && dart test)
 tool/check_words.sh
+tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_test_names.dart)
 ```
 
@@ -31,3 +32,12 @@ each word with a trailing "s".
   Remove an entry in the commit that rewords its text: an entry whose text is
   gone fails the check.
 - `words/` itself is not scanned, because it must spell the words out.
+
+## Packaging
+
+`check_generated_ignored.sh` fails unless git ignores
+`watchos/Flutter/GeneratedPluginRegistrant.swift` in every package, which
+`flutter-watchos test` writes there; it lists the packages that rely on the
+root `.gitignore` alone. `check_clean_tree.sh` fails when the tree has a
+modified or new file that git does not ignore; CI runs it after the package
+tests.

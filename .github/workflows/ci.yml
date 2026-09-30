@@ -76,6 +76,12 @@ jobs:
             exit 1
           fi
 
+      # Spec 0006 criterion 3: nothing the steps above run may write a file
+      # that git does not ignore, or the next publish would ship it.
+      - name: The package steps leave the tree clean
+        if: success() || failure()
+        run: tool/check_clean_tree.sh
+
   # Checks of the repository as a whole, by the scripts in tool/. Each step
   # runs even when an earlier one failed, so one run reports every problem.
   checks:
@@ -109,6 +115,12 @@ jobs:
       - name: Word check
         if: success() || failure()
         run: tool/check_words.sh
+
+      # Spec 0006 criterion 3: what `flutter-watchos test` writes into a
+      # package is ignored, so it never dirties the tree or ships.
+      - name: Generated files are ignored
+        if: success() || failure()
+        run: tool/check_generated_ignored.sh
 
       # CI logs print every test and group name.
       - name: Test and group names

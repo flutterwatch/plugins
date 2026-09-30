@@ -11,3 +11,8 @@ coverage/
 
 # Local development overrides (path deps into the monorepo)
 pubspec_overrides.yaml
+
+# What `flutter-watchos test` writes into a plugin package (spec 0006
+# criterion 3). pub reads this file too, so the rule keeps the file out of
+# every package's archive; each package's own .gitignore carries it as well.
+packages/*/watchos/Flutter/
