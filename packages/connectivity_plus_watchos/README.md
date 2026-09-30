@@ -38,6 +38,23 @@ stream sends the real value when it arrives.
 `SCNetworkReachability` (which `connectivity_plus` uses on iOS) does not
 exist on watchOS, so this uses the Network framework (watchOS 6+) instead.
 
+## Example on the watch screen
+
+The example is `connectivity_plus`'s own example app, kept verbatim. It is
+designed for a phone and overflows a watch screen at native density, so the
+example's runner opts into the flutter-watchos content scale
+(`watchos/Runner/Info.plist`):
+
+```xml
+<key>FlutterWatchOSContentScale</key>
+<real>0.5</real>
+```
+
+The app lays out in a logical space twice the screen's size and is drawn
+smaller, without touching the example's Dart code. The watchOS widget test
+`example/test/watchos_content_scale_test.dart` lays the app out at that scale
+on every watch screen size and fails on any overflow.
+
 ## Not supported on watchOS
 
 Nothing: every member of `connectivity_plus_platform_interface` 2.1.0 is implemented.

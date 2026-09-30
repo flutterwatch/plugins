@@ -26,6 +26,10 @@
   coverage" list of every member of `connectivity_plus_platform_interface`
   2.1.0, audited by hand.
 * Example: `pubspec.yaml` names `connectivity_plus: ^7.3.1` instead of `any`.
+* Example: the runner sets `FlutterWatchOSContentScale` to 0.5, so the phone
+  example no longer overflows the watch screen (by 88 px on a 49 mm
+  Simulator). A widget test lays it out at that scale on every watch screen
+  size, and the README says why.
 
 ## 0.2.0
 

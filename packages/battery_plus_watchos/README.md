@@ -32,6 +32,23 @@ print(await battery.batteryState);       // charging / full / discharging
 | `isInBatterySaveMode` | ✅ `NSProcessInfo.isLowPowerModeEnabled` (watchOS 9+, else false) |
 | `onBatteryStateChanged` | ✅ poll-based — watchOS has no battery-change notification, so the stream polls every `BatteryPlusWatchos.pollInterval` (default 2s) and emits on change |
 
+## Example on the watch screen
+
+The example is `battery_plus`'s own example app, kept verbatim. It is
+designed for a phone and overflows a watch screen at native density, so the
+example's runner opts into the flutter-watchos content scale
+(`watchos/Runner/Info.plist`):
+
+```xml
+<key>FlutterWatchOSContentScale</key>
+<real>0.4</real>
+```
+
+The app lays out in a logical space 2.5 times the screen's size and is drawn
+smaller, without touching the example's Dart code. The watchOS widget test
+`example/test/watchos_content_scale_test.dart` lays the app out at that scale
+on every watch screen size and fails on any overflow.
+
 ## Not supported on watchOS
 
 Nothing: every member of `battery_plus_platform_interface` 2.0.1 is implemented.

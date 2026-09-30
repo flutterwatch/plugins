@@ -12,6 +12,10 @@
   coverage" list of every member of `battery_plus_platform_interface` 2.0.1,
   audited by hand.
 * Example: `pubspec.yaml` names `battery_plus: ^7.1.1` instead of `any`.
+* Example: the runner sets `FlutterWatchOSContentScale` to 0.4, so the phone
+  example no longer overflows the watch screen (by 122 px on a 49 mm
+  Simulator). A widget test lays it out at that scale on every watch screen
+  size, and the README says why.
 
 ## 0.1.0
 
