@@ -62,7 +62,8 @@ Android/web only.
 Notification settings are mapped from the watchOS-safe subset of
 `UNNotificationSettings` (authorization/alert/sound/notificationCenter/critical,
 plus announcement on watchOS 6+ and timeSensitive on watchOS 8+); badge,
-CarPlay, lock screen, and previews are reported as `notSupported`.
+CarPlay, lock screen and the setting for showing message content are reported
+as `notSupported`.
 
 ## Links an external native SDK
 

@@ -47,7 +47,8 @@ specified before fetching FCM Token").
 - Tokens: `getToken`, `getAPNSToken`, `deleteToken`, `onTokenRefresh`.
 - Permissions: `requestPermission`, `getNotificationSettings` (mapped to the
   watchOS-safe subset of `UNNotificationSettings`; capabilities the watch
-  lacks — badge, CarPlay, lock screen, previews — report `notSupported`).
+  lacks — badge, CarPlay, lock screen and the setting for showing message
+  content — report `notSupported`).
 - Messages: `onMessage`, `onMessageOpenedApp`, `getInitialMessage`.
 - Topics: `subscribeToTopic`, `unsubscribeFromTopic`.
 - Presentation & init: `setForegroundNotificationPresentationOptions`,
