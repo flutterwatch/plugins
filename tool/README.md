@@ -12,6 +12,7 @@ tool/check_words.sh
 tool/check_generated_ignored.sh
 (cd tool && dart run bin/check_test_names.dart)
 (cd tool && dart run bin/check_versions.dart)
+(cd tool && dart run bin/check_readme_snippets.dart)
 ```
 
 ## Word check
@@ -52,3 +53,15 @@ changed needs a higher version and a top CHANGELOG heading equal to it, and
 no package may be at a pre-release. A package without a row is checked as
 unpublished. After each publish, record the version and the commit it was
 published from in `published.yaml`.
+
+## README install snippets
+
+`bin/check_readme_snippets.dart` reads every `yaml` block with a
+`dependencies:` map in the package READMEs and the root README, without
+calling pub.dev. Each constraint must be a caret on a plain version: no
+placeholder, no `any`. A package of this repository must be admitted at its
+pubspec version, and an upstream package at its latest version in
+`upstream_versions.yaml`, which may also allow one older constraint with a
+reason. Each federated README, and the root README, must say to add the
+package alongside its upstream. Update `upstream_versions.yaml` in the same
+commit that moves the READMEs to a new upstream major.

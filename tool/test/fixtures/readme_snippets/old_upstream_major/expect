@@ -1,0 +1,2 @@
+1
+foo: "^1.0.0" does not admit the latest version 2.3.4 (major 2)

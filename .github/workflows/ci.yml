@@ -134,6 +134,15 @@ jobs:
         working-directory: tool
         run: dart run bin/check_versions.dart
 
+      # Spec 0006 criterion 2: every README install snippet names plain
+      # caret constraints that admit the package's own version and the
+      # upstream's latest major (tool/upstream_versions.yaml), and says to
+      # add the package alongside the upstream. Offline: no pub.dev call.
+      - name: README install snippets
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_readme_snippets.dart
+
       # CI logs print every test and group name.
       - name: Test and group names
         if: success() || failure()

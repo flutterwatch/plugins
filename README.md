@@ -131,8 +131,8 @@ plugin:
 
 ```yaml
 dependencies:
-  path_provider: ^2.1.0
-  path_provider_watchos: ^0.0.1
+  shared_preferences: ^2.5.5
+  shared_preferences_watchos: ^0.1.0
 ```
 
 The version badges in the table above are the current published versions —
