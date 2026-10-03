@@ -10,7 +10,7 @@
 | Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours covers registration, FFI linkage and graceful degradation, ✅ 7 pass on the watch simulator |
 | Unified demo | ✅ example included (`example/`), builds and drives on the watch simulator |
 
-This package is **staged, not released.** The table is deliberately honest:
+This package is published on pub.dev. The table is deliberately honest:
 sign-in and submission have been observed working on a physical Apple Watch
 Series 10, and reading entries has not.
 

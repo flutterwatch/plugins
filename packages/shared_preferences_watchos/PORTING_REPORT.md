@@ -21,10 +21,11 @@ implementation — method-channel plugins are not supported on watchOS.
 ✅ WORKING FFI implementation:
 
 - `watchos/Classes/shared_preferences_watchos_ffi.m` persists the whole
-  store as one JSON string in `NSUserDefaults` and exposes three symbols
-  (`load` / `save` / `free`). All symbols carry `used` +
-  default-visibility, so they survive the static link; the CLI force-loads
-  the archive, and `ffiSymbols` lists the exports.
+  store as one JSON string in `NSUserDefaults` and exports three C
+  functions: `shared_preferences_watchos_load`,
+  `shared_preferences_watchos_save` and `shared_preferences_watchos_free`.
+  Each carries `used` and default visibility, so it survives the static
+  link; the CLI force-loads the archive, and `ffiSymbols` lists the exports.
 - `lib/src/watchos_prefs_store.dart` is the Dart-side store; typing and
   filtering live here so JSON round-trips each value type exactly.
 - `lib/shared_preferences_watchos.dart` registers BOTH platform interfaces

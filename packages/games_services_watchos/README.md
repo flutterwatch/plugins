@@ -88,8 +88,8 @@ These members of `games_services_platform_interface` 4.1.1 throw or fail on watc
 
 ## Status
 
-Staged, not production-ready. See [PORTING_REPORT.md](PORTING_REPORT.md)
-for the verification table — in particular, leaderboard reads have not yet
-been observed working on a physical watch.
+Sign-in and score submission have been observed working on a physical Apple
+Watch; leaderboard reads have not yet. See [PORTING_REPORT.md](PORTING_REPORT.md)
+for the verification table.
 
 [upstream]: https://pub.dev/packages/games_services

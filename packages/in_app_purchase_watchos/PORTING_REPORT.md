@@ -62,7 +62,7 @@ These work on watchOS (often differently than iOS) — implement them, checking 
 - [x] List every exported symbol under `ffiSymbols` in `pubspec.yaml`, and the frameworks you link in `Package.swift`. — 9 symbols; `StoreKit` + `Foundation` linked.
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods. — query/buy/stream/complete/restore.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`). — the ported `example/`; all 9 symbols defined (`T`) on 2026-07-23.
-- [ ] Bump the version and update `CHANGELOG.md` before publishing. — `CHANGELOG.md` updated; version still `0.0.1` (bump at publish time). Not yet published.
+- [x] Bump the version and update `CHANGELOG.md` before publishing. — first published at `0.0.1`; this release is `0.1.0`.
 - [ ] Verify a real purchase round-trip with StoreKit test products (`.storekit` config) or an App Store Connect sandbox — the bare Simulator has none. *(added — the one thing the on-sim build can't prove.)*
 
 ## Interface coverage
