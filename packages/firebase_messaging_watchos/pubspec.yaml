@@ -1,6 +1,6 @@
 name: firebase_messaging_watchos
 description: "watchOS implementation of firebase_messaging, bridging the Firebase Apple SDK (FirebaseMessaging) over dart:ffi for tokens, topics, and messages."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

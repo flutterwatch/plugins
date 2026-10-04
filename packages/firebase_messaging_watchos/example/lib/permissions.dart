@@ -91,7 +91,7 @@ class _Permissions extends State<Permissions> {
         row('Car Play', settingsMap[_settings.carPlay]!),
         row('Lock Screen', settingsMap[_settings.lockScreen]!),
         row('Notification Center', settingsMap[_settings.notificationCenter]!),
-        row('Show Previews', previewMap[_settings.showPreviews]!),
+        row('Message Content', previewMap[_settings.showPreviews]!),
         row('Sound', settingsMap[_settings.sound]!),
         row('Provides App Notification Settings',
             settingsMap[_settings.providesAppNotificationSettings]!),

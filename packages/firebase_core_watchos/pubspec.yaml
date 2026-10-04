@@ -1,6 +1,6 @@
 name: firebase_core_watchos
 description: "watchOS implementation of firebase_core, bridging the Firebase Apple SDK (FirebaseCore) over dart:ffi to configure and read Firebase app instances."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins
 issue_tracker: https://github.com/flutterwatch/plugins/issues

@@ -57,7 +57,7 @@ FIREBASE_CORE_WATCHOS_EXPORT const char* firebase_core_watchos_delete(
 FIREBASE_CORE_WATCHOS_EXPORT const char* firebase_core_watchos_set_auto_data_collection(
     const char* name, bool enabled);
 
-/// Frees a string previously returned by any function above.
+/// Releases a string previously returned by any function above.
 FIREBASE_CORE_WATCHOS_EXPORT void firebase_core_watchos_free(const char* ptr);
 
 #endif  // FIREBASE_CORE_WATCHOS_FFI_H

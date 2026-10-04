@@ -28,7 +28,7 @@ import 'package:firebase_storage_platform_interface/firebase_storage_platform_in
 /// FFI bindings to the native firebase_storage_watchos C functions.
 ///
 /// Each method marshals its arguments into C strings, calls the native
-/// function, copies the returned JSON, frees the native buffer, and decodes
+/// function, copies the returned JSON, releases the native buffer, and decodes
 /// it. Overridable for tests via [FirebaseStorageWatchos.bindingsOverride]:
 /// the [FirebaseStorageWatchosBindings.forTesting] constructor skips FFI
 /// initialization so fakes work off-device.
@@ -72,7 +72,7 @@ class FirebaseStorageWatchosBindings {
       Void Function(Pointer<Utf8>),
       void Function(Pointer<Utf8>)>('firebase_storage_watchos_free');
 
-  /// Decodes and frees a native JSON string result.
+  /// Decodes and releases a native JSON string result.
   Map<String, Object?> _consume(Pointer<Utf8> ptr) {
     if (ptr == nullptr) {
       return <String, Object?>{

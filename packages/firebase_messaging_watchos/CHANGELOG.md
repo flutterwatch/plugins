@@ -1,3 +1,10 @@
+## 0.1.1
+
+* API docs and comments say "release" for handing native memory back.
+* Example: the notification settings screen calls the message-content
+  setting "Message Content".
+* Example: `pubspec.yaml` names `firebase_messaging: ^16.7.0` instead of `any`.
+
 ## 0.1.0
 
 * Released with flutter-watchos 0.1.0. The code is the same as in the last

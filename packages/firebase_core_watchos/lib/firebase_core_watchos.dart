@@ -21,7 +21,7 @@ import 'package:firebase_core_platform_interface/firebase_core_platform_interfac
 /// FFI bindings to the native firebase_core_watchos C functions.
 ///
 /// Each method marshals its arguments into C strings, calls the native
-/// function, copies the returned JSON, frees the native buffer, and decodes
+/// function, copies the returned JSON, releases the native buffer, and decodes
 /// it. Overridable for tests via [FirebaseCoreWatchos.bindingsOverride]: the
 /// [FirebaseCoreWatchosBindings.forTesting] constructor skips FFI
 /// initialization so fakes work off-device.
@@ -62,7 +62,7 @@ class FirebaseCoreWatchosBindings {
   late final void Function(Pointer<Utf8>) _free = _lib!.lookupFunction<
       Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('firebase_core_watchos_free');
 
-  /// Decodes and frees a native JSON string result.
+  /// Decodes and releases a native JSON string result.
   Object? _consume(Pointer<Utf8> ptr) {
     if (ptr == nullptr) {
       return <String, Object?>{'error': 'Native call returned null.', 'code': 'internal'};

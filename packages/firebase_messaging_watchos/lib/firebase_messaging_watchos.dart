@@ -66,7 +66,7 @@ class FirebaseMessagingWatchosBindings {
       Void Function(Pointer<Utf8>),
       void Function(Pointer<Utf8>)>('firebase_messaging_watchos_free');
 
-  /// Decodes and frees a native JSON string result.
+  /// Decodes and releases a native JSON string result.
   Map<String, Object?> _consume(Pointer<Utf8> ptr) {
     if (ptr == nullptr) {
       return <String, Object?>{

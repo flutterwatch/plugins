@@ -1,3 +1,8 @@
+## 0.1.1
+
+* API docs and comments say "release" for handing native memory back.
+* Example: `pubspec.yaml` names `firebase_auth: ^6.7.0` instead of `any`.
+
 ## 0.1.0
 
 * Released with flutter-watchos 0.1.0. The code is the same as in the last
