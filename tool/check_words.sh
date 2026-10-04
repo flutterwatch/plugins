@@ -306,7 +306,11 @@ if [ "$failed" -ne 0 ]; then
   exit 1
 fi
 
-pending_count="$(grep -c -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$pending_file" || true)"
+# The pending list is deleted once its last entry goes; no file, no notice.
+pending_count=0
+if [ -f "$pending_file" ]; then
+  pending_count="$(grep -c -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$pending_file" || true)"
+fi
 if [ "${pending_count:-0}" -gt 0 ]; then
   message="$pending_count pending entries in tool/words/pending.txt: prose and test names still to reword in packages/."
   if [ "${GITHUB_ACTIONS:-}" = "true" ]; then

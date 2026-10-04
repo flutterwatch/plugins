@@ -36,6 +36,29 @@ void main() {
     expect(fixtures.where((Fixture f) => f.expectedExitCode == 0), isNotEmpty);
   });
 
+  // The pending list is deleted when its last entry goes.
+  test('a clean repository passes without a pending list, and says nothing of it', () {
+    final Fixture clean = fixtures.singleWhere((Fixture f) => f.name == 'clean');
+    final String root = clean.createRepository();
+    addTearDown(() => Directory(root).deleteSync(recursive: true));
+    final ProcessResult result = Process.runSync(
+      'bash',
+      <String>[
+        script,
+        '--root',
+        root,
+        '--allow',
+        clean.allowList,
+        '--pending',
+        p.join(root, 'missing_pending.txt'),
+      ],
+      environment: <String, String>{'GITHUB_ACTIONS': ''},
+    );
+    expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+    expect(result.stderr, isEmpty);
+    expect(result.stdout, isNot(contains('pending entries')));
+  });
+
   for (final Fixture fixture in fixtures) {
     test('fixture ${fixture.name}', () {
       final String root = fixture.createRepository();

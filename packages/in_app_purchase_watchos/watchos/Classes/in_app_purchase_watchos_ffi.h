@@ -29,7 +29,7 @@
 //   int64_t h = ..._query_start(ids_json);   // kick off; 0 == couldn't start
 //   while (!..._query_ready(h)) { /* Dart awaits a short delay */ }
 //   const char *json = ..._query_result(h);  // owned by the plugin
-//   ..._query_release(h);                     // frees the result + handle
+//   ..._query_release(h);                     // releases the result + handle
 //
 // [ids_json] is a UTF-8 JSON array of product identifiers, e.g. `["a","b"]`.
 // The result is a UTF-8 JSON object:
@@ -38,7 +38,7 @@
 //    "notFound":["id"...],
 //    "error":{"code","message"}?}
 // The returned pointer stays valid until ..._query_release(h); Dart copies it
-// out immediately and never frees it.
+// out immediately and never releases it.
 
 IN_APP_PURCHASE_WATCHOS_EXPORT int64_t
 in_app_purchase_watchos_query_start(const char* ids_json);

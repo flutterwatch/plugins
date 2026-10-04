@@ -51,7 +51,7 @@ int flutter_secure_storage_watchos_delete(const char* key, const char* service,
                                           bool synchronizable);
 
 // Returns a malloc'd JSON object string of every key/value pair for the
-// service (the caller frees it), or NULL on error. "{}" when empty.
+// service (the caller releases it), or NULL on error. "{}" when empty.
 FLUTTER_SECURE_STORAGE_WATCHOS_EXPORT
 char* flutter_secure_storage_watchos_read_all(const char* service,
                                               const char* access_group,

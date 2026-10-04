@@ -25,7 +25,7 @@ SHARED_PREFERENCES_WATCHOS_EXPORT const char* shared_preferences_watchos_load(vo
 /// Persists [json] (a JSON object string) as the whole store.
 SHARED_PREFERENCES_WATCHOS_EXPORT void shared_preferences_watchos_save(const char* json);
 
-/// Frees a buffer returned by `shared_preferences_watchos_load`.
+/// Releases a buffer returned by `shared_preferences_watchos_load`.
 SHARED_PREFERENCES_WATCHOS_EXPORT void shared_preferences_watchos_free(char* ptr);
 
 #endif  // SHARED_PREFERENCES_WATCHOS_FFI_H

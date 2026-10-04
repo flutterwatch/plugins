@@ -139,7 +139,7 @@ class GamesServicesWatchosBindings {
     return _bindings;
   }
 
-  /// Reads a native string and frees it; the C side hands over ownership.
+  /// Reads a native string and releases it; the C side hands over ownership.
   String? _takeString(Pointer<Utf8> ptr, _Symbols b) {
     if (ptr == nullptr) return null;
     try {

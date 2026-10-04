@@ -35,7 +35,7 @@ GAMES_SERVICES_WATCHOS_EXPORT int32_t games_services_watchos_entries_state(void)
 // first call installs. The system shows its own sign-in UI where it wants to.
 GAMES_SERVICES_WATCHOS_EXPORT void games_services_watchos_authenticate(void);
 
-// Player's display name once authenticated, else NULL. Caller frees.
+// Player's display name once authenticated, else NULL. The caller releases it.
 GAMES_SERVICES_WATCHOS_EXPORT char* games_services_watchos_player_alias(void);
 
 // Fire-and-forget score submission. Poll games_services_watchos_submit_state.
@@ -45,10 +45,10 @@ GAMES_SERVICES_WATCHOS_EXPORT void games_services_watchos_submit(int64_t score, 
 // then read games_services_watchos_entries_json.
 GAMES_SERVICES_WATCHOS_EXPORT void games_services_watchos_load_entries(const char* leaderboard_id, int32_t count);
 
-// JSON array of {rank, score, player, is_local}, or NULL until ready. Caller frees.
+// JSON array of {rank, score, player, is_local}, or NULL until ready. The caller releases it.
 GAMES_SERVICES_WATCHOS_EXPORT char* games_services_watchos_entries_json(void);
 
-// Most recent error text, or NULL. Caller frees.
+// Most recent error text, or NULL. The caller releases it.
 GAMES_SERVICES_WATCHOS_EXPORT char* games_services_watchos_last_error(void);
 
 GAMES_SERVICES_WATCHOS_EXPORT void games_services_watchos_free(char* ptr);

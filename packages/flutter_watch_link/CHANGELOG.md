@@ -11,6 +11,7 @@
   with a message, unless the run passes `--dart-define=FWL_PAIRED=true`, so an
   unpaired Simulator no longer fails them. The watch layout scrolls as one
   list and no longer overflows on the smaller watches.
+* API docs and comments say "release" for handing native memory back.
 
 ## 0.1.0
 

@@ -21,7 +21,7 @@ const char* shared_preferences_watchos_load(void) {
     if (json == nil || json.length == 0) {
       json = @"{}";
     }
-    // Fresh copy every call (the store mutates between calls); Dart frees it
+    // Fresh copy every call (the store mutates between calls); Dart releases it
     // via shared_preferences_watchos_free.
     return strdup(json.UTF8String);
   }

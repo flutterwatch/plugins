@@ -12,6 +12,7 @@
   coverage" list of every member of `shared_preferences_platform_interface`
   2.4.2, audited by hand.
 * Example: `pubspec.yaml` names `shared_preferences: ^2.5.5` instead of `any`.
+* API docs and comments say "release" for handing native memory back.
 
 ## 0.1.0
 

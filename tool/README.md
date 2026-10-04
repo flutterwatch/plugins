@@ -38,15 +38,16 @@ each word with a trailing "s".
 - `words/forbidden_words_allow.txt` lists the code identifiers, API names
   and upstream licence texts that may stay, each with its reason. It is a
   copy of the flutter-watchos CLI's `test/data/forbidden_words_allow.txt`.
-  Test and group names can never be allowed; only the pending list may name
-  one, until the commit that renames it. An entry for this repository names
+  Test and group names can never be allowed. An entry for this repository names
   its packages: the check fails on a glob such as `packages/**` or
   `packages/*_watchos/**`, which in the CLI's copy would also match
   `packages/flutter_watchos/`.
-- `words/pending.txt` lists the prose and test names that the package
-  commits still have to reword. The checks pass over them with a notice.
-  Remove an entry in the commit that rewords its text: an entry whose text is
-  gone fails the check.
+- `words/pending.txt` listed the prose and test names still to reword while
+  the 0.1.1 package commits were in flight. The last of them was reworded for
+  the 0.1.1 round and the file deleted; both checks treat a missing file as an
+  empty list. Bring it back only for the same purpose: each entry is prose or a
+  test name still to reword, the checks pass over it with a notice, and an
+  entry whose text is gone fails the check.
 - `words/` itself is not scanned, because it must spell the words out.
 
 ## Packaging

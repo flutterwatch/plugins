@@ -187,7 +187,7 @@ int flutter_watch_link_dropped_inbound_count(void);
 FWL_EXPORT
 char* flutter_watch_link_take_last_error(void);
 
-// Frees a string returned by `..._application_context`, `..._poll_inbound` or
+// Releases a string returned by `..._application_context`, `..._poll_inbound` or
 // `..._take_last_error`.
 FWL_EXPORT
 void flutter_watch_link_free(char* value);

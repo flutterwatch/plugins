@@ -224,7 +224,7 @@ class WatchLinkFfiBindings {
   /// Undelivered file-transfer count.
   int outstandingFileTransferCount() => _outstandingFiles();
 
-  /// Copies a native string out and frees it.
+  /// Copies a native string out and releases it.
   ///
   /// Ownership transfers to Dart on every call that returns a pointer, so each
   /// one is freed here — unlike path_provider_watchos, whose pointers are

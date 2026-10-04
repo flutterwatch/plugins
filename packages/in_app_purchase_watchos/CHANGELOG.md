@@ -35,6 +35,9 @@
   `shared_preferences` store needs on the watch, and a new integration test
   checks that it starts cleanly. The README and PORTING_REPORT list the
   deviations.
+* API docs and comments say "release" for handing native memory back.
+* README and the example's StoreKit test describe a product's amount in
+  plain words.
 
 ## 0.0.1
 

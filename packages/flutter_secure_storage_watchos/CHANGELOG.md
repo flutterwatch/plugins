@@ -19,6 +19,7 @@
   `flutter_secure_storage` 11.2.0, so the upstream test compiles against the
   version the example resolves (the 10.x test used cipher names 11.x removed).
   The README and PORTING_REPORT say so.
+* API docs and comments say "release" for handing native memory back.
 
 ## 0.0.1
 

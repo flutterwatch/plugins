@@ -58,9 +58,9 @@ void main() {
     for (final ProductDetails p in response.productDetails) {
       expect(p.id, isNotEmpty);
       expect(p.title, isNotEmpty);
-      expect(p.price, isNotEmpty, reason: '${p.id} has an empty `price`');
+      expect(p.price, isNotEmpty, reason: '${p.id} has an empty display amount');
       expect(p.rawPrice, greaterThan(0),
-          reason: '${p.id} has no positive `rawPrice`');
+          reason: '${p.id} has no positive numeric amount');
       expect(p.currencyCode, isNotEmpty);
     }
   });

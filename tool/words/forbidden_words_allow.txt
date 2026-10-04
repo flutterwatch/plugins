@@ -49,7 +49,6 @@ packages/network_info_plus_watchos/** | _watchos_free | The C function each plug
 packages/shared_preferences_watchos/** | _watchos_free | The C function each plugin exports to release a string it returned; a symbol name, also in ffiSymbols and in Dart lookups.
 packages/flutter_watch_link/** | flutter_watch_link_free | The C function flutter_watch_link exports to release a string it returned; a symbol name.
 packages/flutter_watch_link/src/flutter_watch_link_ffi.h | `..._free` | The short form of the symbol name flutter_watch_link_free in its header comments.
-packages/shared_preferences_watchos/PORTING_REPORT.md | `free` | The short name of the exported symbol shared_preferences_watchos_free.
 packages/firebase_*_watchos/**/*.dart | _free | Private Dart names (_free, _freeString, _freeFn) of the function bound to a plugin's exported *_free symbol.
 packages/flutter_secure_storage_watchos/**/*.dart | _free | Private Dart names (_free, _freeString, _freeFn) of the function bound to a plugin's exported *_free symbol.
 packages/flutter_watch_link/**/*.dart | _free | Private Dart names (_free, _freeString, _freeFn) of the function bound to a plugin's exported *_free symbol.

@@ -517,7 +517,7 @@ class InAppPurchaseWatchosBindings {
     return p == nullptr ? null : p.toDartString();
   }
 
-  /// Frees the result and handle. Must be called once per [queryStart].
+  /// Releases the result and handle. Must be called once per [queryStart].
   void queryRelease(int handle) => _queryRelease(handle);
 
   late final bool Function() _canMakePayments = _lib!.lookupFunction<

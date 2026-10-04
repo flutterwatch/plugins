@@ -127,7 +127,8 @@ jobs:
           dart test
 
       # Spec 0006 Decision 2d and 0007 D8: no forbidden word in any file,
-      # outside tool/words/forbidden_words_allow.txt and tool/words/pending.txt.
+      # outside tool/words/forbidden_words_allow.txt (and tool/words/pending.txt,
+      # when there is one).
       - name: Word check
         if: success() || failure()
         run: tool/check_words.sh

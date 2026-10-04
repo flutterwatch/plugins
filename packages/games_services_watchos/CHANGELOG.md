@@ -18,6 +18,7 @@
 * README: says this release works with `games_services` 4.x, and that
   `games_services` 5.x, which needs the 5.x interface, does not resolve
   alongside it yet.
+* API docs and comments say "release" for handing native memory back.
 
 ## 0.0.1
 

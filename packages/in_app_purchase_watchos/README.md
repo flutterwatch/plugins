@@ -76,7 +76,7 @@ awaits them inside `try`/`catch`, or skips them on the watch, keeps working.
 
 Verified end to end against real StoreKit on a watch simulator, using the
 bundled `watchos/Configuration.storekit` test configuration: product lookup
-returns all four test products with prices, and a purchase completes
+returns all four test products, each with its amount, and a purchase completes
 (`buy` → `purchaseStream` reports `purchased` with a receipt → `completePurchase`
 finishes the transaction). Also builds and links on a physical Apple Watch
 (all 10 FFI symbols present in the device binary).
