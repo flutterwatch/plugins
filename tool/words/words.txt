@@ -1,0 +1,10 @@
+# The forbidden words (0007 D8, 0006 Decision 2d), one per line. Each is also
+# forbidden with a trailing "s". tool/check_words.sh and the Dart rule in
+# tool/lib/src/forbidden_words.dart both read this file, so there is one list.
+beta
+free
+paid
+pricing
+price
+trial
+preview

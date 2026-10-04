@@ -1,0 +1,42 @@
+# The latest version of each upstream package on pub.dev, read from the
+# pub.dev API (latest.version) on 2026-09-30.
+#
+# tool/bin/check_readme_snippets.dart holds every README install snippet to
+# it: an upstream constraint must be a caret constraint that admits this
+# version, so its major is the latest major (spec 0006 criterion 2). The
+# weekly upstream job compares it with pub.dev and reports a newer major.
+# Move a version here in the same commit that moves the READMEs to it.
+upstreams:
+  audioplayers: 6.8.1
+  battery_plus: 7.1.1
+  connectivity_plus: 7.3.1
+  device_info_plus: 13.2.0
+  firebase_auth: 6.7.0
+  firebase_core: 4.15.0
+  firebase_messaging: 16.7.0
+  firebase_storage: 13.6.0
+  flutter_secure_storage: 11.2.0
+  games_services: 5.3.0
+  geolocator: 14.1.1
+  in_app_purchase: 3.3.1
+  local_auth: 3.0.2
+  network_info_plus: 8.2.1
+  package_info_plus: 10.2.1
+  path_provider: 2.1.6
+  sensors_plus: 7.1.0
+  shared_preferences: 2.5.5
+  url_launcher: 6.3.2
+  video_player: 2.14.0
+
+# A README may name an older major only when it is listed here, with the
+# exact constraint and the reason. Spec 0006 allows one, and only under the
+# fallback of its Decision 5, which holds while games_services_watchos
+# implements the 4.x platform interface. Remove it in the commit that moves
+# the package and its README to games_services 5.x.
+exceptions:
+  games_services:
+    constraint: ^4.1.1
+    reason: >-
+      games_services_watchos implements games_services_platform_interface
+      4.x, and games_services 5.x needs 5.x (spec 0006 Decision 5, its
+      fallback).

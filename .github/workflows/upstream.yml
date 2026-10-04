@@ -1,0 +1,94 @@
+# Weekly upstream compatibility (spec 0006 Decision 7 and criterion 17a,
+# change plan M244 and M245).
+#
+# Not a gate: it runs on a schedule or by hand, never on a push or a pull
+# request, so it blocks nothing. A red run means that an upstream plugin, or
+# the way pub.dev scores packages, has moved on, and a package, a README or
+# tool/upstream_versions.yaml needs a look.
+#
+# It reads pub.dev (its API, `pub get` and pana) and publishes nothing. The
+# log is public, so both scripts withhold any line that holds a forbidden
+# word (spec 0007 D8), and pana's own log stays in the runner's temporary
+# directory.
+name: Upstream compatibility
+
+on:
+  schedule:
+    # Mondays at 05:17 UTC.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  upstream:
+    name: latest upstreams
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # The same Flutter release as ci.yml.
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Fetch the tool dependencies
+        working-directory: tool
+        run: dart pub get
+
+      # For each federated package: pub.dev's latest upstream against
+      # tool/upstream_versions.yaml (a new major fails), and a scratch app
+      # with that upstream and the package, once from this repository and
+      # once at its latest version on pub.dev, as a user gets it.
+      - name: Resolve each package with its latest upstream
+        working-directory: tool
+        run: dart run bin/upstream_compat.dart
+
+  pana:
+    name: pana
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Fetch the tool dependencies
+        working-directory: tool
+        run: dart pub get
+
+      # The latest pana, as pub.dev runs it, so that a change in its scoring
+      # shows here. One JSON report per package; the loop goes on after a
+      # failure, and the next step reports a missing report.
+      - name: Run pana on every package
+        run: |
+          dart pub global activate pana
+          sdk="$(dirname "$(dirname "$(command -v flutter)")")"
+          mkdir -p "$RUNNER_TEMP/pana"
+          for dir in packages/*/; do
+            name=$(basename "$dir")
+            echo "pana: $name"
+            dart pub global run pana --no-warning --json --flutter-sdk "$sdk" \
+              "$dir" > "$RUNNER_TEMP/pana/$name.json" \
+              2> "$RUNNER_TEMP/pana/$name.log" \
+              || echo "pana exited with $? for $name"
+          done
+
+      # Every section full, except "Platform support" for a package that
+      # declares only watchOS, which pana does not score (AUTHORING.md
+      # section 4): 140/160 for those, 160/160 for flutter_watch_link.
+      - name: Compare the pana scores
+        working-directory: tool
+        run: dart run bin/pana_scores.dart --reports "$RUNNER_TEMP/pana"

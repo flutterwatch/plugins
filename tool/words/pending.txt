@@ -1,0 +1,41 @@
+# Pending: prose and test names in packages/ that still hold a forbidden word.
+#
+# Same format as forbidden_words_allow.txt: <path glob> | <exact text> | <why>.
+# These are not allowed text. They are the rewording still to do in the
+# package commits of 0.1.1 (spec 0006 Decision 2d; test names under 0007 D8),
+# listed so the word check can run in CI before those commits land. The check
+# prints how many remain. An entry whose text is gone fails as stale, so each
+# commit that rewords a line deletes its entry here. When the file has no
+# entries left, delete it.
+packages/device_info_plus_watchos/watchos/Classes/device_info_plus_watchos_ffi.h | callers must NOT free it. | Prose about memory ownership; reword as "release".
+packages/firebase_*_watchos/lib/firebase_*_watchos.dart | frees the native buffer | Dartdoc prose; reword as "releases".
+packages/firebase_*_watchos/lib/firebase_*_watchos.dart | Decodes and frees | Dartdoc prose; reword as "releases".
+packages/firebase_core_watchos/watchos/Classes/firebase_core_watchos_ffi.h | Frees a string previously returned | Header prose; reword as "Releases".
+packages/firebase_messaging_watchos/example/lib/permissions.dart | 'Show Previews' | A label of the upstream example; reword it and list the deviation (0006 Decision 1d), or move it to the allow-list with a reason.
+packages/flutter_secure_storage_watchos/lib/flutter_secure_storage_watchos.dart | releases it with the native free. | Dartdoc prose; name the native function instead.
+packages/flutter_secure_storage_watchos/watchos/Classes/flutter_secure_storage_watchos_ffi.h | (the caller frees it) | Header prose; reword as "releases".
+packages/flutter_watch_link/example/.gitignore | # Widget Preview related | A comment written by flutter create; reword it.
+packages/flutter_watch_link/lib/src/ffi_backend.dart | Copies a native string out and frees it. | Dartdoc prose; reword as "releases".
+packages/flutter_watch_link/src/flutter_watch_link_ffi.h | free it with | Header prose; reword as "release it with".
+packages/flutter_watch_link/src/flutter_watch_link_ffi.h | Frees a string returned by | Header prose; reword as "Releases".
+packages/flutter_watch_link/src/flutter_watch_link_ffi.m | the Dart end is free to | Source comment; "is free to" becomes "may" (0006 Decision 2d).
+packages/games_services_watchos/lib/src/games_services_watchos_bindings.dart | Reads a native string and frees it | Dartdoc prose; reword as "releases".
+packages/games_services_watchos/watchos/Classes/games_services_watchos_ffi.h | the compiler is free to drop them | Header prose; "is free to" becomes "may".
+packages/games_services_watchos/watchos/Classes/games_services_watchos_ffi.h | Caller frees. | Header prose; reword as "The caller releases it."
+packages/geolocator_watchos/watchos/Classes/geolocator_watchos_ffi.m | Dart is free to call | Source comment; "is free to" becomes "may".
+packages/in_app_purchase_watchos/README.md | with prices | README prose.
+packages/in_app_purchase_watchos/example/integration_test/storekit_products_test.dart | has no formatted price | A test message; name the field as code or reword it (0006 Decision 2d).
+packages/in_app_purchase_watchos/example/integration_test/storekit_products_test.dart | has no raw price | A test message; name the field as code or reword it.
+packages/in_app_purchase_watchos/example/lib/main.dart | // Price changes for Android are not handled by the application, but are | The upstream comment that 0006 Decision 1d rewords.
+packages/in_app_purchase_watchos/example/lib/main.dart | billing/price-changes | The same upstream comment.
+packages/in_app_purchase_watchos/example/lib/main.dart | // information on price changes on Android. | The same upstream comment.
+packages/in_app_purchase_watchos/lib/in_app_purchase_watchos.dart | Frees the result and handle. | Dartdoc prose; reword as "Releases".
+packages/in_app_purchase_watchos/test/in_app_purchase_watchos_test.dart | missing rawPrice / fields fall back to safe defaults | A test name, which the CI log prints; rename it "missing product fields fall back to safe defaults" (0007 D8).
+packages/in_app_purchase_watchos/watchos/Classes/in_app_purchase_watchos_ffi.h | frees the result + handle | Header comment; reword as "releases".
+packages/in_app_purchase_watchos/watchos/Classes/in_app_purchase_watchos_ffi.h | never frees it. | Header comment; reword as "never releases it".
+packages/local_auth_watchos/watchos/Classes/local_auth_watchos_ffi.m | the callback is free to call | Source comment; "is free to" becomes "may".
+packages/package_info_plus_watchos/watchos/Classes/package_info_plus_watchos_ffi.h | must NOT free the returned pointer | Header prose; reword as "release".
+packages/path_provider_watchos/watchos/Classes/path_provider_watchos_ffi.h | callers must NOT free them. | Header prose; reword as "release".
+packages/shared_preferences_watchos/watchos/Classes/shared_preferences_watchos_ffi.h | Frees a buffer returned by | Header prose; reword as "Releases".
+packages/shared_preferences_watchos/watchos/Classes/shared_preferences_watchos_ffi.m | Dart frees it | Source comment; reword as "releases".
+packages/url_launcher_watchos/watchos/Classes/url_launcher_watchos_ffi.m | The price is that | Source comment; reword it (0006 Decision 2d).

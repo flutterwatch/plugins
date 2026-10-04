@@ -131,17 +131,18 @@ plugin:
 
 ```yaml
 dependencies:
-  path_provider: ^2.1.0
-  path_provider_watchos: ^0.0.1
+  shared_preferences: ^2.5.5
+  shared_preferences_watchos: ^0.1.0
 ```
 
 The version badges in the table above are the current published versions —
 use those, since these packages are still pre-1.0 and a caret constraint on
 `0.x` is narrower than you may expect.
 
-Then use the upstream plugin's API exactly as on iOS — the `*_watchos`
-implementation registers automatically via Flutter's federated plugin
-runner, with no imports or client code changes.
+Then call the upstream plugin's API — the `*_watchos` implementation
+registers automatically via Flutter's federated plugin runner, with no
+imports or client code changes. Not every method has a watchOS counterpart:
+each package's README lists the ones that do not, and what they do instead.
 
 `flutter_watch_link` is the exception: it is not an implementation of an
 upstream plugin, so depend on it on its own and call its API directly —

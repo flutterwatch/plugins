@@ -1,0 +1,18 @@
+Resolving dependencies...
+Got dependencies!
+Publishing foo 0.1.0 to https://pub.dev:
+├── CHANGELOG.md (<1 KB)
+├── LICENSE (1 KB)
+├── README.md (<1 KB)
+├── lib
+│   └── foo.dart (<1 KB)
+└── pubspec.yaml (<1 KB)
+
+Total compressed archive size: 1 KB.
+Validating package...
+Package validation found the following hint:
+* The package foo has no example.
+  
+The server may enforce additional checks.
+
+Package has 0 warnings and 1 hint.

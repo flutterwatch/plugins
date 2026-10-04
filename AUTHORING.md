@@ -325,3 +325,18 @@ watchOS. Keep the table honest — a red official test stays red and is marked
 Match the tvOS repo conventions: `0.0.x` while staged, `0.1.0` for the
 first working release, publish under the `flutterwatch.dev` verified
 publisher, and keep `CHANGELOG.md` current.
+
+### pub.dev points and platforms
+
+pana, the tool behind the points on pub.dev, scores support for six
+platforms: Android, iOS, Linux, macOS, web and Windows. watchOS is not one
+of them, so a package that implements only watchOS gets 0 of the 20
+"Platform support" points, and 140/160 is the most it can score. That is
+expected, and there is nothing to fix.
+
+Declare only the platforms the package implements. An `ios:` (or any other)
+block added for the points would tell users the package works there when it
+does not, and on those platforms the upstream plugin already does the work.
+`flutter_watch_link` declares `ios:` legitimately: it has no upstream, and it
+implements the iPhone side of WatchConnectivity itself, from the same `src/`
+as its watch side, so it scores 160.

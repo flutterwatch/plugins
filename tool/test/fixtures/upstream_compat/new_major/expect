@@ -1,0 +1,4 @@
+1
+FAIL battery_plus_watchos
+pub.dev has battery_plus 8.0.0, a new major; tool/upstream_versions.yaml and the README snippets say 7.1.1.
+Upstream compatibility: 1 of 1 packages need a look.

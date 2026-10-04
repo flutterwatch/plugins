@@ -1,0 +1,6 @@
+upstreams:
+  foo: 2.3.4
+exceptions:
+  foo:
+    constraint: ^1.4.0
+    reason: The package implements the 1.x platform interface.

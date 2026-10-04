@@ -76,6 +76,106 @@ jobs:
             exit 1
           fi
 
+      # Spec 0006 criterion 3: nothing the steps above run may write a file
+      # that git does not ignore, or the next publish would ship it.
+      - name: The package steps leave the tree clean
+        if: success() || failure()
+        run: tool/check_clean_tree.sh
+
+      # Spec 0007 criterion 32 (M165): pub's own checks on every package, so
+      # a warning or a refusal shows before the publish round, not during
+      # it. It reads pub.dev as `pub get` does and publishes nothing. The
+      # log is public, so the script withholds any line of pub's output that
+      # holds a forbidden word (0007 D8).
+      - name: Publish dry-run
+        if: success() || failure()
+        working-directory: tool
+        run: |
+          dart pub get
+          dart run bin/publish_dry_run.dart
+
+  # Checks of the repository as a whole, by the scripts in tool/. Each step
+  # runs even when an earlier one failed, so one run reports every problem.
+  checks:
+    name: repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The version check compares each package with the commit it was
+          # last published from, so it needs the history.
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Fetch the tool dependencies
+        working-directory: tool
+        run: dart pub get
+
+      # The scripts are test infrastructure; their own tests run their
+      # fixtures, each of which must fail or pass as its `expect` file says.
+      - name: Analyze and test the tool
+        if: success() || failure()
+        working-directory: tool
+        run: |
+          dart analyze --fatal-infos
+          dart test
+
+      # Spec 0006 Decision 2d and 0007 D8: no forbidden word in any file,
+      # outside tool/words/forbidden_words_allow.txt and tool/words/pending.txt.
+      - name: Word check
+        if: success() || failure()
+        run: tool/check_words.sh
+
+      # Spec 0006 criterion 3: what `flutter-watchos test` writes into a
+      # package is ignored, so it never dirties the tree or ships.
+      - name: Generated files are ignored
+        if: success() || failure()
+        run: tool/check_generated_ignored.sh
+
+      # Spec 0006 criterion 4: a package whose publishable files changed
+      # since tool/published.yaml's commit has a new version and a matching
+      # top CHANGELOG heading, and no package is at a pre-release.
+      - name: Versions and CHANGELOG headings
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_versions.dart
+
+      # Spec 0006 criterion 2: every README install snippet names plain
+      # caret constraints that admit the package's own version and the
+      # upstream's latest major (tool/upstream_versions.yaml), and says to
+      # add the package alongside the upstream. Offline: no pub.dev call.
+      - name: README install snippets
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_readme_snippets.dart
+
+      # Spec 0006 criterion 14: each plugin's ffiSymbols, native definitions
+      # and Dart lookups agree, outside tool/symcheck_allow.yaml.
+      - name: FFI symbols
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/symcheck.dart
+
+      # Spec 0006 criterion 14a: an example that depends on `any` builds
+      # against whatever is newest that day, so no example pubspec names
+      # `any`, or no constraint, under dependencies or dev_dependencies.
+      - name: Example constraints
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_example_constraints.dart
+
+      # CI logs print every test and group name.
+      - name: Test and group names
+        if: success() || failure()
+        working-directory: tool
+        run: dart run bin/check_test_names.dart
+
   # No `dart format` gate yet. Many files under packages/*/lib and
   # packages/*/test are not formatted today, so a gate would fail on its first
   # run and force a mechanical reformat of published sources as a side effect.

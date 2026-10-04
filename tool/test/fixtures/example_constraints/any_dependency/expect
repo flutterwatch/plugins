@@ -1,0 +1,3 @@
+1
+FAIL up_watchos/example
+dependencies: up has no constraint

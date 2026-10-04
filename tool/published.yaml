@@ -1,0 +1,63 @@
+# The last version of each package on pub.dev, and the commit it was
+# published from (spec 0006 criterion 4). tool/bin/check_versions.dart
+# compares each package's publishable files with that commit's.
+#
+# Seeded on 2026-09-30 from the pub.dev API (latest.version, read-only) and
+# from the archives themselves: each commit is the newest one whose
+# publishable files equal the archive of that version, file by file. For
+# nine packages that is 0547b19 or 9ffeab9, not 10591ec, because 10591ec
+# changed their analysis_options.yaml after the publish.
+#
+# The packages published in the 0.1.0 round (the four firebase_*_watchos
+# and video_player_watchos) get their rows once that round has published
+# them; until then they are checked as unpublished. After each publish, the
+# owner records the new version and the commit it was published from.
+packages:
+  audioplayers_watchos:
+    version: 0.0.1
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  battery_plus_watchos:
+    version: 0.1.0
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  connectivity_plus_watchos:
+    version: 0.2.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  device_info_plus_watchos:
+    version: 0.1.0
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  flutter_secure_storage_watchos:
+    version: 0.0.1
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  flutter_watch_link:
+    version: 0.1.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  games_services_watchos:
+    version: 0.0.1
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  geolocator_watchos:
+    version: 0.1.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  in_app_purchase_watchos:
+    version: 0.0.1
+    commit: 9ffeab9cdf3d2bd2b830617663584a989b2b049e
+  local_auth_watchos:
+    version: 0.1.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  network_info_plus_watchos:
+    version: 0.0.1
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  package_info_plus_watchos:
+    version: 0.1.0
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  path_provider_watchos:
+    version: 0.0.1
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  sensors_plus_watchos:
+    version: 0.1.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  shared_preferences_watchos:
+    version: 0.1.0
+    commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  url_launcher_watchos:
+    version: 0.1.0
+    commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b

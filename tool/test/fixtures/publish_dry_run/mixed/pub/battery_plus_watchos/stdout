@@ -1,0 +1,79 @@
+Resolving dependencies...
+Downloading packages...
+  flutter_lints 4.0.0 (6.0.0 available)
+  lints 4.0.0 (6.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  test_api 0.7.12 (0.7.14 available)
+Got dependencies!
+4 packages have newer versions incompatible with dependency constraints.
+Try `dart pub outdated` for more information.
+Publishing battery_plus_watchos 0.1.0 to https://pub.dev:
+├── CHANGELOG.md (<1 KB)
+├── LICENSE (1 KB)
+├── PORTING_REPORT.md (1 KB)
+├── README.md (1 KB)
+├── analysis_options.yaml (<1 KB)
+├── example
+│   ├── README.md (<1 KB)
+│   ├── analysis_options.yaml (<1 KB)
+│   ├── integration_test
+│   │   └── battery_plus_test.dart (1 KB)
+│   ├── lib
+│   │   └── main.dart (4 KB)
+│   ├── pubspec.yaml (<1 KB)
+│   ├── test_driver
+│   │   └── integration_test.dart (<1 KB)
+│   └── watchos
+│       ├── Flutter
+│       │   └── .gitignore (<1 KB)
+│       ├── HostApp
+│       │   ├── Assets.xcassets
+│       │   │   ├── AppIcon.appiconset
+│       │   │   │   └── Contents.json (<1 KB)
+│       │   │   └── Contents.json (<1 KB)
+│       │   └── Info.plist (1 KB)
+│       ├── Runner
+│       │   ├── App.swift (1 KB)
+│       │   ├── Assets.xcassets
+│       │   │   └── AppIcon.appiconset
+│       │   │       ├── Contents.json (3 KB)
+│       │   │       ├── icon_1024.png (13 KB)
+│       │   │       ├── icon_108x108_2x_44mm.png (3 KB)
+│       │   │       ├── icon_117x117_2x_45mm.png (4 KB)
+│       │   │       ├── icon_129x129_2x_49mm.png (4 KB)
+│       │   │       ├── icon_24x24_2x_38mm.png (1 KB)
+│       │   │       ├── icon_27.5x27.5_2x_42mm.png (1 KB)
+│       │   │       ├── icon_29x29_2x_companion.png (1 KB)
+│       │   │       ├── icon_29x29_3x_companion.png (1 KB)
+│       │   │       ├── icon_33x33_2x_45mm.png (1 KB)
+│       │   │       ├── icon_40x40_2x_38mm.png (1 KB)
+│       │   │       ├── icon_44x44_2x_40mm.png (1 KB)
+│       │   │       ├── icon_46x46_2x_41mm.png (1 KB)
+│       │   │       ├── icon_50x50_2x_44mm.png (2 KB)
+│       │   │       ├── icon_51x51_2x_45mm.png (1 KB)
+│       │   │       ├── icon_54x54_2x_49mm.png (1 KB)
+│       │   │       ├── icon_86x86_2x.png (2 KB)
+│       │   │       └── icon_98x98_2x.png (3 KB)
+│       │   └── Info.plist (<1 KB)
+│       └── Runner.xcodeproj
+│           ├── project.pbxproj (17 KB)
+│           └── xcshareddata
+│               └── xcschemes
+│                   ├── Runner.xcscheme (2 KB)
+│                   └── battery_plus_example.xcscheme (2 KB)
+├── lib
+│   └── battery_plus_watchos.dart (4 KB)
+├── pubspec.yaml (1 KB)
+├── test
+│   └── battery_plus_watchos_test.dart (2 KB)
+└── watchos
+    ├── Classes
+    │   ├── battery_plus_watchos_ffi.h (1 KB)
+    │   └── battery_plus_watchos_ffi.m (1 KB)
+    └── Package.swift (1 KB)
+
+Total compressed archive size: 60 KB.
+Validating package...
+The server may enforce additional checks.
+
+Package has 0 warnings.

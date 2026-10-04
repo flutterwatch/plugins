@@ -1,0 +1,12 @@
+# Differences between a plugin's ffiSymbols, its native definitions and its
+# Dart lookups that tool/bin/symcheck.dart accepts, each with its reason.
+# kind is one of: "declared, not defined", "looked up by Dart, not
+# declared", "defined, not declared", "declared, not looked up by Dart".
+# An entry that no longer matches a difference fails the check.
+allow:
+  - package: video_player_watchos
+    symbol: video_player_watchos_copy_player
+    kind: declared, not looked up by Dart
+    reason: >-
+      The Swift platform view calls it through @_silgen_name, not Dart; it
+      is declared with the other exports.

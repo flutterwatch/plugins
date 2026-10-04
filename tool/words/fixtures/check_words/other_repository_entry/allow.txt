@@ -1,0 +1,2 @@
+lib/commands/upgrade.dart | x.y( | an entry for the CLI repository
+packages/flutter_watchos/lib/a.dart | x.y( | an entry for the CLI package

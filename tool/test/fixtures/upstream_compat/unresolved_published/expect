@@ -1,0 +1,4 @@
+1
+FAIL games_services_watchos
+games_services ^5.3.0 does not resolve with games_services_watchos 0.0.1 from pub.dev:
+games_services_watchos is incompatible with games_services >=5.3.0.

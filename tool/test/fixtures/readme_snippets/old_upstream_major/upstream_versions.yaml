@@ -1,0 +1,4 @@
+upstreams:
+  foo: 2.3.4
+  bar: 5.0.1
+exceptions: {}

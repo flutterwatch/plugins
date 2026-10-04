@@ -1,0 +1,5 @@
+# What pub get prints when it fails, per package and source.
+games_services_watchos published: |
+  Resolving dependencies...
+  Because every version of games_services_watchos depends on games_services_platform_interface ^4.1.1 and games_services >=5.3.0 depends on games_services_platform_interface ^5.3.0, games_services_watchos is incompatible with games_services >=5.3.0.
+  So, because upstream_compatibility depends on both games_services ^5.3.0 and games_services_watchos ^0.0.1, version solving failed.

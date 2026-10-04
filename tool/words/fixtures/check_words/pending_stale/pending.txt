@@ -1,0 +1,1 @@
+packages/a/src/a.h | callers must NOT free it. | reword as release

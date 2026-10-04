@@ -1,0 +1,3 @@
+1
+FAIL packages/foo_watchos/README.md
+foo: "^<latest>" is a placeholder

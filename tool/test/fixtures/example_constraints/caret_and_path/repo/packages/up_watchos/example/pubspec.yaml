@@ -1,0 +1,14 @@
+name: example
+publish_to: none
+dependencies:
+  flutter:
+    sdk: flutter
+  up: ^2.1.0
+  up_watchos:
+    path: ../
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^6.0.0
+dependency_overrides:
+  other: any

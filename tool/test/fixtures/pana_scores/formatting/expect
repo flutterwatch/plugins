@@ -1,0 +1,5 @@
+1
+FAIL flutter_watch_link
+Pass static analysis: 40/50:
+[~] 40/50 points: code has no errors, warnings, lints, or formatting issues
+150/160
