@@ -15,14 +15,25 @@ class _FakeBindings extends ConnectivityPlusWatchosBindings {
 
   int code = 1; // wifi
 
+  /// The native code before the path monitor's first update.
+  static const int unknown = -1;
+
+  /// Every native call, in order: `register`, `unregister` or `current`.
+  final List<String> calls = <String>[];
+
   Pointer<NativeFunction<ConnectivityChangedNative>>? _callback;
 
   @override
-  int get current => code;
+  int get current {
+    calls.add('current');
+    return code;
+  }
 
   @override
-  void setCallback(Pointer<NativeFunction<ConnectivityChangedNative>> cb) =>
-      _callback = cb == nullptr ? null : cb;
+  void setCallback(Pointer<NativeFunction<ConnectivityChangedNative>> cb) {
+    calls.add(cb == nullptr ? 'unregister' : 'register');
+    _callback = cb == nullptr ? null : cb;
+  }
 
   /// Whether native would currently signal Dart.
   bool get isRegistered => _callback != null;
@@ -38,10 +49,16 @@ class _FakeBindings extends ConnectivityPlusWatchosBindings {
 
 void main() {
   late _FakeBindings fake;
+  final Duration defaultFirstValueTimeout =
+      ConnectivityPlusWatchos.firstValueTimeout;
 
   setUp(() {
     fake = _FakeBindings();
     ConnectivityPlusWatchos.bindingsOverride = fake;
+  });
+
+  tearDown(() {
+    ConnectivityPlusWatchos.firstValueTimeout = defaultFirstValueTimeout;
   });
 
   test('registerWith installs the watchOS implementation', () {
@@ -151,5 +168,125 @@ void main() {
     await sub.cancel();
     expect(fake.isRegistered, isFalse,
         reason: 'native must stop waking an isolate nobody is listening in');
+  });
+
+  group('first value', () {
+    // The native cache starts as unknown (-1) until NWPathMonitor delivers its
+    // first path. These cases deliver through the real NativeCallable.listener
+    // (fireChange), which fakeAsync does not control, so they run with real
+    // async and pumpEventQueue, and shorten the bound where they wait it out.
+
+    test('the bound is one second', () {
+      expect(defaultFirstValueTimeout, const Duration(seconds: 1));
+    });
+
+    test('checkConnectivity registers before it reads', () async {
+      final c = ConnectivityPlusWatchos();
+      fake.code = 1;
+      await c.checkConnectivity();
+      expect(fake.calls, <String>['register', 'current', 'unregister']);
+    });
+
+    test('checkConnectivity: unknown then wifi gives [wifi]', () async {
+      final c = ConnectivityPlusWatchos();
+      fake.code = _FakeBindings.unknown;
+      bool done = false;
+      final Future<List<ConnectivityResult>> result =
+          c.checkConnectivity().whenComplete(() => done = true);
+      await pumpEventQueue();
+      expect(done, isFalse, reason: 'unknown is not an answer; it waits');
+
+      fake.code = 1;
+      fake.fireChange();
+      expect(await result, <ConnectivityResult>[ConnectivityResult.wifi]);
+      expect(fake.isRegistered, isFalse,
+          reason: 'the check unregisters once it has its answer');
+    });
+
+    test('checkConnectivity: unknown past the bound gives [none]', () async {
+      ConnectivityPlusWatchos.firstValueTimeout =
+          const Duration(milliseconds: 200);
+      final c = ConnectivityPlusWatchos();
+      fake.code = _FakeBindings.unknown;
+      bool done = false;
+      final Future<List<ConnectivityResult>> result =
+          c.checkConnectivity().whenComplete(() => done = true);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(done, isFalse, reason: 'the bound has not passed yet');
+
+      expect(await result, <ConnectivityResult>[ConnectivityResult.none]);
+      expect(fake.isRegistered, isFalse);
+    });
+
+    test('the stream registers before it reads', () async {
+      final c = ConnectivityPlusWatchos();
+      fake.code = 1;
+      final StreamSubscription<List<ConnectivityResult>> sub =
+          c.onConnectivityChanged.listen((_) {});
+      await pumpEventQueue();
+      expect(fake.calls.take(2), <String>['register', 'current']);
+      await sub.cancel();
+    });
+
+    test("the stream's first event is the first known value", () async {
+      final c = ConnectivityPlusWatchos();
+      fake.code = _FakeBindings.unknown;
+      final List<List<ConnectivityResult>> events =
+          <List<ConnectivityResult>>[];
+      final StreamSubscription<List<ConnectivityResult>> sub =
+          c.onConnectivityChanged.listen(events.add);
+      await pumpEventQueue();
+      expect(events, isEmpty, reason: 'unknown is not sent as none');
+
+      fake.code = 1;
+      fake.fireChange();
+      await pumpEventQueue();
+      expect(events, <List<ConnectivityResult>>[
+        <ConnectivityResult>[ConnectivityResult.wifi],
+      ]);
+      await sub.cancel();
+    });
+
+    test('the stream sends none after the bound, then the real value',
+        () async {
+      ConnectivityPlusWatchos.firstValueTimeout =
+          const Duration(milliseconds: 100);
+      final c = ConnectivityPlusWatchos();
+      fake.code = _FakeBindings.unknown;
+      final List<List<ConnectivityResult>> events =
+          <List<ConnectivityResult>>[];
+      final StreamSubscription<List<ConnectivityResult>> sub =
+          c.onConnectivityChanged.listen(events.add);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(events, isEmpty, reason: 'the bound has not passed yet');
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(events, <List<ConnectivityResult>>[
+        <ConnectivityResult>[ConnectivityResult.none],
+      ]);
+
+      fake.code = 1;
+      fake.fireChange();
+      await pumpEventQueue();
+      expect(events, <List<ConnectivityResult>>[
+        <ConnectivityResult>[ConnectivityResult.none],
+        <ConnectivityResult>[ConnectivityResult.wifi],
+      ]);
+      await sub.cancel();
+    });
+
+    test('cancelling while unknown sends nothing later', () async {
+      ConnectivityPlusWatchos.firstValueTimeout =
+          const Duration(milliseconds: 50);
+      final c = ConnectivityPlusWatchos();
+      fake.code = _FakeBindings.unknown;
+      final List<List<ConnectivityResult>> events =
+          <List<ConnectivityResult>>[];
+      final StreamSubscription<List<ConnectivityResult>> sub =
+          c.onConnectivityChanged.listen(events.add);
+      await sub.cancel();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(events, isEmpty);
+      expect(fake.isRegistered, isFalse);
+    });
   });
 }

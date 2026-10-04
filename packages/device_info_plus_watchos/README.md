@@ -8,10 +8,13 @@ see `PORTING_REPORT.md`.
 
 ## Usage
 
+`device_info_plus` does not include a watchOS implementation, so add this
+package alongside it:
+
 ```yaml
 dependencies:
-  device_info_plus: ^11.0.0
-  device_info_plus_watchos: ^0.1.0
+  device_info_plus: ^13.2.0
+  device_info_plus_watchos: ^0.1.1
 ```
 
 watchOS reports as an iOS-family platform, so read it through the iOS
@@ -37,6 +40,11 @@ Populates the `IosDeviceInfo` fields from `WKInterfaceDevice`, `uname()`,
 | `freeDiskSize` / `totalDiskSize` | `NSFileManager` filesystem attributes |
 | `isPhysicalDevice` | `TARGET_OS_SIMULATOR` |
 | `isiOSAppOnMac` / `isiOSAppOnVision` | always false (impossible on a watch) |
+
+## Not supported on watchOS
+
+Nothing: every member of `device_info_plus_platform_interface` 8.1.0 is implemented.
+`PORTING_REPORT.md` lists each member under "Interface coverage".
 
 ## License
 

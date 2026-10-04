@@ -7,7 +7,7 @@
 | Implementation | ✅ Working (FFI) |
 | watchOS capability | Full |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
-| Upstream integration test | ✅ passes verbatim (the example runner sets `FlutterWatchOSContentScale` = 0.4 so the phone-designed UI materialises on the watch screen) |
+| Upstream integration test | ◐ runs verbatim (the example runner sets `FlutterWatchOSContentScale` = 0.4); `fromPlatform` passes, the `example` case does not fit the watch screen (see the next row) |
 | Simulator run, 29 September 2026 (watchOS 27.0) | ◐ `fromPlatform` passes; the `example` test fails: it looks for more of the demo's list than the watch screen shows |
 | Internal unified demo | ✅ included |
 
@@ -22,24 +22,24 @@ implementation — method-channel plugins are not supported on watchOS.
 ✅ WORKING FFI implementation:
 
 - `watchos/Classes/package_info_plus_watchos_ffi.m` exports one C symbol
-  per `NSBundle` Info.plist field (`used` + default-visibility, plus the
-  `ffiSymbols` forced references, so the statically linked symbols survive
-  `-dead_strip`).
+  per `NSBundle` Info.plist field (`used` + default-visibility, so the
+  statically linked symbols survive `-dead_strip`; the CLI force-loads the
+  archive, and `ffiSymbols` lists the exports).
 - `lib/package_info_plus_watchos.dart` extends `PackageInfoPlatform`,
   resolves the symbols via `DynamicLibrary.process()`, and returns a
   `PackageInfoData` from `getAll()`.
 
-## API coverage
+## Interface coverage
 
-| Field | Source | watchOS |
-|---|---|---|
-| `appName` | `CFBundleDisplayName` / `CFBundleName` | ✅ |
-| `packageName` | `CFBundleIdentifier` | ✅ |
-| `version` | `CFBundleShortVersionString` | ✅ |
-| `buildNumber` | `CFBundleVersion` | ✅ |
-| `buildSignature` | — | empty (Android APK-signing concept) |
-| `installerStore` | — | null (no watchOS installer-source API) |
-| `installTime` / `updateTime` | — | null (no watchOS API) |
+Every public member of `package_info_plus_platform_interface` 4.1.0
+(`PackageInfoPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `getAll` | ✅ every field of `PackageInfoData` from the app bundle, the App Store receipt path and file dates; `buildSignature` is empty, as on iOS |
 
 ---
 

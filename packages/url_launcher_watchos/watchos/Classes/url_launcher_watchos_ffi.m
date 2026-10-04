@@ -131,7 +131,7 @@ int url_launcher_watchos_open_in_app(const char* url) {
       // only the user's close button does. And the session is ephemeral: a
       // persistent one first asks "<App> wants to use <site> to sign in",
       // which is wrong for a link, and the ephemeral one shows no prompt.
-      // The price is that cookies and logins do not outlive the sheet.
+      // The cost is that cookies and logins do not outlive the sheet.
       //
       // Verified on the watchOS 26.5 Simulator: example.com renders and its
       // "Learn more" link loads iana.org.

@@ -9,11 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  battery_plus: any
+  battery_plus: ^7.1.1
   battery_plus_watchos:
     path: ../
 
 dev_dependencies:
+  battery_plus_platform_interface: ^2.0.1
   flutter_test:
     sdk: flutter
   integration_test:

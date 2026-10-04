@@ -1,3 +1,18 @@
+## 0.1.1
+
+* README: the install snippet names `device_info_plus: ^13.2.0` and this
+  version, and says to add this package alongside `device_info_plus`.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `device_info_plus_platform_interface`
+  8.1.0, audited by hand.
+* Example: `pubspec.yaml` names `device_info_plus: ^13.2.0` instead of `any`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `WKInterfaceDevice`,

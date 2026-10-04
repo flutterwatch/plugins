@@ -1,3 +1,21 @@
+## 0.1.1
+
+* README: the install snippet names `url_launcher: ^6.3.2` instead of `any`,
+  and this version.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `url_launcher_platform_interface` 2.3.2,
+  audited by hand.
+* `pubspec.yaml`: the description is 172 characters (pub.dev allows 180).
+* PORTING_REPORT: the interface list and the scheme table describe the browser
+  on the watch, and `supportsMode` and `supportsCloseForMode` as they are.
+* Example: `pubspec.yaml` names `url_launcher: ^6.3.2` instead of `any`.
+
 ## 0.1.0
 
 * **Web pages open on the watch.** `http:` and `https:` URLs launched with

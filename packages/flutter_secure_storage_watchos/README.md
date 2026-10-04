@@ -17,8 +17,8 @@ alongside it:
 
 ```yaml
 dependencies:
-  flutter_secure_storage: ^<latest>
-  flutter_secure_storage_watchos: ^0.0.1
+  flutter_secure_storage: ^11.2.0
+  flutter_secure_storage_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -41,19 +41,23 @@ explicit imports required from app code.
 
 The Keychain round-trip (read / write / delete / readAll / containsKey) is
 verified by the host-side unit tests and the unified demo on the watch
-simulator. The example ships flutter_secure_storage's own upstream
-`integration_test/app_test.dart` verbatim; it is a phone-shaped page-object
-sweep (tapping a floating action button to add list rows, driving popup menus)
-whose widgets a ~200 px watch screen never materialises, so most of its cases
-cannot be driven on the watch — a viewport limitation of that test, not of the
-Keychain implementation.
+simulator. The example ships the example app and
+`integration_test/app_test.dart` of `flutter_secure_storage` 11.2.0 verbatim,
+matching the example's `flutter_secure_storage: ^11.2.0`. The test is a
+page-object sweep of the phone demo (adding list rows with a floating action
+button, driving popup menus) plus direct Keychain cases. As upstream intends,
+its Android cases skip off Android, and its iOS-device cases skip when the
+`SIMULATOR_DEVICE_NAME` environment variable is set. `PORTING_REPORT.md`
+records each run on the watch and the cases that do not pass there, with the
+reason.
 
 ## Example on the watch screen
 
 The package ships the **upstream example app and its official integration
-test verbatim**. The upstream UI is phone-designed and does not fit a watch
-screen at native density, so the example's runner opts into the
-flutter-watchos content scale (`watchos/Runner/Info.plist`):
+test verbatim**, both from `flutter_secure_storage` 11.2.0. The upstream UI
+is phone-designed and does not fit a watch screen at native density, so the
+example's runner opts into the flutter-watchos content scale
+(`watchos/Runner/Info.plist`):
 
 ```xml
 <key>FlutterWatchOSContentScale</key>
@@ -63,6 +67,15 @@ flutter-watchos content scale (`watchos/Runner/Info.plist`):
 This lays the app out in a proportionally larger logical space rendered
 smaller — same layout, smaller components — without touching the example's
 Dart code.
+
+## Not supported on watchOS
+
+These members of `flutter_secure_storage_platform_interface` 2.1.1 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `checkUpgradeStatus` | returns `SecureStorageUpgradeStatus.unsupported` | the interface default; there is no earlier watchOS storage format to check |
 
 ## License
 

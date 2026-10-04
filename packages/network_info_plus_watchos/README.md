@@ -15,8 +15,8 @@ alongside it:
 
 ```yaml
 dependencies:
-  network_info_plus: ^<latest>
-  network_info_plus_watchos: ^0.0.1
+  network_info_plus: ^8.2.1
+  network_info_plus_watchos: ^0.1.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -28,8 +28,6 @@ explicit imports required from app code.
 |---|---|
 | `getWifiIP` / `getWifiIPv6` | supported (active interface, preferring `en0`) |
 | `getWifiSubmask` / `getWifiBroadcast` | supported |
-| `getWifiName` (SSID) / `getWifiBSSID` | **null** — watchOS has no CaptiveNetwork / NEHotspotNetwork |
-| `getWifiGatewayIP` | unimplemented (no watchOS routing-table API) |
 
 ## Status
 
@@ -39,6 +37,31 @@ explicit imports required from app code.
 | Watch simulator (`watchsimulator`) | yes |
 
 Verified end-to-end on the watch simulator (`example/integration_test`).
+
+## Example deviations
+
+The example is `network_info_plus`'s own example app, and
+`example/integration_test/network_info_plus_test.dart` is its official test,
+both unchanged except for these watchOS deviations:
+
+| Where | Change | Why |
+|---|---|---|
+| `example/lib/main.dart`, both permission requests | `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` | `Platform.isIOS` is true on the watch, and `permission_handler` has no watchOS implementation, so the request failed with `MissingPluginException` at start |
+| `example/pubspec.yaml` | adds `flutter_watchos: ^0.1.0` | for `FlutterWatchosPlatform` |
+
+`example/integration_test/watchos_example_start_test.dart` is a watchOS test
+beside the upstream one: it starts the example and checks that it shows its
+network info without an error.
+
+## Not supported on watchOS
+
+These members of `network_info_plus_platform_interface` 3.1.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `getWifiName` / `getWifiBSSID` | always null | watchOS has no CaptiveNetwork or NEHotspotNetwork |
+| `getWifiGatewayIP` | always null | watchOS has no routing-table API |
 
 ## License
 

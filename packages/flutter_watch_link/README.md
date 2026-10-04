@@ -42,7 +42,7 @@ branching at every call site.
 
 ```yaml
 dependencies:
-  flutter_watch_link: ^0.1.0
+  flutter_watch_link: ^0.1.1
 ```
 
 No entitlement and no Info.plist key is required. Both apps must be halves of
@@ -264,7 +264,10 @@ addTearDown(() => WatchLink.backendOverride = null);
 This package's own tests also drive `WatchLinkFfiBackend.forTesting` with
 scripted native responses, and [`example/integration_test/`](example/integration_test)
 covers the part that only a device can answer: that every C symbol survives the
-linker and binds at runtime.
+linker and binds at runtime. Its cases that need an activated session with the
+counterpart app installed are skipped, with a message, unless the run passes
+`--dart-define=FWL_PAIRED=true` on a paired device (see
+[Setting up a Simulator pair](#setting-up-a-simulator-pair)).
 
 ## Example
 

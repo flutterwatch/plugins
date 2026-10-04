@@ -28,7 +28,7 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 - `watchos/Classes/local_auth_watchos_ffi.{h,m}` — the C functions to implement (one example symbol is provided so the package builds and links immediately).
 - `watchos/Package.swift` — the FFI manifest; add the frameworks your C code links.
 - `lib/local_auth_watchos.dart` — the Dart class over the platform interface; resolve each C symbol via `DynamicLibrary.process()` and override the interface methods.
-- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols` (the CLI force-references each so it survives the static link).
+- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols`. The exports survive the static link because the CLI force-loads the plugin archive and each export is `used` with default visibility; the CLI also keeps global symbols through the App Store strip.
 
 ## APIs the source plugin used
 
@@ -55,6 +55,23 @@ These work on watchOS (often differently than iOS) — implement them, checking 
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`).
 - [x] Bump the version and update `CHANGELOG.md` before publishing.
+
+## Interface coverage
+
+Every public member of `local_auth_platform_interface` 1.1.0
+(`LocalAuthPlatform`), audited by hand against this package's code. The static
+`instance` is set by `registerWith()`. ✅ implemented · ◐ implemented with a
+limit · ✗ throws or fails on watchOS. The README's "Not supported on watchOS"
+table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `authenticate` | ✅ device-owner authentication (passcode or wrist detection), watchOS 9 and later |
+| `isDeviceSupported` | ✅ true when a passcode is set |
+| `stopAuthentication` | ✅ |
+| `deviceSupportsBiometrics` | ✅ always false: the watch has no Face ID or Touch ID |
+| `getEnrolledBiometrics` | ✅ always empty, for the same reason |
+| `authenticate` with `biometricOnly: true` | ✗ returns false: the watch has no biometry |
 
 ---
 

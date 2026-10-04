@@ -30,7 +30,7 @@ void geolocator_watchos_set_callback(geolocator_watchos_cb callback) {
 }
 
 // Wakes Dart. The callback pointer is read under the lock but invoked outside
-// it, because Dart is free to call straight back into this file.
+// it, because Dart may call straight back into this file.
 static void _signal(void) {
     os_unfair_lock_lock(&_lock);
     geolocator_watchos_cb callback = _callback;

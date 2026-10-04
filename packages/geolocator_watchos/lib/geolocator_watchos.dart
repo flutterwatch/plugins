@@ -19,20 +19,27 @@ import 'package:geolocator_platform_interface/geolocator_platform_interface.dart
 /// Native CoreLocation operations, behind an interface so unit tests can feed
 /// canned fixes off-device (see [GeolocatorWatchos.backendOverride]).
 abstract class GeolocatorWatchosBackend {
+  /// Whether system location services are enabled.
   bool isServiceEnabled();
 
   /// Raw CLAuthorizationStatus (0 notDetermined … 4 authorizedWhenInUse).
   int checkPermission();
 
+  /// Asks for when-in-use authorization. The answer arrives later; read it
+  /// with [checkPermission].
   void requestPermission();
 
+  /// Starts continuous updates at [accuracyIndex] (the `LocationAccuracy`
+  /// index) with [distanceFilter] in metres (0 or less means none).
   void startUpdates(int accuracyIndex, double distanceFilter);
 
+  /// Asks for a single fix.
   void requestLocation();
 
   /// The latest fix as the 10 doubles documented in the C header, or null.
   List<double>? readPosition();
 
+  /// Stops continuous updates.
   void stopUpdates();
 
   /// Registers the function native calls when a new fix lands, or `nullptr`

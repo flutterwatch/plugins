@@ -82,7 +82,7 @@ at the time; the last full run on the Simulator is under
 | [`firebase_messaging_watchos`](packages/firebase_messaging_watchos) [![pub](https://img.shields.io/pub/v/firebase_messaging_watchos.svg)](https://pub.dev/packages/firebase_messaging_watchos) | [`firebase_messaging`](https://pub.dev/packages/firebase_messaging) | Firebase Apple SDK (`FirebaseMessaging`) |
 
 <a name="games-services-status"></a>
-† `games_services_watchos` is published at `0.0.1`. Sign-in and score
+† `games_services_watchos`: sign-in and score
 submission have been observed working on a physical Apple Watch;
 **reading leaderboard entries has not** — `GKLocalPlayer` reports an
 authenticated player with an unresolved alias and GameKit then refuses

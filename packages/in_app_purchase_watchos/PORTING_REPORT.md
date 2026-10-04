@@ -20,6 +20,15 @@ that watchOS supports is done and verified on the simulator (builds, links, all
 Remaining: verifying a *real* purchase round-trip (needs a `.storekit` test
 config or an App Store Connect sandbox — the bare Simulator has no products).
 
+Example deviations (2026-09-30): `example/lib/main.dart` is `in_app_purchase`
+3.3.1's, except that the four calls into the StoreKit addition are guarded by
+`FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch,
+where the addition's methods fail with an `UnsupportedError`), and the comment
+above `showPriceConsentIfNeeded` is reworded. `example/pubspec.yaml` adds
+`flutter_watchos: ^0.1.0` and `shared_preferences_watchos: ^0.1.0`.
+`example/integration_test/watchos_example_start_test.dart` checks that the
+example starts cleanly; not yet run on a watch Simulator.
+
 ## This is an FFI scaffold
 
 Method-channel plugins are not supported on watchOS — a `pluginClass:`-only implementation builds, but its channel calls throw `MissingPluginException`. The supported plugin model is **dart:ffi**, so this package is an FFI scaffold, not a copy of the source plugin's native code:
@@ -27,7 +36,7 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 - `watchos/Classes/in_app_purchase_watchos_ffi.{h,m}` — the C functions to implement (one example symbol is provided so the package builds and links immediately).
 - `watchos/Package.swift` — the FFI manifest; add the frameworks your C code links.
 - `lib/in_app_purchase_watchos.dart` — the Dart class over the platform interface; resolve each C symbol via `DynamicLibrary.process()` and override the interface methods.
-- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols` (the CLI force-references each so it survives the static link).
+- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols`. The exports survive the static link because the CLI force-loads the plugin archive and each export is `used` with default visibility; the CLI also keeps global symbols through the App Store strip.
 
 ## APIs the source plugin used
 
@@ -53,8 +62,32 @@ These work on watchOS (often differently than iOS) — implement them, checking 
 - [x] List every exported symbol under `ffiSymbols` in `pubspec.yaml`, and the frameworks you link in `Package.swift`. — 9 symbols; `StoreKit` + `Foundation` linked.
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods. — query/buy/stream/complete/restore.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`). — the ported `example/`; all 9 symbols defined (`T`) on 2026-07-23.
-- [ ] Bump the version and update `CHANGELOG.md` before publishing. — `CHANGELOG.md` updated; version still `0.0.1` (bump at publish time). Not yet published.
+- [x] Bump the version and update `CHANGELOG.md` before publishing. — first published at `0.0.1`; this release is `0.1.0`.
 - [ ] Verify a real purchase round-trip with StoreKit test products (`.storekit` config) or an App Store Connect sandbox — the bare Simulator has none. *(added — the one thing the on-sim build can't prove.)*
+
+## Interface coverage
+
+Every public member of `in_app_purchase_platform_interface` 1.4.1 and
+`in_app_purchase_storekit` 0.4.13 (`InAppPurchasePlatform` and, through
+`InAppPurchaseWatchosPlatformAddition`,
+`InAppPurchaseStoreKitPlatformAddition`), audited by hand against this
+package's code. The static `instance` is set by `registerWith()`. ✅
+implemented · ◐ implemented with a limit · ✗ throws or fails on watchOS. The
+README's "Not supported on watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `isAvailable` | ✅ `SKPaymentQueue canMakePayments` |
+| `queryProductDetails` | ✅ `SKProductsRequest` |
+| `purchaseStream` | ✅ transaction observer updates |
+| `buyNonConsumable` / `buyConsumable` | ✅ `SKPaymentQueue`; consumables are always consumed, as on iOS (`autoConsume: false` asserts) |
+| `completePurchase` / `restorePurchases` | ✅ |
+| `countryCode` | ✗ throws `UnimplementedError` when called (the interface default): the storefront is not read yet |
+| addition `presentCodeRedemptionSheet` | ✗ fails with an `UnsupportedError` that names watchOS: StoreKit has no code redemption sheet on watchOS |
+| addition `showPriceConsentIfNeeded` | ✗ fails with an `UnsupportedError` that names watchOS: StoreKit has no such consent sheet on watchOS |
+| addition `sync` | ✗ fails with an `UnsupportedError` that names watchOS: not implemented yet (StoreKit 2) |
+| addition `refreshPurchaseVerificationData` | ✗ fails with an `UnsupportedError` that names watchOS: the receipt refresh is not implemented yet |
+| addition `setDelegate` | ✗ fails with an `UnsupportedError` that names watchOS: the payment queue delegate is not implemented yet |
 
 ---
 

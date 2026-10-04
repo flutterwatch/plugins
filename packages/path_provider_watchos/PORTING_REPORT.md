@@ -21,24 +21,30 @@ is that skeleton **finished by hand** as a working FFI implementation.
 ✅ WORKING FFI implementation:
 
 - `watchos/Classes/path_provider_watchos_ffi.m` exports one C symbol per
-  directory getter (`used` + default-visibility attributes, plus
-  `ffiSymbols` forced references from the CLI, so the statically linked
-  symbols survive `-dead_strip`).
+  directory getter (`used` + default-visibility attributes, so the
+  statically linked symbols survive `-dead_strip`; the CLI force-loads the
+  archive, and `ffiSymbols` lists the exports).
 - `lib/path_provider_watchos.dart` extends
   `path_provider_platform_interface` and resolves the symbols via
   `DynamicLibrary.process()`.
 
-## API coverage
+## Interface coverage
 
-| Method | watchOS |
+Every public member of `path_provider_platform_interface` 2.1.3
+(`PathProviderPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
 |---|---|
 | `getTemporaryPath` | ✅ `NSTemporaryDirectory()` |
 | `getApplicationSupportPath` | ✅ `NSApplicationSupportDirectory` (created on first call) |
 | `getLibraryPath` | ✅ `NSLibraryDirectory` |
 | `getApplicationDocumentsPath` | ✅ `NSDocumentDirectory` |
 | `getApplicationCachePath` | ✅ `NSCachesDirectory` |
-| `getDownloadsPath` | ✗ no Downloads directory on watchOS (throws `UnimplementedError`) |
-| `getExternalStoragePath(s)` / `getExternalCachePaths` | ✗ Android-only (throws `UnimplementedError`) |
+| `getDownloadsPath` | ✗ throws `UnimplementedError`: watchOS has no Downloads directory |
+| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | ✗ throw `UnimplementedError`: external storage is an Android concept |
 
 ---
 

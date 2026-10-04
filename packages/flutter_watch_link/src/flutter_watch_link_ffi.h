@@ -129,14 +129,14 @@ int flutter_watch_link_outstanding_file_transfer_count(void);
 
 // The application context most recently received, as a JSON object string, or
 // NULL if none has arrived. The system persists this across launches.
-// Caller owns the result — free it with `..._free`.
+// Caller owns the result — release it with `..._free`.
 FWL_EXPORT
 char* flutter_watch_link_application_context(void);
 
 // The application context most recently *sent* from this device, as a JSON
 // object string, or NULL if nothing has been sent. Also persisted across
 // launches, so a cold-launched app can read back what the counterpart already
-// has and skip re-sending it. Caller owns the result — free it with
+// has and skip re-sending it. Caller owns the result — release it with
 // `..._free`.
 FWL_EXPORT
 char* flutter_watch_link_sent_application_context(void);
@@ -147,7 +147,7 @@ char* flutter_watch_link_sent_application_context(void);
 #define FWL_REPLY_TIMEOUT_SECONDS 30
 
 // Removes and returns the oldest buffered inbound envelope, or NULL when the
-// buffer is empty. Caller owns the result — free it with `..._free`.
+// buffer is empty. Caller owns the result — release it with `..._free`.
 //
 // One of:
 //   {"tier":"message"|"applicationContext"|"userInfo","payload":{...},
@@ -177,7 +177,7 @@ FWL_EXPORT
 int flutter_watch_link_dropped_inbound_count(void);
 
 // Removes and returns the most recent *asynchronous* failure, or NULL if there
-// has been none since the last call. Caller owns the result — free it with
+// has been none since the last call. Caller owns the result — release it with
 // `..._free`.
 //
 // This exists because `sendMessage` reports failure to a callback long after

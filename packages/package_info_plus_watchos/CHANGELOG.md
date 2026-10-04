@@ -1,3 +1,24 @@
+## 0.1.1
+
+* README: the install snippet names `package_info_plus: ^10.2.1` and this
+  version.
+* README and PORTING_REPORT: the API table names what the package reads.
+  `installerStore`, `installTime` and `updateTime` were listed as null; they
+  come from the App Store receipt path, the Documents directory's creation
+  date and the app bundle's modification date. The README gives the real
+  integration-test result on the watch: 1 of 2 (the `example` case looks for
+  more of the demo's list than the watch screen shows).
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `package_info_plus_platform_interface`
+  4.1.0, audited by hand.
+* Example: `pubspec.yaml` names `package_info_plus: ^10.2.1` instead of `any`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `NSBundle`

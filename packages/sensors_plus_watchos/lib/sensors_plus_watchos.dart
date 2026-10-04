@@ -10,8 +10,9 @@
 // `NativeCallable.listener`, which re-reads the cache. One event per sample,
 // no timer.
 //
-// The barometer is intentionally not implemented: it is a separate CoreMotion
-// altimeter API, so `barometerEventStream` keeps the base UnimplementedError.
+// The barometer is not implemented: it is a separate CoreMotion altimeter API
+// (`CMAltimeter`). `barometerEventStream` returns a stream whose only event is
+// an UnsupportedError, so a listener's `onError` handles it; it never throws.
 
 import 'dart:async';
 import 'dart:ffi';
@@ -25,20 +26,41 @@ import 'package:sensors_plus_platform_interface/sensors_plus_platform_interface.
 /// Each `read*` returns the latest `[x, y, z]`, or null when no sample is
 /// available yet (e.g. on the Simulator, which has no motion hardware).
 abstract class SensorsPlusWatchosBackend {
+  /// Starts accelerometer updates every [intervalMicros] microseconds.
   void startAccelerometer(int intervalMicros);
+
+  /// The latest accelerometer sample, in m/s².
   List<double>? readAccelerometer();
+
+  /// Stops accelerometer updates.
   void stopAccelerometer();
 
+  /// Starts device-motion updates for user acceleration (gravity removed)
+  /// every [intervalMicros] microseconds.
   void startUserAccelerometer(int intervalMicros);
+
+  /// The latest user-acceleration sample, in m/s².
   List<double>? readUserAccelerometer();
+
+  /// Stops user-acceleration updates.
   void stopUserAccelerometer();
 
+  /// Starts gyroscope updates every [intervalMicros] microseconds.
   void startGyroscope(int intervalMicros);
+
+  /// The latest gyroscope sample, in rad/s.
   List<double>? readGyroscope();
+
+  /// Stops gyroscope updates.
   void stopGyroscope();
 
+  /// Starts magnetometer updates every [intervalMicros] microseconds.
   void startMagnetometer(int intervalMicros);
+
+  /// The latest magnetometer sample, in µT.
   List<double>? readMagnetometer();
+
+  /// Stops magnetometer updates.
   void stopMagnetometer();
 
   /// Registers the function native calls when a sample lands, or `nullptr`
@@ -115,6 +137,23 @@ base class SensorsPlusWatchos extends SensorsPlatform {
         _b.readMagnetometer,
         _b.stopMagnetometer,
         (List<double> v, DateTime t) => MagnetometerEvent(v[0], v[1], v[2], t),
+      );
+
+  /// The barometer is not supported on watchOS.
+  ///
+  /// Returns a stream whose only event is an [UnsupportedError] that names
+  /// watchOS, after which the stream closes. It never throws synchronously,
+  /// so a listener with an `onError` handler (as in the `sensors_plus`
+  /// example) treats the watch like a device without the sensor.
+  @override
+  Stream<BarometerEvent> barometerEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) =>
+      Stream<BarometerEvent>.error(
+        UnsupportedError(
+          'barometerEventStream is not supported on watchOS: '
+          'sensors_plus_watchos does not read the CoreMotion altimeter.',
+        ),
       );
 
   /// Builds a broadcast stream that starts native updates on first listen and

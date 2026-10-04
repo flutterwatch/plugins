@@ -21,6 +21,12 @@ import 'src/games_services_watchos_bindings.dart';
 export 'src/games_services_watchos_bindings.dart'
     show GamesServicesWatchosBindings, GcEntry;
 
+/// watchOS implementation of [GamesServicesPlatform], over GameKit through
+/// `dart:ffi`.
+///
+/// Implements sign-in, score submission and leaderboard reads. The other
+/// members keep the interface's `UnimplementedError` default; the README's
+/// "Not supported on watchOS" table lists them.
 class GamesServicesWatchos extends GamesServicesPlatform {
   /// Called by the Flutter plugin machinery on watchOS via `dartPluginClass`.
   static void registerWith() {

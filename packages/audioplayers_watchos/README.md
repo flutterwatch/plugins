@@ -14,11 +14,12 @@ This is a federated plugin implementation. Apps that already depend on `audiopla
 
 ```yaml
 dependencies:
-  audioplayers: ^<latest>
-  audioplayers_watchos: ^0.0.1
+  audioplayers: ^6.8.1
+  audioplayers_watchos: ^0.1.0
 ```
 
-No other change — `AudioPlayer` and friends work as on the other platforms.
+No other change: use `AudioPlayer` as on iOS. What differs on the watch is
+listed under "watchOS notes" and "Not supported on watchOS" below.
 Asset sources go through `audioplayers`' own `AudioCache`, which uses
 `path_provider`; add `path_provider_watchos` alongside it the same way.
 
@@ -46,6 +47,16 @@ The bundled example is the upstream `audioplayers` example, verbatim. It is
 a phone-designed multi-tab UI, so its runner sets `FlutterWatchOSContentScale`
 in `Info.plist` to render it scaled-to-fit on the watch. See the example
 README for details.
+
+## Not supported on watchOS
+
+These members of `audioplayers_platform_interface` 7.2.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `setBalance` | no effect; emits a log event | `AVPlayer` has no per-channel balance; the iOS implementation behaves the same |
+| `setPlayerMode` | no effect; `lowLatency` plays as `mediaPlayer` | watchOS has only the `AVPlayer` backend |
 
 ## License
 

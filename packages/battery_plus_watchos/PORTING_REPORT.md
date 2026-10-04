@@ -24,7 +24,8 @@ watch. This package is the hand-finished FFI implementation over the
 
 - `watchos/Classes/battery_plus_watchos_ffi.m` exports level / state / low-power
   readings from `WKInterfaceDevice` and `NSProcessInfo` (`used` +
-  default-visibility, plus `ffiSymbols` forced references).
+  default-visibility; the CLI force-loads the archive, and `ffiSymbols`
+  lists the exports).
 - `lib/battery_plus_watchos.dart` extends `BatteryPlatform` and resolves the
   symbols via `DynamicLibrary.process()`.
 
@@ -37,6 +38,21 @@ watch. This package is the hand-finished FFI implementation over the
 - iOS delivers `onBatteryStateChanged` via `UIDevice` notifications; watchOS
   has no such notification, so the stream polls (default every 2s) and emits
   only on change. Tune via `BatteryPlusWatchos.pollInterval`.
+
+## Interface coverage
+
+Every public member of `battery_plus_platform_interface` 2.0.1
+(`BatteryPlatform`), audited by hand against this package's code. The static
+`instance` is set by `registerWith()`. ✅ implemented · ◐ implemented with a
+limit · ✗ throws or fails on watchOS. The README's "Not supported on watchOS"
+table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `batteryLevel` | ✅ `WKInterfaceDevice.batteryLevel` (monitoring is turned on at first read); fails with an `Exception` while watchOS reports no level (-1), which some Simulators do |
+| `batteryState` | ✅ `WKInterfaceDevice.batteryState` |
+| `isInBatterySaveMode` | ✅ `NSProcessInfo.isLowPowerModeEnabled` |
+| `onBatteryStateChanged` | ◐ polled every `BatteryPlusWatchos.pollInterval` (2 s) and sent on change: watchOS has no battery-state notification |
 
 ---
 

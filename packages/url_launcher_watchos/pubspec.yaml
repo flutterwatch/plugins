@@ -1,8 +1,8 @@
 name: url_launcher_watchos
-description: "watchOS implementation of the url_launcher plugin: shows web pages in the system browser on the watch, opens tel:/sms: through the system handler, and can hand web links to the paired iPhone, over dart:ffi."
-version: 0.1.0
+description: "watchOS implementation of url_launcher over dart:ffi: web pages in the watch's system browser, tel: and sms: through the system handler, and web links handed to the iPhone."
+version: 0.1.1
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/url_launcher_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -35,8 +35,10 @@ flutter:
         # plugins are not supported on watchOS; FFI is the plugin model.
         ffiPlugin: true
         dartPluginClass: UrlLauncherWatchos
-        # C symbols exported for dart:ffi lookup; the CLI emits a forced
-        # reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - url_launcher_watchos_can_launch
           - url_launcher_watchos_launch

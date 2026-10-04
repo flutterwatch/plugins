@@ -28,7 +28,7 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 - `watchos/Classes/geolocator_watchos_ffi.{h,m}` — the C functions to implement (one example symbol is provided so the package builds and links immediately).
 - `watchos/Package.swift` — the FFI manifest; add the frameworks your C code links.
 - `lib/geolocator_watchos.dart` — the Dart class over the platform interface; resolve each C symbol via `DynamicLibrary.process()` and override the interface methods.
-- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols` (the CLI force-references each so it survives the static link).
+- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols`. The exports survive the static link because the CLI force-loads the plugin archive and each export is `used` with default visibility; the CLI also keeps global symbols through the App Store strip.
 
 ## APIs the source plugin used
 
@@ -56,6 +56,26 @@ These work on watchOS (often differently than iOS) — implement them, checking 
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`).
 - [x] Bump the version and update `CHANGELOG.md` before publishing.
+
+## Interface coverage
+
+Every public member of `geolocator_platform_interface` 4.4.0
+(`GeolocatorPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `checkPermission` / `requestPermission` | ✅ when-in-use authorization |
+| `isLocationServiceEnabled` | ✅ |
+| `getLastKnownPosition` | ✅ the last cached fix |
+| `getCurrentPosition` / `getPositionStream` | ✅ pushed by the `CLLocationManager` delegate |
+| `distanceBetween` / `bearingBetween` | ✅ the interface's own Dart code |
+| `getServiceStatusStream` | ✗ throws `UnimplementedError` when called: not implemented yet |
+| `getLocationAccuracy` | ✗ fails with `UnimplementedError`: not implemented yet |
+| `requestTemporaryFullAccuracy` | ✗ fails with `UnimplementedError`: not implemented |
+| `openAppSettings` / `openLocationSettings` | ✗ fail with `UnimplementedError`: watchOS has no settings page an app can open |
 
 ---
 

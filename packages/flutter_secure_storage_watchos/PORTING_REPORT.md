@@ -7,8 +7,9 @@
 | Implementation | ✅ Working (Keychain FFI) |
 | watchOS capability | Partial — baseline Keychain; no Secure Enclave / biometric-gated options |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
-| Upstream integration test | ◐ 12 of 16 non-skipped cases pass verbatim (`FlutterWatchOSContentScale` = 0.4 + the synchronizable query fix); 3 blocked by `tester.enterText` not landing on the watch text-input path (under investigation, test-harness interplay — manual entry works); 1 needs Secure Enclave-gated storage (not implemented) |
-| Simulator run, 29 September 2026 (watchOS 27.0) | the upstream integration test does not compile: the example resolves `flutter_secure_storage` 11.x, which no longer has the `RSA_ECB_PKCS1Padding` and `AES_CBC_PKCS7Padding` names the test uses |
+| Upstream integration test, 10.x | ◐ 12 of 16 non-skipped cases passed verbatim (`FlutterWatchOSContentScale` = 0.4 + the synchronizable query fix); 3 blocked by `tester.enterText` not landing on the watch text-input path (under investigation, test-harness interplay — manual entry works); 1 needs Secure Enclave-gated storage (not implemented) |
+| Simulator run, 29 September 2026 (watchOS 27.0) | the 10.x test did not compile: the example resolved `flutter_secure_storage` 11.x, which no longer has the `RSA_ECB_PKCS1Padding` and `AES_CBC_PKCS7Padding` names that test uses |
+| Upstream integration test, 11.2.0 | the example and `app_test.dart` were ported again from `flutter_secure_storage` 11.2.0 on 30 September 2026, with `flutter_secure_storage: ^11.2.0`; the test compiles (`flutter analyze` is clean). Not yet run on a watch Simulator |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -29,7 +30,7 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 - `watchos/Classes/flutter_secure_storage_watchos_ffi.{h,m}` — the C functions to implement (one example symbol is provided so the package builds and links immediately).
 - `watchos/Package.swift` — the FFI manifest; add the frameworks your C code links.
 - `lib/flutter_secure_storage_watchos.dart` — the Dart class over the platform interface; resolve each C symbol via `DynamicLibrary.process()` and override the interface methods.
-- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols` (the CLI force-references each so it survives the static link).
+- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols`. The exports survive the static link because the CLI force-loads the plugin archive and each export is `used` with default visibility; the CLI also keeps global symbols through the App Store strip.
 
 ## APIs the source plugin used
 
@@ -56,6 +57,19 @@ These work on watchOS (often differently than iOS) — implement them, checking 
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`).
 - [x] Bump the version and update `CHANGELOG.md` before publishing.
+
+## Interface coverage
+
+Every public member of `flutter_secure_storage_platform_interface` 2.1.1
+(`FlutterSecureStoragePlatform`), audited by hand against this package's code.
+The static `instance` is set by `registerWith()`. ✅ implemented · ◐
+implemented with a limit · ✗ throws or fails on watchOS. The README's "Not
+supported on watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `write` / `read` / `containsKey` / `delete` / `readAll` / `deleteAll` | ✅ Keychain items keyed by the `accountName` option; `accessibility` and `synchronizable` are honoured; `groupId` needs the keychain-access-groups entitlement |
+| `checkUpgradeStatus` | ✗ returns `SecureStorageUpgradeStatus.unsupported` (the interface default): there is no earlier watchOS storage format to check |
 
 ---
 

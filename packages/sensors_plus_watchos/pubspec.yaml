@@ -1,8 +1,8 @@
 name: sensors_plus_watchos
 description: "watchOS implementation of the sensors_plus plugin, streaming accelerometer, user-accelerometer, gyroscope, and magnetometer data from CoreMotion via dart:ffi."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/sensors_plus_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos
@@ -41,8 +41,10 @@ flutter:
         # so this is the supported plugin model.
         ffiPlugin: true
         dartPluginClass: SensorsPlusWatchos
-        # C symbols exported for dart:ffi lookup. The CLI emits a
-        # forced reference for each so they survive the static link.
+        # C symbols exported for dart:ffi lookup. They survive the link
+        # because the CLI force-loads the plugin archive, each export is
+        # marked used with default visibility, and the CLI keeps global
+        # symbols through the App Store strip.
         ffiSymbols:
           - sensors_plus_watchos_start_accelerometer
           - sensors_plus_watchos_read_accelerometer

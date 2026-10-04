@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 // Every symbol is `used` + default-visibility. FFI exports have no
-// compile-time caller, so without `used` the compiler is free to drop them
+// compile-time caller, so without `used` the compiler may drop them
 // even though the CLI -force_loads the archive, and without default
 // visibility they never reach the dynamic symbol table that
 // DynamicLibrary.process() / dlsym reads.

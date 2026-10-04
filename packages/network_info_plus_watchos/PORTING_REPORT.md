@@ -8,6 +8,7 @@
 | watchOS capability | Partial — Wi-Fi IP only; SSID/BSSID unsupported on watchOS |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim |
+| Example deviations | `example/lib/main.dart`: both permission requests use `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch), because `permission_handler` has no watchOS implementation and the upstream example started with a `MissingPluginException`; `example/pubspec.yaml` adds `flutter_watchos: ^0.1.0` for it. `example/integration_test/watchos_example_start_test.dart` checks that the example starts cleanly; not yet run on a watch Simulator |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -28,7 +29,7 @@ Method-channel plugins are not supported on watchOS — a `pluginClass:`-only im
 - `watchos/Classes/network_info_plus_watchos_ffi.{h,m}` — the C functions to implement (one example symbol is provided so the package builds and links immediately).
 - `watchos/Package.swift` — the FFI manifest; add the frameworks your C code links.
 - `lib/network_info_plus_watchos.dart` — the Dart class over the platform interface; resolve each C symbol via `DynamicLibrary.process()` and override the interface methods.
-- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols` (the CLI force-references each so it survives the static link).
+- `pubspec.yaml` — declares `ffiPlugin: true` and lists your exported symbols under `ffiSymbols`. The exports survive the static link because the CLI force-loads the plugin archive and each export is `used` with default visibility; the CLI also keeps global symbols through the App Store strip.
 
 ## APIs the source plugin used
 
@@ -49,6 +50,21 @@ These iOS/macOS APIs have **no watchOS equivalent** — the capability must be o
 - [x] Add a `lookupFunction` binding per symbol in the Dart `Bindings` class and override the platform-interface methods.
 - [x] Add the package to a watchOS app (`flutter-watchos create` one if needed), build for `watchsimulator`, then `nm` the binary to confirm your `ffiSymbols` are present (type `T`).
 - [x] Bump the version and update `CHANGELOG.md` before publishing.
+
+## Interface coverage
+
+Every public member of `network_info_plus_platform_interface` 3.1.0
+(`NetworkInfoPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
+|---|---|
+| `getWifiIP` / `getWifiIPv6` | ✅ `getifaddrs`, preferring `en0` |
+| `getWifiSubmask` / `getWifiBroadcast` | ✅ |
+| `getWifiName` / `getWifiBSSID` | ✗ always null: watchOS has no CaptiveNetwork or NEHotspotNetwork |
+| `getWifiGatewayIP` | ✗ always null: watchOS has no routing-table API |
 
 ---
 

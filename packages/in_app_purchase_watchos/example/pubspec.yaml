@@ -9,12 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  in_app_purchase: any
+  # For FlutterWatchosPlatform.isIos, which the watchOS guards in lib/main.dart
+  # use.
+  flutter_watchos: ^0.1.0
+  in_app_purchase: ^3.3.1
   in_app_purchase_watchos:
     path: ../
   in_app_purchase_android: "^0.5.0"
   in_app_purchase_storekit: "^0.4.0"
   shared_preferences: "^2.0.0"
+  # consumable_store.dart uses shared_preferences, which needs its watchOS
+  # implementation on the watch.
+  shared_preferences_watchos: ^0.1.0
 
 dev_dependencies:
   flutter_test:

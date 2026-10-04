@@ -17,8 +17,8 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  geolocator: ^<latest>
-  geolocator_watchos: ^0.0.1
+  geolocator: ^14.1.1
+  geolocator_watchos: ^0.1.1
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -39,8 +39,6 @@ Add a location usage description to the watch app's `Info.plist`:
 | `isLocationServiceEnabled` | supported |
 | `getCurrentPosition` / `getPositionStream` | supported |
 | `getLastKnownPosition` | supported (last cached fix) |
-| `openAppSettings` / `openLocationSettings` | not available on watchOS |
-| `getServiceStatusStream` | not implemented |
 
 The watch has no *Always* background-location entitlement flow that iOS has;
 authorization is when-in-use.
@@ -56,6 +54,18 @@ The example is geolocator's own upstream Baseflow demo, ported verbatim. That
 demo ships no `integration_test/`, so this package is verified by building and
 running the example on the watch simulator; the interactive permission prompt
 and live position updates are verified on a physical Apple Watch.
+
+## Not supported on watchOS
+
+These members of `geolocator_platform_interface` 4.4.0 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `getServiceStatusStream` | throws `UnimplementedError` when called | not implemented yet |
+| `getLocationAccuracy` | fails with `UnimplementedError` | not implemented yet |
+| `requestTemporaryFullAccuracy` | fails with `UnimplementedError` | not implemented |
+| `openAppSettings` / `openLocationSettings` | fail with `UnimplementedError` | watchOS has no settings page an app can open |
 
 ## License
 

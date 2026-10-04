@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_watchos/flutter_watchos.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -98,7 +99,9 @@ class _MyHomePageState extends State<MyHomePage> {
         wifiSubmask;
 
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      // watchOS deviation: Platform.isIOS is true on the watch, where
+      // permission_handler has no implementation, so this asks on iPhone only.
+      if (!kIsWeb && (Platform.isAndroid || FlutterWatchosPlatform.isIos)) {
         // Request permissions as recommended by the plugin documentation:
         // https://github.com/fluttercommunity/plus_plugins/tree/main/packages/network_info_plus/network_info_plus
         if (await Permission.locationWhenInUse.request().isGranted) {
@@ -115,7 +118,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      // watchOS deviation: Platform.isIOS is true on the watch, where
+      // permission_handler has no implementation, so this asks on iPhone only.
+      if (!kIsWeb && (Platform.isAndroid || FlutterWatchosPlatform.isIos)) {
         // Request permissions as recommended by the plugin documentation:
         // https://github.com/fluttercommunity/plus_plugins/tree/main/packages/network_info_plus/network_info_plus
         if (await Permission.locationWhenInUse.request().isGranted) {

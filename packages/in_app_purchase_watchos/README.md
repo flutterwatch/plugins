@@ -11,8 +11,8 @@ Add this package alongside `in_app_purchase`:
 
 ```yaml
 dependencies:
-  in_app_purchase: ^<latest>
-  in_app_purchase_watchos: ^0.0.1
+  in_app_purchase: ^3.3.1
+  in_app_purchase_watchos: ^0.1.0
 ```
 
 That is all. Use the standard `in_app_purchase` API — no watchOS-specific setup:
@@ -50,10 +50,10 @@ app-side setup.
 
 ## Status
 
-**Working, and verified end to end on a watch** (see below). Versioned 0.0.1
-while the package settles. StoreKit purchasing is available on watchOS (from
-6.2), but the StoreKit *UI surfaces* (`SKStoreProductViewController`, the review prompt,
-code redemption) do not exist on the watch and are intentionally out of scope.
+**Working, and verified end to end on a watch** (see below). StoreKit
+purchasing is available on watchOS (from 6.2), but the StoreKit *UI surfaces*
+(`SKStoreProductViewController`, the review prompt, code redemption) do not
+exist on the watch and are intentionally out of scope.
 
 Implemented:
 
@@ -65,6 +65,14 @@ Implemented:
 
 Out of scope (no watchOS equivalent): the StoreKit UI surfaces
 (`SKStoreProductViewController`, the review prompt, code redemption).
+
+The platform addition: `InAppPurchase.instance.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>()`
+returns `InAppPurchaseWatchosPlatformAddition`, which extends StoreKit's addition
+so the upstream cast works. None of its methods is supported on watchOS yet:
+`sync`, `presentCodeRedemptionSheet`, `refreshPurchaseVerificationData`,
+`setDelegate` and `showPriceConsentIfNeeded` each return a `Future` that fails
+with an `UnsupportedError`. None of them throws when it is called, so code that
+awaits them inside `try`/`catch`, or skips them on the watch, keeps working.
 
 Verified end to end against real StoreKit on a watch simulator, using the
 bundled `watchos/Configuration.storekit` test configuration: product lookup
@@ -98,6 +106,33 @@ The demo exercises the full purchasing flow. On a bare Simulator there are no
 StoreKit products, so product lookup returns "not found" and a purchase cannot
 complete — add a `.storekit` test configuration (or use a sandbox account) to
 exercise it end to end.
+
+The example's code is `in_app_purchase` 3.3.1's, unchanged except for these
+watchOS deviations:
+
+| Where | Change | Why |
+|---|---|---|
+| `example/lib/main.dart`, the four StoreKit addition calls (`setDelegate` at start and in `dispose`, the upgrade button, `showPriceConsentIfNeeded`) | `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` | `Platform.isIOS` is true on the watch, where those addition methods fail with an `UnsupportedError`; the example started with an unhandled exception from `setDelegate` |
+| `example/lib/main.dart`, the comment above `showPriceConsentIfNeeded` | reworded | the project's word rule |
+| `example/pubspec.yaml` | adds `flutter_watchos: ^0.1.0` and `shared_preferences_watchos: ^0.1.0` | for `FlutterWatchosPlatform`, and so the example's `shared_preferences` store works on the watch |
+
+`example/integration_test/watchos_example_start_test.dart` is a watchOS test
+beside the upstream ones: it starts the example and checks that it finishes
+its store check without an error.
+
+## Not supported on watchOS
+
+These members of `in_app_purchase_platform_interface` 1.4.1 and `in_app_purchase_storekit` 0.4.13 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `countryCode` | throws `UnimplementedError` when called | the storefront is not read yet |
+| addition `presentCodeRedemptionSheet` | fails with an `UnsupportedError` that names watchOS | StoreKit has no code redemption sheet on watchOS |
+| addition `showPriceConsentIfNeeded` | fails with an `UnsupportedError` that names watchOS | StoreKit has no such consent sheet on watchOS |
+| addition `sync` | fails with an `UnsupportedError` that names watchOS | not implemented yet (StoreKit 2) |
+| addition `refreshPurchaseVerificationData` | fails with an `UnsupportedError` that names watchOS | the receipt refresh is not implemented yet |
+| addition `setDelegate` | fails with an `UnsupportedError` that names watchOS | the payment queue delegate is not implemented yet |
 
 ## License
 

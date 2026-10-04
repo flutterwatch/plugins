@@ -1,3 +1,23 @@
+## 0.1.1
+
+* `barometerEventStream` no longer throws when it is called. It returns a
+  stream whose only event is an `UnsupportedError` that names watchOS, so a
+  listener's `onError` handler sees it (the `sensors_plus` example then shows
+  its "Sensor Not Found" dialog instead of an error screen).
+* README: the install snippet names `sensors_plus: ^7.1.0` and this version.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `sensors_plus_platform_interface` 2.0.2,
+  audited by hand.
+* Dartdoc on every public member, and `public_member_api_docs` is on in
+  `analysis_options.yaml`.
+* Example: `pubspec.yaml` names `sensors_plus: ^7.1.0` instead of `any`.
+
 ## 0.1.0
 
 First release beyond the generated scaffold.

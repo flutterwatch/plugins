@@ -18,8 +18,8 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  sensors_plus: ^<latest>
-  sensors_plus_watchos: ^0.0.1
+  sensors_plus: ^7.1.0
+  sensors_plus_watchos: ^0.1.1
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -33,7 +33,6 @@ explicit imports required from app code.
 | `userAccelerometerEventStream` | supported (gravity removed, via device motion) |
 | `gyroscopeEventStream` | supported (rad/s) |
 | `magnetometerEventStream` | supported (µT) |
-| `barometerEventStream` | not implemented (separate altimeter API) |
 
 Units and axis signs match the `sensors_plus` iOS implementation.
 
@@ -46,6 +45,15 @@ Units and axis signs match the `sensors_plus` iOS implementation.
 |----------|-------------|
 | Apple Watch (`watchos`) | yes (accelerometer, gyroscope, magnetometer, user-accel) |
 | Watch simulator (`watchsimulator`) | builds/links; no samples (no hardware) |
+
+## Not supported on watchOS
+
+These members of `sensors_plus_platform_interface` 2.0.2 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `barometerEventStream` | returns a stream whose only event is an `UnsupportedError` | the CoreMotion altimeter is not read yet |
 
 ## License
 

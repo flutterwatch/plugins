@@ -1,3 +1,18 @@
+## 0.1.1
+
+* README: the install snippet names `shared_preferences: ^2.5.5` and this
+  version, and says to add this package alongside `shared_preferences`.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `shared_preferences_platform_interface`
+  2.4.2, audited by hand.
+* Example: `pubspec.yaml` names `shared_preferences: ^2.5.5` instead of `any`.
+
 ## 0.1.0
 
 * First working release. FFI implementation over `NSUserDefaults`

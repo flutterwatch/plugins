@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_watchos/flutter_watchos.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
@@ -86,7 +87,9 @@ class _MyAppState extends State<_MyApp> {
       return;
     }
 
-    if (Platform.isIOS) {
+    // watchOS deviation: Platform.isIOS is true on the watch, where the
+    // StoreKit addition's setDelegate fails with an UnsupportedError.
+    if (FlutterWatchosPlatform.isIos) {
       final InAppPurchaseStoreKitPlatformAddition iosPlatformAddition = _inAppPurchase
           .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
       await iosPlatformAddition.setDelegate(ExamplePaymentQueueDelegate());
@@ -136,7 +139,8 @@ class _MyAppState extends State<_MyApp> {
 
   @override
   void dispose() {
-    if (Platform.isIOS) {
+    // watchOS deviation: as in initStoreInfo, setDelegate fails on the watch.
+    if (FlutterWatchosPlatform.isIos) {
       final InAppPurchaseStoreKitPlatformAddition iosPlatformAddition = _inAppPurchase
           .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
       iosPlatformAddition.setDelegate(null);
@@ -253,7 +257,9 @@ class _MyAppState extends State<_MyApp> {
         return ListTile(
           title: Text(productDetails.title),
           subtitle: Text(productDetails.description),
-          trailing: previousPurchase != null && Platform.isIOS
+          // watchOS deviation: the upgrade button calls
+          // showPriceConsentIfNeeded, which fails on the watch.
+          trailing: previousPurchase != null && FlutterWatchosPlatform.isIos
               ? IconButton(
                   onPressed: () => confirmPriceChange(context),
                   icon: const Icon(Icons.upgrade),
@@ -447,11 +453,11 @@ class _MyAppState extends State<_MyApp> {
   }
 
   Future<void> confirmPriceChange(BuildContext context) async {
-    // Price changes for Android are not handled by the application, but are
-    // instead handled by the Play Store. See
-    // https://developer.android.com/google/play/billing/price-changes for more
-    // information on price changes on Android.
-    if (Platform.isIOS) {
+    // On Android the Play Store, not the application, handles a change to
+    // what a subscription costs; see Google Play's billing documentation.
+    // watchOS deviation: showPriceConsentIfNeeded fails on the watch, and
+    // Platform.isIOS is true there.
+    if (FlutterWatchosPlatform.isIos) {
       final InAppPurchaseStoreKitPlatformAddition iapStoreKitPlatformAddition = _inAppPurchase
           .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
       await iapStoreKitPlatformAddition.showPriceConsentIfNeeded();

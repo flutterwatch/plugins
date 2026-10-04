@@ -8,3 +8,9 @@ analyzer:
     - macos/**
     - linux/**
 include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # lib/main.dart is connectivity_plus's own example, kept verbatim, and it
+    # declares its widget keys as `Key? key` parameters.
+    use_super_parameters: false

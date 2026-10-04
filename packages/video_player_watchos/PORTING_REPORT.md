@@ -38,18 +38,29 @@ flutter-watchos provides.
   diffing successive snapshots, and resolves symbols via
   `DynamicLibrary.process()`.
 
-## API coverage
+## Interface coverage
 
-| Method | watchOS |
+Every public member of `video_player_platform_interface` 6.9.0
+(`VideoPlayerPlatform`), audited by hand against this package's code. The
+static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
+with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
+watchOS" table lists the ✗ rows.
+
+| Member | watchOS |
 |---|---|
-| `create` (network / file / asset) | ✅ `AVPlayerItem` (asset keys resolved against bundled `flutter_assets/`) |
-| `create` (content URI) | ✗ Android-only (throws `UnsupportedError`) |
-| `play` / `pause` / `seekTo` / `getPosition` | ✅ (`seekTo` is frame-accurate; position reports the seek target while in flight) |
+| `init` / `dispose` | ✅ |
+| `create` / `createWithOptions` | ✅ network, file and asset sources through `AVPlayerItem` |
+| `videoEventsFor` | ✅ initialized, completed, buffering and play-state events |
+| `play` / `pause` / `seekTo` / `getPosition` | ✅ |
 | `setVolume` / `setPlaybackSpeed` / `setLooping` | ✅ |
-| `videoEventsFor` | ✅ initialized / completed / bufferingStart / bufferingEnd / bufferingUpdate / isPlayingStateUpdate, poll-derived |
-| `buildView` / `buildViewWithOptions` | ✅ `WatchPlatformView` (`layer: belowFlutter`) |
+| `buildView` / `buildViewWithOptions` | ✅ a `WatchPlatformView` under the Flutter content |
 | `setMixWithOthers` | ✅ `AVAudioSession` category options |
-| `getAudioTracks` / `selectAudioTrack` / `isAudioTrackSupportAvailable` | ✅ via `AVMediaCharacteristicAudible` selection groups — empty for regular MP4s, populated for HLS, same as the upstream Apple impl (the item-level read is unavailable on watchOS, so it goes through `currentMediaSelection`) |
+| `getAudioTracks` / `selectAudioTrack` / `isAudioTrackSupportAvailable` | ✅ audible media-selection groups: empty for a plain MP4, filled for HLS |
+| `create` with a content URI | ✗ throws `UnsupportedError`: content URIs are an Android concept |
+| `setAllowBackgroundPlayback` | ✗ throws `UnimplementedError` when called: not implemented |
+| `setPreventsDisplaySleepDuringVideoPlayback` | ✗ no effect (the interface default): not implemented |
+| `getVideoTracks` / `selectVideoTrack` | ✗ throw `UnimplementedError` when called; `isVideoTrackSupportAvailable` returns false, so `video_player` does not call them |
+| `setWebOptions` | ✗ throws `UnimplementedError` when called: web only |
 
 ## Platform notes
 

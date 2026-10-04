@@ -155,81 +155,73 @@ class _DemoPageState extends State<DemoPage> {
     return Scaffold(
       appBar: compact ? null : AppBar(title: const Text('flutter_watch_link')),
       body: SafeArea(
-        child: Padding(
+        // One scrolling list, so the flags, the buttons and the log fit any
+        // screen: on the smaller watches the buttons alone fill it.
+        child: ListView(
           padding: EdgeInsets.all(compact ? 6 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: <Widget>[
-                  for (final MapEntry<String, bool> f in flags.entries)
-                    _Flag(label: f.key, on: f.value, compact: compact),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: <Widget>[
-                  // One button per tier, so the difference between them is
-                  // something you can press rather than only read about.
-                  _Action(
-                    label: 'message',
-                    compact: compact,
-                    onPressed: () => _guard(
-                        'sendMessage', () => _link.sendMessage(_payload)),
-                  ),
-                  _Action(
-                    label: 'reply',
-                    compact: compact,
-                    onPressed: () => _guard('sendMessageWithReply', () async {
-                      final Map<String, Object?> r =
-                          await _link.sendMessageWithReply(_payload);
-                      _add('reply: $r');
-                    }),
-                  ),
-                  _Action(
-                    label: 'context',
-                    compact: compact,
-                    onPressed: () => _guard('updateApplicationContext',
-                        () => _link.updateApplicationContext(_payload)),
-                  ),
-                  _Action(
-                    label: 'userInfo',
-                    compact: compact,
-                    onPressed: () => _guard('transferUserInfo',
-                        () => _link.transferUserInfo(_payload)),
-                  ),
-                  _Action(
-                    label: 'sent ctx',
-                    compact: compact,
-                    onPressed: () async => _add(
-                        'last sent: ${await _link.sentApplicationContext()}'),
-                  ),
-                  _Action(
-                    label: 'queued',
-                    compact: compact,
-                    onPressed: () async => _add(
-                        'undelivered: ${await _link.outstandingTransferCount()}'
-                        ' userInfo, '
-                        '${await _link.outstandingFileTransferCount()} files'),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _log.length,
-                  itemBuilder: (BuildContext context, int i) => Text(
-                    _log[i],
-                    style: TextStyle(fontSize: compact ? 11 : 13),
-                  ),
+          children: <Widget>[
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: <Widget>[
+                for (final MapEntry<String, bool> f in flags.entries)
+                  _Flag(label: f.key, on: f.value, compact: compact),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: <Widget>[
+                // One button per tier, so the difference between them is
+                // something you can press rather than only read about.
+                _Action(
+                  label: 'message',
+                  compact: compact,
+                  onPressed: () =>
+                      _guard('sendMessage', () => _link.sendMessage(_payload)),
                 ),
-              ),
-            ],
-          ),
+                _Action(
+                  label: 'reply',
+                  compact: compact,
+                  onPressed: () => _guard('sendMessageWithReply', () async {
+                    final Map<String, Object?> r =
+                        await _link.sendMessageWithReply(_payload);
+                    _add('reply: $r');
+                  }),
+                ),
+                _Action(
+                  label: 'context',
+                  compact: compact,
+                  onPressed: () => _guard('updateApplicationContext',
+                      () => _link.updateApplicationContext(_payload)),
+                ),
+                _Action(
+                  label: 'userInfo',
+                  compact: compact,
+                  onPressed: () => _guard('transferUserInfo',
+                      () => _link.transferUserInfo(_payload)),
+                ),
+                _Action(
+                  label: 'sent ctx',
+                  compact: compact,
+                  onPressed: () async => _add(
+                      'last sent: ${await _link.sentApplicationContext()}'),
+                ),
+                _Action(
+                  label: 'queued',
+                  compact: compact,
+                  onPressed: () async => _add(
+                      'undelivered: ${await _link.outstandingTransferCount()}'
+                      ' userInfo, '
+                      '${await _link.outstandingFileTransferCount()} files'),
+                ),
+              ],
+            ),
+            const Divider(height: 16),
+            for (final String line in _log)
+              Text(line, style: TextStyle(fontSize: compact ? 11 : 13)),
+          ],
         ),
       ),
     );

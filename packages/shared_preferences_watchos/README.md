@@ -8,10 +8,13 @@ see `PORTING_REPORT.md`.
 
 ## Usage
 
+`shared_preferences` does not include a watchOS implementation, so add
+this package alongside it:
+
 ```yaml
 dependencies:
-  shared_preferences: ^2.3.0
-  shared_preferences_watchos: ^0.1.0
+  shared_preferences: ^2.5.5
+  shared_preferences_watchos: ^0.1.1
 ```
 
 Both the classic `SharedPreferences` API and the newer
@@ -26,6 +29,15 @@ filtering is done in Dart, so the five supported value types (`bool`, `int`,
 `double`, `String`, `List<String>`) round-trip exactly. Both the legacy
 `SharedPreferencesStorePlatform` and the async `SharedPreferencesAsyncPlatform`
 are registered against the same store, mirroring `shared_preferences_foundation`.
+
+## Not supported on watchOS
+
+These members of `shared_preferences_platform_interface` 2.4.2 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `clearWithPrefix` / `getAllWithPrefix` | fail with `UnimplementedError` | deprecated in the interface; `shared_preferences` 2.3 and later calls `clearWithParameters` and `getAllWithParameters` |
 
 ## License
 

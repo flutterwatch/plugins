@@ -15,11 +15,20 @@
 // `NativeCallable.listener` and Dart re-reads the cached value. It does not
 // poll. A connectivity state that changes a handful of times a day does not
 // justify a timer running for the life of the app on a watch.
+//
+// The native cache starts as "unknown" (-1): the monitor delivers its first
+// path a moment after it starts. Both `checkConnectivity()` and the stream
+// register for changes before they read, and while the value is unknown they
+// wait for the first update, for at most
+// `ConnectivityPlusWatchos.firstValueTimeout` (one second), and then report
+// none. So an app that asks at start-up gets the real value, not a `none`
+// that turns into `wifi` a few milliseconds later.
 
 import 'dart:async';
 import 'dart:ffi';
 
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// FFI bindings to the native connectivity_plus_watchos C function.
 ///
@@ -45,8 +54,10 @@ class ConnectivityPlusWatchosBindings {
               void Function(Pointer<NativeFunction<ConnectivityChangedNative>>)>(
           'connectivity_plus_watchos_set_callback');
 
-  /// Current native connectivity code (0 none / 1 wifi / 2 mobile /
-  /// 3 ethernet / 4 other).
+  /// Current native connectivity code (-1 unknown / 0 none / 1 wifi /
+  /// 2 mobile / 3 ethernet / 4 other).
+  ///
+  /// The code is -1 until the path monitor has delivered its first path.
   int get current => _current();
 
   /// Registers the function the path monitor calls on a change, or `nullptr`
@@ -121,6 +132,20 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
   static ConnectivityPlusWatchosBindings get _b =>
       bindingsOverride ?? (_bindings ??= ConnectivityPlusWatchosBindings());
 
+  /// How long [checkConnectivity] and the first event of
+  /// [onConnectivityChanged] wait for the path monitor's first update while
+  /// the native value is still unknown. After it they report
+  /// [ConnectivityResult.none].
+  ///
+  /// One second; tests shorten it.
+  @visibleForTesting
+  static Duration firstValueTimeout = const Duration(seconds: 1);
+
+  /// The native code before the path monitor has delivered its first path.
+  static const int _unknown = -1;
+
+  /// The native code for no connectivity.
+  static const int _none = 0;
 
   /// Registers this implementation as the default `connectivity_plus`
   /// platform implementation on watchOS.
@@ -143,11 +168,42 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
     }
   }
 
+  /// The current connectivity.
+  ///
+  /// Registers for changes before it reads, so the path monitor's first
+  /// update cannot slip in between. While the native value is unknown it
+  /// waits for that update, for at most [firstValueTimeout], and then reports
+  /// [ConnectivityResult.none].
   @override
-  Future<List<ConnectivityResult>> checkConnectivity() async => _map(_b.current);
+  Future<List<ConnectivityResult>> checkConnectivity() async {
+    final ConnectivityPlusWatchosBindings bindings = _b;
+    final Completer<int> known = Completer<int>();
+    final void Function() stop = _Notifier.listen(bindings, () {
+      final int code = bindings.current;
+      if (code != _unknown && !known.isCompleted) {
+        known.complete(code);
+      }
+    });
+    try {
+      final int code = bindings.current;
+      if (code != _unknown) {
+        return _map(code);
+      }
+      return _map(await known.future
+          .timeout(firstValueTimeout, onTimeout: () => _none));
+    } finally {
+      stop();
+    }
+  }
 
   /// Connectivity changes, seeded with the current value for *every*
   /// subscriber.
+  ///
+  /// Each subscriber registers for changes before it reads. Its first event
+  /// is the first known value: while the native value is unknown it waits for
+  /// the path monitor's first update, and after [firstValueTimeout] without
+  /// one it gets [ConnectivityResult.none] (followed by the real value when
+  /// that update arrives).
   ///
   /// [Stream.multi] rather than a broadcast controller: a broadcast
   /// `onListen` fires only when the listener count goes from zero to one, so a
@@ -159,20 +215,47 @@ class ConnectivityPlusWatchos extends ConnectivityPlatform {
   Stream<List<ConnectivityResult>> get onConnectivityChanged =>
       Stream<List<ConnectivityResult>>.multi(
         (MultiStreamController<List<ConnectivityResult>> out) {
+          final ConnectivityPlusWatchosBindings bindings = _b;
           int? lastCode;
+          Timer? firstValueTimer;
 
-          void emitIfChanged() {
-            final int code = _b.current;
+          void emit(int code) {
             if (code != lastCode) {
               lastCode = code;
               out.add(_map(code));
             }
           }
 
+          void emitIfKnown() {
+            final int code = bindings.current;
+            if (code == _unknown) {
+              return;
+            }
+            firstValueTimer?.cancel();
+            firstValueTimer = null;
+            emit(code);
+          }
+
+          // Register before reading, so the path monitor's first update cannot
+          // slip in between.
+          final void Function() stop = _Notifier.listen(bindings, emitIfKnown);
+          out.onCancel = () {
+            firstValueTimer?.cancel();
+            firstValueTimer = null;
+            stop();
+          };
           // The current value first: a listener should not have to wait for
-          // the network to change before it learns what the network is.
-          emitIfChanged();
-          out.onCancel = _Notifier.listen(_b, emitIfChanged);
+          // the network to change before it learns what the network is. While
+          // it is unknown, the first update brings it, or the bound runs out.
+          final int code = bindings.current;
+          if (code != _unknown) {
+            emit(code);
+          } else {
+            firstValueTimer = Timer(firstValueTimeout, () {
+              firstValueTimer = null;
+              emit(_none);
+            });
+          }
         },
         isBroadcast: true,
       );

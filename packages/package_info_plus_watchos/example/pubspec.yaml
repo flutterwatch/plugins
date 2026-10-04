@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  package_info_plus: any
+  package_info_plus: ^10.2.1
   package_info_plus_watchos:
     path: ../
   clock: "^1.1.1"

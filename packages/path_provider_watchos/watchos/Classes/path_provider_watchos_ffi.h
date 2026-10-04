@@ -10,15 +10,16 @@
 // table, where `DynamicLibrary.process()` / dlsym can resolve it. The watch
 // app links this archive statically, so without `used` the linker would drop
 // these (FFI has no compile-time caller). The flutter-watchos CLI
-// additionally emits a forced reference for each symbol listed under
-// `flutter.plugin.platforms.watchos.ffiSymbols` in pubspec.yaml.
+// force-loads the plugin archive, so no object is left out, and keeps global
+// symbols through the App Store strip. `ffiSymbols` in pubspec.yaml lists the
+// exports.
 #define PATH_PROVIDER_WATCHOS_EXPORT \
   __attribute__((visibility("default"))) __attribute__((used))
 
 // Every function returns an absolute directory path as a UTF-8 C string, or
 // NULL when the directory cannot be resolved. Returned pointers are owned by
 // the plugin (cached for the lifetime of the process — the sandbox paths
-// never change after launch); callers must NOT free them.
+// never change after launch); callers must NOT release them.
 
 /// `NSTemporaryDirectory()`, trailing slash stripped.
 PATH_PROVIDER_WATCHOS_EXPORT const char* path_provider_watchos_temporary_path(void);

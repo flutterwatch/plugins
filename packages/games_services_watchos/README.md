@@ -10,13 +10,19 @@ itself in its place and talks to GameKit through exported C symbols over
 
 ## Usage
 
-Add both packages; the implementation registers itself.
+`games_services` does not include a watchOS implementation, so add this
+package alongside it; the implementation registers itself.
 
 ```yaml
 dependencies:
   games_services: ^4.1.1
-  games_services_watchos: ^0.0.1
+  games_services_watchos: ^0.1.0
 ```
+
+This release implements `games_services_platform_interface` 4.x, so it works
+with `games_services` 4.x. `games_services` 5.x requires the 5.x interface,
+which this package does not implement yet, so `games_services: ^5` does not
+resolve alongside it.
 
 Then use `games_services` as normal:
 
@@ -41,15 +47,10 @@ final rows = await Leaderboards.loadLeaderboardScores(
 | `submitScore` | ✅ | `GKLeaderboard.submitScore`, watchOS 7+ |
 | `loadLeaderboardScores` | ✅ | `loadEntriesForPlayerScope`, watchOS 7+ |
 | `getPlayerScore` | ✅ | derived from the local player's own entry |
-| `showLeaderboards` | ✗ | `GKGameCenterViewController` does not exist on watchOS |
-| `showAchievements` | ✗ | same |
-| `unlock` / `increment` | ✗ | not implemented |
-| saved games | ✗ | not implemented |
-| `showAccessPoint` / `hideAccessPoint` | ✗ | `GKAccessPoint` does not exist on watchOS |
-| `getPlayerHiResImage` | ✗ | not implemented |
 
-Unsupported methods keep the platform interface's `UnimplementedError`
-default rather than returning a plausible-looking empty value.
+The other members keep the platform interface's `UnimplementedError`
+default rather than returning a plausible-looking empty value; see "Not
+supported on watchOS" below.
 
 Because there is no system leaderboard UI on watchOS, a watch app draws
 its own from `loadLeaderboardScores`.
@@ -69,10 +70,26 @@ its own from `loadLeaderboardScores`.
   entries. Collapsing the two makes a broken leaderboard look like an
   empty one, which is a genuinely hard bug to see.
 
+## Not supported on watchOS
+
+These members of `games_services_platform_interface` 4.1.1 throw or fail on watchOS.
+`PORTING_REPORT.md` lists every member under "Interface coverage".
+
+| Member | On watchOS | Why |
+|---|---|---|
+| `showLeaderboards` / `showAchievements` | fails with `UnimplementedError` | `GKGameCenterViewController` does not exist on watchOS |
+| `showAccessPoint` / `hideAccessPoint` | fails with `UnimplementedError` | `GKAccessPoint` does not exist on watchOS |
+| `unlock` / `increment` / `loadAchievements` / `resetAchievements` | fails with `UnimplementedError` | achievements are not implemented yet |
+| `getPlayerScoreObject` | fails with `UnimplementedError` | not implemented yet; `getPlayerScore` gives the local score |
+| `player` | throws `UnimplementedError` when read | not implemented yet |
+| `getAuthCode` | throws `UnimplementedError` when called | a Play Games server code; Android only |
+| `getPlayerHiResImage` | fails with `UnimplementedError` | not implemented yet |
+| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | fails with `UnimplementedError` | saved games are not implemented yet |
+
 ## Status
 
-Staged, not production-ready. See [PORTING_REPORT.md](PORTING_REPORT.md)
-for the verification table — in particular, leaderboard reads have not yet
-been observed working on a physical watch.
+Sign-in and score submission have been observed working on a physical Apple
+Watch; leaderboard reads have not yet. See [PORTING_REPORT.md](PORTING_REPORT.md)
+for the verification table.
 
 [upstream]: https://pub.dev/packages/games_services

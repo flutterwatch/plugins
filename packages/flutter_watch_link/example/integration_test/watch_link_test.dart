@@ -13,16 +13,34 @@
 // Run on the phone:
 //   flutter test integration_test
 //
-// Everything here must pass on **one** device with no counterpart running, so
-// the suite asserts the contract rather than delivery: a send with nobody
-// listening is expected to fail in a specific, documented way. Two-device
-// delivery is checked by hand — see the README's Simulator-pair section.
+// Everything outside the "paired" group must pass on **one** device with no
+// counterpart running, so the suite asserts the contract rather than delivery:
+// a send with nobody listening is expected to fail in a specific, documented
+// way. Two-device delivery is checked by hand — see the README's
+// Simulator-pair section.
+//
+// The "paired" group needs an activated session with the counterpart app
+// installed, which a watch Simulator has only when it is paired with an iPhone
+// Simulator that runs the phone half. It is skipped, with a message, unless the
+// run says so:
+//   flutter-watchos test integration_test --dart-define=FWL_PAIRED=true
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_watch_link/flutter_watch_link.dart';
 import 'package:integration_test/integration_test.dart';
+
+/// Whether the run says the device has a paired counterpart
+/// (`--dart-define=FWL_PAIRED=true`).
+const bool _paired = bool.fromEnvironment('FWL_PAIRED');
+
+/// Why the "paired" group is skipped when [_paired] is false.
+const String _unpairedReason =
+    'needs an activated session with the counterpart app installed: pair the '
+    'watch Simulator with an iPhone Simulator, install the iPhone app first '
+    '(README, "Setting up a Simulator pair"), and pass '
+    '--dart-define=FWL_PAIRED=true';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -73,15 +91,6 @@ void main() {
     expect(await link.readState(), isA<WatchLinkState>());
   });
 
-  testWidgets('the session activates', (WidgetTester _) async {
-    if (!await link.isSupported()) {
-      return;
-    }
-    final WatchLinkState state = await link.readState();
-    expect(state.activated, isTrue,
-        reason: 'activate() ran in setUpAll and WCSession should be up');
-  });
-
   testWidgets('a watch always reports a paired counterpart',
       (WidgetTester _) async {
     if (!await link.isSupported()) {
@@ -93,20 +102,6 @@ void main() {
     // counterpartReady must never claim more than its two inputs.
     expect(state.counterpartReady,
         state.counterpartPaired && state.counterpartInstalled);
-  });
-
-  testWidgets('states emits the current state on listen',
-      (WidgetTester _) async {
-    if (!await link.isSupported()) {
-      return;
-    }
-    // A late subscriber must not wait for the next change to learn where it
-    // stands — a cold-launched app subscribes after activation has finished.
-    final WatchLinkState first = await link.states.first
-        .timeout(const Duration(seconds: 5), onTimeout: () {
-      fail('states did not emit within 5s of listening');
-    });
-    expect(first.activated, isTrue);
   });
 
   testWidgets('sendMessage fails cleanly when nobody is reachable',
@@ -142,64 +137,74 @@ void main() {
     );
   });
 
-  testWidgets('the application context round-trips through the system',
-      (WidgetTester _) async {
-    if (!await link.isSupported()) {
-      return;
-    }
-    final WatchLinkState state = await link.readState();
-    if (!state.counterpartReady) {
-      // updateApplicationContext needs somewhere to send it.
-      return;
-    }
-    final int stamp = DateTime.now().millisecondsSinceEpoch;
-    await link.updateApplicationContext(<String, Object?>{'stamp': stamp});
-
-    // Read back what we sent, not what we received: this is the accessor that
-    // reads WCSession.applicationContext rather than
-    // receivedApplicationContext, and confusing the two is a silent bug.
-    final Map<String, Object?>? sent = await link.sentApplicationContext();
-    expect(sent, isNotNull);
-    expect(sent!['stamp'], stamp);
-  });
-
-  testWidgets('file metadata carrying a null reaches WCSession intact',
-      (WidgetTester _) async {
-    if (!await link.isSupported()) {
-      return;
-    }
-    if (!(await link.readState()).activated) {
-      return;
-    }
-    // Metadata is wrapped as a JSON string like every other tier rather than
-    // handed over as a decoded dictionary. WCSession documents metadata as
-    // property-list values, and a JSON null decodes to NSNull, which is not
-    // one; the same wrapping is what keeps an int from arriving as a double
-    // after the property-list round trip.
-    //
-    // What this asserts is only that the call is accepted and the app is
-    // still running. On a device with no counterpart installed, WCSession
-    // discards the transfer without validating the metadata at all — measured,
-    // not assumed — so the raise cannot be provoked here. Whether the
-    // metadata *arrives* is part of the two-device check in the README.
-    //
-    // The file is left behind on purpose: the transfer may still be queued
-    // when this returns, and deleting the source out from under it would fail
-    // the transfer for a reason that has nothing to do with what is being
-    // tested. It is a handful of bytes in the app's temporary directory.
-    final Directory dir = Directory.systemTemp.createTempSync('watch_link');
-    final File file = File('${dir.path}/payload.txt')
-      ..writeAsStringSync('hello');
-    await link.transferFile(
-      file.path,
-      metadata: <String, Object?>{'caption': null, 'index': 1},
-    );
-    expect(await link.outstandingFileTransferCount(), greaterThanOrEqualTo(0));
-  });
-
   testWidgets('transfer counts are readable and non-negative',
       (WidgetTester _) async {
     expect(await link.outstandingTransferCount(), greaterThanOrEqualTo(0));
     expect(await link.outstandingFileTransferCount(), greaterThanOrEqualTo(0));
   });
+
+  group('paired', () {
+    testWidgets('the session activates', (WidgetTester _) async {
+      final WatchLinkState state = await link.readState();
+      expect(state.activated, isTrue,
+          reason: 'activate() ran in setUpAll and WCSession should be up');
+    });
+
+    testWidgets('states emits the current state on listen',
+        (WidgetTester _) async {
+      // A late subscriber must not wait for the next change to learn where it
+      // stands — a cold-launched app subscribes after activation has finished.
+      final WatchLinkState first = await link.states.first
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+        fail('states did not emit within 5s of listening');
+      });
+      expect(first.activated, isTrue);
+    });
+
+    testWidgets('the application context round-trips through the system',
+        (WidgetTester _) async {
+      final WatchLinkState state = await link.readState();
+      // updateApplicationContext needs somewhere to send it.
+      expect(state.counterpartReady, isTrue,
+          reason: 'the counterpart app must be installed on the paired device');
+      final int stamp = DateTime.now().millisecondsSinceEpoch;
+      await link.updateApplicationContext(<String, Object?>{'stamp': stamp});
+
+      // Read back what we sent, not what we received: this is the accessor
+      // that reads WCSession.applicationContext rather than
+      // receivedApplicationContext, and confusing the two is a silent bug.
+      final Map<String, Object?>? sent = await link.sentApplicationContext();
+      expect(sent, isNotNull);
+      expect(sent!['stamp'], stamp);
+    });
+
+    testWidgets('file metadata carrying a null reaches WCSession intact',
+        (WidgetTester _) async {
+      // Metadata is wrapped as a JSON string like every other tier rather than
+      // handed over as a decoded dictionary. WCSession documents metadata as
+      // property-list values, and a JSON null decodes to NSNull, which is not
+      // one; the same wrapping is what keeps an int from arriving as a double
+      // after the property-list round trip.
+      //
+      // What this asserts is only that the call is accepted and the app is
+      // still running. On a device with no counterpart installed, WCSession
+      // discards the transfer without validating the metadata at all — measured,
+      // not assumed — so the raise cannot be provoked here. Whether the
+      // metadata *arrives* is part of the two-device check in the README.
+      //
+      // The file is left behind on purpose: the transfer may still be queued
+      // when this returns, and deleting the source out from under it would fail
+      // the transfer for a reason that has nothing to do with what is being
+      // tested. It is a handful of bytes in the app's temporary directory.
+      final Directory dir = Directory.systemTemp.createTempSync('watch_link');
+      final File file = File('${dir.path}/payload.txt')
+        ..writeAsStringSync('hello');
+      await link.transferFile(
+        file.path,
+        metadata: <String, Object?>{'caption': null, 'index': 1},
+      );
+      expect(
+          await link.outstandingFileTransferCount(), greaterThanOrEqualTo(0));
+    });
+  }, skip: _paired ? false : _unpairedReason);
 }

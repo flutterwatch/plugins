@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  video_player: any
+  video_player: ^2.14.0
   video_player_watchos:
     path: ../
 
@@ -20,7 +20,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   # The official integration test writes a downloaded file via path_provider.
-  path_provider: any
+  path_provider: ^2.1.6
   path_provider_watchos:
     path: ../../path_provider_watchos
 

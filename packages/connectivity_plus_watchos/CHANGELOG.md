@@ -1,3 +1,36 @@
+## 0.2.1
+
+**Fixed**
+
+* **The first value is the real one, not `none`.** The native cache started as
+  "none", and the path monitor starts only on first use, so the first
+  `checkConnectivity()` and the first event of `onConnectivityChanged`
+  reported `[none]`, followed a few milliseconds later by the real value. The
+  cache now starts as "unknown". Both register for changes before they read,
+  and while the value is unknown they wait for the monitor's first path, for at
+  most one second, and then report `none`.
+* Comments and `PORTING_REPORT.md` no longer say that Dart polls the cache.
+  Changes are pushed.
+
+**Docs**
+
+* README: the install snippet names `connectivity_plus: ^7.3.1` and this
+  version, and says to add this package alongside `connectivity_plus`.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `connectivity_plus_platform_interface`
+  2.1.0, audited by hand.
+* Example: `pubspec.yaml` names `connectivity_plus: ^7.3.1` instead of `any`.
+* Example: the runner sets `FlutterWatchOSContentScale` to 0.5, so the phone
+  example no longer overflows the watch screen (by 88 px on a 49 mm
+  Simulator). A widget test lays it out at that scale on every watch screen
+  size, and the README says why.
+
 ## 0.2.0
 
 **Breaking**

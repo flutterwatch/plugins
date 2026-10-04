@@ -1,8 +1,8 @@
 name: shared_preferences_watchos
 description: "watchOS implementation of the shared_preferences plugin, backed by dart:ffi over NSUserDefaults for persistent key-value storage."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
-repository: https://github.com/flutterwatch/plugins
+repository: https://github.com/flutterwatch/plugins/tree/main/packages/shared_preferences_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
 topics:
   - watchos

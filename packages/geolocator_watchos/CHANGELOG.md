@@ -1,3 +1,20 @@
+## 0.1.1
+
+* README: the install snippet names `geolocator: ^14.1.1` and this version.
+  It named `^0.0.1`, which does not admit 0.1.x.
+* `pubspec.yaml`: `repository` points at this package's folder in the plugins
+  repo.
+* Comments now say what keeps the FFI exports in the app: the CLI force-loads
+  the plugin archive, each export is `used` with default visibility, and the
+  CLI keeps global symbols through the App Store strip. `ffiSymbols` lists the
+  exports.
+* README: a "Not supported on watchOS" table; PORTING_REPORT: an "Interface
+  coverage" list of every member of `geolocator_platform_interface` 4.4.0,
+  audited by hand.
+* Dartdoc on every public member, and `public_member_api_docs` is on in
+  `analysis_options.yaml`.
+* Example: `pubspec.yaml` names `geolocator: ^14.1.1` instead of `any`.
+
 ## 0.1.0
 
 First release beyond the generated scaffold.
