@@ -42,6 +42,8 @@ re-registering, and every `InAppPurchase` method resolves
 Because the registrant runs before `main()` creates the binding, the first
 attempt can fail (upstream installs a pigeon handler, which needs a binding);
 it is retried on subsequent event-loop turns, well before any widget builds.
+A host that starts `main()` late, as `flutter-watchos test -d` does, is
+covered by further retries every 10 ms for up to ten seconds.
 
 `example/integration_test/registration_test.dart` verifies this end to end on a
 watch: the plain `InAppPurchase` API reaches StoreKit through FFI with no

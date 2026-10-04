@@ -62,7 +62,8 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
   /// It cannot always be done in one go: the registrant runs before `main()`
   /// creates the binding, and upstream's selection installs a pigeon message
   /// handler, which throws without a binding and leaves its instance
-  /// un-memoised. So a failed attempt retries on later event-loop turns, and we
+  /// un-memoised. So a failed attempt retries on later event-loop turns, then
+  /// every [preemptRetryInterval] for up to [preemptRetryWindow], and we
   /// re-assert this implementation each time regardless.
   static void registerWith() {
     _preempt();
@@ -73,8 +74,30 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
 
   /// How many event-loop turns to keep retrying the pre-emption for. Each retry
   /// is a `Timer.run`, so the queue drains between attempts and `main()` gets to
-  /// initialise the binding; a microtask loop would starve it instead.
+  /// initialise the binding; a microtask loop would starve it instead. An app's
+  /// `main()` creates the binding before these run out.
   static const int _maxAttempts = 20;
+
+  /// How long to keep retrying, at [preemptRetryInterval], once the
+  /// [_maxAttempts] quick retries have failed.
+  ///
+  /// Some hosts start `main()` well after the plugin registrant:
+  /// `flutter-watchos test -d` runs a test's `main()` only once the tool has
+  /// connected, seconds later, and the quick retries are long gone by then.
+  /// A test's first read of `InAppPurchase.instance` would then install
+  /// upstream's StoreKit method-channel implementation, and every call would
+  /// fail with `channel-error`.
+  @visibleForTesting
+  static Duration preemptRetryWindow = const Duration(seconds: 10);
+
+  /// How often the pre-emption is retried within [preemptRetryWindow]. Short,
+  /// because code that reads `InAppPurchase.instance` between the binding's
+  /// creation and the next retry gets StoreKit's implementation until then.
+  @visibleForTesting
+  static Duration preemptRetryInterval = const Duration(milliseconds: 10);
+
+  /// When the retries at [preemptRetryInterval] began; null before that.
+  static Stopwatch? _slowRetries;
 
   /// Why the last pre-emption attempt failed, for diagnostics. Null once it
   /// has succeeded.
@@ -109,10 +132,14 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
       preemptError = null;
     } on Object catch (e) {
       // Usually "Binding has not yet been initialized": the registrant runs
-      // before main() creates the binding. Retry on later event-loop turns.
+      // before main() creates the binding. Retry on later event-loop turns,
+      // then at intervals for a host that starts main() late.
       preemptError = e;
       if (_attempts++ < _maxAttempts) {
         Timer.run(_preempt);
+      } else if ((_slowRetries ??= Stopwatch()..start()).elapsed <
+          preemptRetryWindow) {
+        Timer(preemptRetryInterval, _preempt);
       } else {
         // Out of retries. Upstream's selection was never memoised, so the
         // app's first read of InAppPurchase.instance will install the iOS
@@ -122,7 +149,7 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
         preemptExhausted = true;
         debugPrint(
           'in_app_purchase_watchos: could not pre-empt the in_app_purchase '
-          'platform selection after $_maxAttempts attempts; StoreKit calls '
+          'platform selection after $_attempts attempts; StoreKit calls '
           'will likely fail with `channel-error`. Last error: $e',
         );
       }
@@ -143,9 +170,12 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
   static void resetPreemptionForTest() {
     _preempted = false;
     _attempts = 0;
+    _slowRetries = null;
     preemptError = null;
     preemptExhausted = false;
     preemptProbe = _defaultPreemptProbe;
+    preemptRetryWindow = const Duration(seconds: 10);
+    preemptRetryInterval = const Duration(milliseconds: 10);
   }
 
   /// How often the native query is polled for completion.

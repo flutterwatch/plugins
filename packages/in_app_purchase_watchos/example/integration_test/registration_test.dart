@@ -22,8 +22,20 @@ void main() {
     // watchOS reports as iOS, which is what makes `in_app_purchase` try to
     // install its StoreKit method-channel implementation over ours.
     expect(defaultTargetPlatform, TargetPlatform.iOS);
+
+    // In an app, main() creates the binding before the registrant's quick
+    // retries run out, so the pre-emption is done before any app code runs.
+    // `flutter-watchos test -d` starts a test's main() seconds after the
+    // registrant, which then finishes at its next interval retry, a few
+    // milliseconds on. Wait for that, as an app never has to.
+    final Stopwatch waited = Stopwatch()..start();
+    while (InAppPurchaseWatchos.preemptError != null &&
+        waited.elapsed < const Duration(seconds: 2)) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
     // ignore: avoid_print
-    print('DIAG preemptError=${InAppPurchaseWatchos.preemptError}');
+    print('DIAG preemptError=${InAppPurchaseWatchos.preemptError} '
+        'after ${waited.elapsedMilliseconds} ms');
 
     // registerWith() pre-empted that selection, so we are live from startup...
     expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>(),

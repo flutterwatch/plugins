@@ -126,6 +126,8 @@ void main() {
 
     test('retries a failing pre-emption, then reports giving up', () async {
       InAppPurchaseWatchos.resetPreemptionForTest();
+      // Only the quick retries on the next event-loop turns.
+      InAppPurchaseWatchos.preemptRetryWindow = Duration.zero;
       int probeCalls = 0;
       InAppPurchaseWatchos.preemptProbe = () {
         probeCalls++;
@@ -143,6 +145,60 @@ void main() {
           reason: 'exhaustion must be observable — it silently breaks the plugin');
       expect(InAppPurchaseWatchos.preemptError, isA<StateError>());
       // Even having lost the race, we must still be the installed platform.
+      expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>());
+    });
+
+    // `flutter-watchos test -d` starts a test's main() seconds after the
+    // registrant, when the quick retries are long gone.
+    test('keeps retrying at an interval for a main() that starts late',
+        () async {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      InAppPurchaseWatchos.preemptRetryInterval =
+          const Duration(milliseconds: 1);
+      InAppPurchaseWatchos.preemptRetryWindow = const Duration(seconds: 5);
+      int probeCalls = 0;
+      // The binding arrives after the twenty quick retries and ten slow ones.
+      InAppPurchaseWatchos.preemptProbe = () {
+        if (++probeCalls <= 30) {
+          throw StateError('Binding has not yet been initialized.');
+        }
+      };
+
+      InAppPurchaseWatchos.registerWith();
+      final Stopwatch waited = Stopwatch()..start();
+      while (InAppPurchaseWatchos.preemptError != null &&
+          waited.elapsed < const Duration(seconds: 5)) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+
+      expect(probeCalls, 31);
+      expect(InAppPurchaseWatchos.preemptError, isNull);
+      expect(InAppPurchaseWatchos.preemptExhausted, isFalse);
+      expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>());
+    });
+
+    test('gives up once the retry window has passed', () async {
+      InAppPurchaseWatchos.resetPreemptionForTest();
+      InAppPurchaseWatchos.preemptRetryInterval =
+          const Duration(milliseconds: 2);
+      InAppPurchaseWatchos.preemptRetryWindow =
+          const Duration(milliseconds: 40);
+      int probeCalls = 0;
+      InAppPurchaseWatchos.preemptProbe = () {
+        probeCalls++;
+        throw StateError('Binding has not yet been initialized.');
+      };
+
+      InAppPurchaseWatchos.registerWith();
+      final Stopwatch waited = Stopwatch()..start();
+      while (!InAppPurchaseWatchos.preemptExhausted &&
+          waited.elapsed < const Duration(seconds: 5)) {
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+      }
+
+      expect(InAppPurchaseWatchos.preemptExhausted, isTrue);
+      expect(probeCalls, greaterThan(21),
+          reason: 'the interval retries come after the twenty quick ones');
       expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>());
     });
 

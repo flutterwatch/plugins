@@ -1,6 +1,6 @@
 name: in_app_purchase_watchos
 description: "watchOS implementation of the in_app_purchase plugin, using dart:ffi over StoreKit to query products and run purchases through SKPaymentQueue."
-version: 0.1.0
+version: 0.1.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins/tree/main/packages/in_app_purchase_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues

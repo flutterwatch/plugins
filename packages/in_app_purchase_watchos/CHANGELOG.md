@@ -1,3 +1,17 @@
+## 0.1.1
+
+* **The watchOS implementation stays in place under `flutter-watchos test -d`.**
+  `registerWith` takes over `in_app_purchase`'s own platform selection, which
+  needs the binding, and it retried only on the next twenty event-loop turns.
+  `flutter-watchos test -d` starts a test's `main()` seconds after the plugin
+  registrant, so those retries ran out, the test's first `InAppPurchase` call
+  installed StoreKit's method-channel implementation, and every call failed
+  with `channel-error`. After the twenty quick retries it now retries every
+  10 ms for up to ten seconds. Apps and `flutter-watchos drive` were not
+  affected: their `main()` creates the binding before the quick retries end.
+* Example: `registration_test.dart` waits for the takeover to finish before
+  it uses the app-facing API, as a test that starts late has to.
+
 ## 0.1.0
 
 * The platform addition: `InAppPurchase.instance.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>()`
