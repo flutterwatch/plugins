@@ -9,9 +9,10 @@
 # changed their analysis_options.yaml after the publish.
 #
 # The packages published in the 0.1.0 round (the four firebase_*_watchos
-# and video_player_watchos) get their rows once that round has published
-# them; until then they are checked as unpublished. After each publish, the
-# owner records the new version and the commit it was published from.
+# and video_player_watchos, 2026-10-03) were added on 2026-10-04: each 0.1.0
+# archive on pub.dev equals c1adf64's publishable files, file by file. After
+# each publish, the owner records the new version and the commit it was
+# published from.
 packages:
   audioplayers_watchos:
     version: 0.0.1
@@ -25,6 +26,18 @@ packages:
   device_info_plus_watchos:
     version: 0.1.0
     commit: 0547b1981256d752626ccf81774749cdfd27baf1
+  firebase_auth_watchos:
+    version: 0.1.0
+    commit: c1adf642876fc90d63147f755ff10ef344a5fe35
+  firebase_core_watchos:
+    version: 0.1.0
+    commit: c1adf642876fc90d63147f755ff10ef344a5fe35
+  firebase_messaging_watchos:
+    version: 0.1.0
+    commit: c1adf642876fc90d63147f755ff10ef344a5fe35
+  firebase_storage_watchos:
+    version: 0.1.0
+    commit: c1adf642876fc90d63147f755ff10ef344a5fe35
   flutter_secure_storage_watchos:
     version: 0.0.1
     commit: 0547b1981256d752626ccf81774749cdfd27baf1
@@ -61,3 +74,6 @@ packages:
   url_launcher_watchos:
     version: 0.1.0
     commit: 10591ec4b5bf3c7ab15e2f678f7ecdf16cd6276b
+  video_player_watchos:
+    version: 0.1.0
+    commit: c1adf642876fc90d63147f755ff10ef344a5fe35
