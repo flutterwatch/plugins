@@ -21,6 +21,10 @@
   longer starts with a `MissingPluginException`. The example depends on
   `flutter_watchos: ^0.1.0`, and a new integration test checks that it starts
   cleanly. The README and PORTING_REPORT list the deviations.
+* Example: the runner sets `FlutterWatchOSContentScale` to 0.4, so the phone
+  example no longer overflows the watch screen (by 107 px on a 46 mm
+  Simulator). A widget test lays it out at that scale on every watch screen
+  size, and the README says why.
 
 ## 0.0.1
 

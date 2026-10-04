@@ -8,7 +8,7 @@
 | watchOS capability | Partial — Wi-Fi IP only; SSID/BSSID unsupported on watchOS |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ✅ passes verbatim |
-| Example deviations | `example/lib/main.dart`: both permission requests use `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch), because `permission_handler` has no watchOS implementation and the upstream example started with a `MissingPluginException`; `example/pubspec.yaml` adds `flutter_watchos: ^0.1.0` for it. `example/integration_test/watchos_example_start_test.dart` checks that the example starts cleanly; not yet run on a watch Simulator |
+| Example deviations | `example/lib/main.dart`: both permission requests use `FlutterWatchosPlatform.isIos` instead of `Platform.isIOS` (true on the watch), because `permission_handler` has no watchOS implementation and the upstream example started with a `MissingPluginException`; `example/pubspec.yaml` adds `flutter_watchos: ^0.1.0` for it. `example/watchos/Runner/Info.plist` sets `FlutterWatchOSContentScale` to 0.4, because the phone app overflowed the watch screen; `example/test/watchos_content_scale_test.dart` lays it out at that scale on every watch screen size. `example/integration_test/watchos_example_start_test.dart` checks that the example starts cleanly; it passes on the watchOS 27.0 Simulator (Apple Watch Series 12, 46 mm, 2026-10-04) |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
