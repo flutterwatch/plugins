@@ -70,6 +70,7 @@ void main() {
     // Flip to discharging so a second, distinct event is emitted.
     await Future<void>.delayed(const Duration(milliseconds: 25));
     fake.stateValue = 1;
-    expect(await firstTwo, <BatteryState>[BatteryState.charging, BatteryState.discharging]);
+    expect(await firstTwo,
+        <BatteryState>[BatteryState.charging, BatteryState.discharging]);
   });
 }

@@ -19,7 +19,8 @@ class _FakeBindings extends FirebaseCoreWatchosBindings {
   final List<String> calls = <String>[];
 
   // Dart app name -> app-info snapshot the native layer would return.
-  final Map<String, Map<String, Object?>> configured = <String, Map<String, Object?>>{};
+  final Map<String, Map<String, Object?>> configured =
+      <String, Map<String, Object?>>{};
 
   Map<String, Object?>? configureError;
 
@@ -112,18 +113,20 @@ void main() {
         await platform.initializeApp(name: 'foo', options: _options);
     expect(app.name, 'foo');
     expect(fake.calls, contains('configure(foo)'));
-    expect(platform.apps.map((FirebaseAppPlatform a) => a.name), contains('foo'));
+    expect(
+        platform.apps.map((FirebaseAppPlatform a) => a.name), contains('foo'));
   });
 
-  test('initializeApp surfaces a native error as a FirebaseException', () async {
+  test('initializeApp surfaces a native error as a FirebaseException',
+      () async {
     fake.configureError = <String, Object?>{
       'error': 'boom',
       'code': 'configuration-failed'
     };
     await expectLater(
       platform.initializeApp(options: _options),
-      throwsA(isA<FirebaseException>()
-          .having((FirebaseException e) => e.code, 'code', 'configuration-failed')),
+      throwsA(isA<FirebaseException>().having(
+          (FirebaseException e) => e.code, 'code', 'configuration-failed')),
     );
   });
 
@@ -152,6 +155,7 @@ void main() {
     await platform.initializeApp(name: 'foo', options: _options);
     await platform.app('foo').delete();
     expect(fake.calls, contains('delete(foo)'));
-    expect(platform.apps.map((FirebaseAppPlatform a) => a.name), isNot(contains('foo')));
+    expect(platform.apps.map((FirebaseAppPlatform a) => a.name),
+        isNot(contains('foo')));
   });
 }

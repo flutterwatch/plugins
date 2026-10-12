@@ -143,13 +143,15 @@ void main() {
       storage.ref('missing.txt').getDownloadURL(),
       throwsA(isA<FirebaseException>()
           .having((FirebaseException e) => e.code, 'code', 'object-not-found')
-          .having((FirebaseException e) => e.plugin, 'plugin',
-              'firebase_storage')),
+          .having(
+              (FirebaseException e) => e.plugin, 'plugin', 'firebase_storage')),
     );
   });
 
   test('getData decodes the base64 payload', () async {
-    fake.opResult = <String, Object?>{'data': base64Encode(<int>[1, 2, 3])};
+    fake.opResult = <String, Object?>{
+      'data': base64Encode(<int>[1, 2, 3])
+    };
     final Uint8List? data = await storage.ref('bin').getData(1024);
     expect(data, <int>[1, 2, 3]);
     expect(fake.beginRequests.single['maxSize'], 1024);
@@ -233,8 +235,7 @@ void main() {
     ];
     final TaskPlatform task =
         storage.ref('up.txt').putData(Uint8List.fromList(<int>[1]));
-    final List<TaskSnapshotPlatform> seen =
-        await task.snapshotEvents.toList();
+    final List<TaskSnapshotPlatform> seen = await task.snapshotEvents.toList();
     expect(seen.map((TaskSnapshotPlatform s) => s.bytesTransferred),
         <int>[1, 3, 5]);
     expect(seen.last.state, TaskState.success);

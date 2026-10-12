@@ -67,7 +67,8 @@ base class FlutterSecureStorageWatchos extends FlutterSecureStoragePlatform {
   // The synchronizable attribute is part of every Keychain query, not just
   // writes — a query without it matches non-synchronizable items only, so
   // reads would miss items written with synchronizable=true.
-  bool _sync(Map<String, String> options) => options['synchronizable'] == 'true';
+  bool _sync(Map<String, String> options) =>
+      options['synchronizable'] == 'true';
 
   @override
   Future<void> write({
@@ -144,7 +145,8 @@ typedef _Int3Native = Int32 Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Bool);
 typedef _Int3Dart = int Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, bool);
-typedef _Read2Native = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Bool);
+typedef _Read2Native = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Bool);
 typedef _Read2Dart = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, bool);
 typedef _Int2Native = Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool);
 typedef _Int2Dart = int Function(Pointer<Utf8>, Pointer<Utf8>, bool);
@@ -168,9 +170,8 @@ class _FfiBackend implements FlutterSecureStorageWatchosBackend {
   late final _Read2Dart _readAll =
       _lib.lookupFunction<_Read2Native, _Read2Dart>(
           'flutter_secure_storage_watchos_read_all');
-  late final _Int2Dart _deleteAll =
-      _lib.lookupFunction<_Int2Native, _Int2Dart>(
-          'flutter_secure_storage_watchos_delete_all');
+  late final _Int2Dart _deleteAll = _lib.lookupFunction<_Int2Native, _Int2Dart>(
+      'flutter_secure_storage_watchos_delete_all');
   late final _FreeDart _free = _lib.lookupFunction<_FreeNative, _FreeDart>(
       'flutter_secure_storage_watchos_free');
 

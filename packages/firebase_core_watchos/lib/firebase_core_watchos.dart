@@ -35,37 +35,45 @@ class FirebaseCoreWatchosBindings {
   final DynamicLibrary? _lib;
 
   late final Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>) _configure =
-      _lib!.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
+      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
           Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>)>(
-        'firebase_core_watchos_configure',
-      );
+    'firebase_core_watchos_configure',
+  );
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _options = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('firebase_core_watchos_options');
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_core_watchos_options');
 
-  late final Pointer<Utf8> Function() _apps = _lib!.lookupFunction<
-      Pointer<Utf8> Function(), Pointer<Utf8> Function()>('firebase_core_watchos_apps');
+  late final Pointer<Utf8> Function() _apps = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'firebase_core_watchos_apps');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _delete = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('firebase_core_watchos_delete');
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_core_watchos_delete');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>, bool) _setAutoDataCollection =
-      _lib!.lookupFunction<
+  late final Pointer<Utf8> Function(Pointer<Utf8>, bool)
+      _setAutoDataCollection = _lib!.lookupFunction<
           Pointer<Utf8> Function(Pointer<Utf8>, Bool),
           Pointer<Utf8> Function(Pointer<Utf8>, bool)>(
-        'firebase_core_watchos_set_auto_data_collection',
-      );
+    'firebase_core_watchos_set_auto_data_collection',
+  );
 
   late final void Function(Pointer<Utf8>) _free = _lib!.lookupFunction<
-      Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('firebase_core_watchos_free');
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('firebase_core_watchos_free');
 
   /// Decodes and releases a native JSON string result.
   Object? _consume(Pointer<Utf8> ptr) {
     if (ptr == nullptr) {
-      return <String, Object?>{'error': 'Native call returned null.', 'code': 'internal'};
+      return <String, Object?>{
+        'error': 'Native call returned null.',
+        'code': 'internal'
+      };
     }
     final String jsonString = ptr.toDartString();
     _free(ptr);
@@ -78,7 +86,8 @@ class FirebaseCoreWatchosBindings {
     final Pointer<Utf8> namePtr = name.toNativeUtf8();
     final Pointer<Utf8> optionsPtr = optionsJson.toNativeUtf8();
     try {
-      return (_consume(_configure(namePtr, optionsPtr)) as Map).cast<String, Object?>();
+      return (_consume(_configure(namePtr, optionsPtr)) as Map)
+          .cast<String, Object?>();
     } finally {
       calloc.free(namePtr);
       calloc.free(optionsPtr);
@@ -142,7 +151,8 @@ class FirebaseCoreWatchos extends FirebasePlatform {
   List<FirebaseAppPlatform> get apps {
     for (final Object? info in _b.apps()) {
       if (info is Map) {
-        final FirebaseAppWatchos app = _appFromInfo(info.cast<String, Object?>());
+        final FirebaseAppWatchos app =
+            _appFromInfo(info.cast<String, Object?>());
         _apps[app.name] = app;
       }
     }
@@ -154,8 +164,10 @@ class FirebaseCoreWatchos extends FirebasePlatform {
     String? name,
     FirebaseOptions? options,
   }) async {
-    final String nativeName = (name == null || name == defaultFirebaseAppName) ? '' : name;
-    final String optionsJson = options != null ? json.encode(options.asMap) : '';
+    final String nativeName =
+        (name == null || name == defaultFirebaseAppName) ? '' : name;
+    final String optionsJson =
+        options != null ? json.encode(options.asMap) : '';
     final Map<String, Object?> result = _b.configure(nativeName, optionsJson);
     _throwIfError(result);
     final FirebaseAppWatchos app = _appFromInfo(result);
@@ -222,7 +234,8 @@ class FirebaseCoreWatchos extends FirebasePlatform {
     );
   }
 
-  void _throwIfError(Map<String, Object?> result) => _throwIfErrorResult(result);
+  void _throwIfError(Map<String, Object?> result) =>
+      _throwIfErrorResult(result);
 }
 
 // The plugin's single error contract: a native result map carrying an
@@ -256,11 +269,13 @@ class FirebaseAppWatchos extends FirebaseAppPlatform {
   final void Function(String name) _onDeleted;
 
   @override
-  bool get isAutomaticDataCollectionEnabled => _isAutomaticDataCollectionEnabled;
+  bool get isAutomaticDataCollectionEnabled =>
+      _isAutomaticDataCollectionEnabled;
 
   @override
   Future<void> setAutomaticDataCollectionEnabled(bool enabled) async {
-    final Map<String, Object?> result = _bindings.setAutoDataCollection(name, enabled);
+    final Map<String, Object?> result =
+        _bindings.setAutoDataCollection(name, enabled);
     _throwIfErrorResult(result);
     _isAutomaticDataCollectionEnabled = enabled;
   }

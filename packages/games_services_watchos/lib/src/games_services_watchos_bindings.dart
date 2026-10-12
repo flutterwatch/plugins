@@ -14,11 +14,11 @@ import 'package:ffi/ffi.dart';
 enum _GcState { idle, pending, ok, failed }
 
 _GcState _state(int raw) => switch (raw) {
-  1 => _GcState.pending,
-  2 => _GcState.ok,
-  3 => _GcState.failed,
-  _ => _GcState.idle,
-};
+      1 => _GcState.pending,
+      2 => _GcState.ok,
+      3 => _GcState.failed,
+      _ => _GcState.idle,
+    };
 
 /// One row of a leaderboard.
 class GcEntry {
@@ -49,42 +49,35 @@ typedef _StrFn = Pointer<Utf8> Function();
 
 class _Symbols {
   _Symbols(DynamicLibrary lib)
-    : authenticate = lib.lookupFunction<Void Function(), _VoidFn>(
-        'games_services_watchos_authenticate',
-      ),
-      authState = lib.lookupFunction<Int32 Function(), _IntFn>(
-        'games_services_watchos_auth_state',
-      ),
-      submitState = lib.lookupFunction<Int32 Function(), _IntFn>(
-        'games_services_watchos_submit_state',
-      ),
-      entriesState = lib.lookupFunction<Int32 Function(), _IntFn>(
-        'games_services_watchos_entries_state',
-      ),
-      playerAlias = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
-        'games_services_watchos_player_alias',
-      ),
-      entriesJson = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
-        'games_services_watchos_entries_json',
-      ),
-      lastError = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
-        'games_services_watchos_last_error',
-      ),
-      submit =
-          lib.lookupFunction<
-            Void Function(Int64, Pointer<Utf8>),
-            void Function(int, Pointer<Utf8>)
-          >('games_services_watchos_submit'),
-      loadEntries =
-          lib.lookupFunction<
+      : authenticate = lib.lookupFunction<Void Function(), _VoidFn>(
+          'games_services_watchos_authenticate',
+        ),
+        authState = lib.lookupFunction<Int32 Function(), _IntFn>(
+          'games_services_watchos_auth_state',
+        ),
+        submitState = lib.lookupFunction<Int32 Function(), _IntFn>(
+          'games_services_watchos_submit_state',
+        ),
+        entriesState = lib.lookupFunction<Int32 Function(), _IntFn>(
+          'games_services_watchos_entries_state',
+        ),
+        playerAlias = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
+          'games_services_watchos_player_alias',
+        ),
+        entriesJson = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
+          'games_services_watchos_entries_json',
+        ),
+        lastError = lib.lookupFunction<Pointer<Utf8> Function(), _StrFn>(
+          'games_services_watchos_last_error',
+        ),
+        submit = lib.lookupFunction<Void Function(Int64, Pointer<Utf8>),
+            void Function(int, Pointer<Utf8>)>('games_services_watchos_submit'),
+        loadEntries = lib.lookupFunction<
             Void Function(Pointer<Utf8>, Int32),
-            void Function(Pointer<Utf8>, int)
-          >('games_services_watchos_load_entries'),
-      free =
-          lib.lookupFunction<
-            Void Function(Pointer<Utf8>),
-            void Function(Pointer<Utf8>)
-          >('games_services_watchos_free');
+            void Function(
+                Pointer<Utf8>, int)>('games_services_watchos_load_entries'),
+        free = lib.lookupFunction<Void Function(Pointer<Utf8>),
+            void Function(Pointer<Utf8>)>('games_services_watchos_free');
 
   final _VoidFn authenticate;
   final _IntFn authState;

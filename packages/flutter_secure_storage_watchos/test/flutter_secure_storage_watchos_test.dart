@@ -37,8 +37,8 @@ class _FakeBackend implements FlutterSecureStorageWatchosBackend {
       _bucket(service).containsKey(key);
 
   @override
-  int delete(String key, String? service, String? accessGroup,
-      bool synchronizable) {
+  int delete(
+      String key, String? service, String? accessGroup, bool synchronizable) {
     _bucket(service).remove(key);
     return 0;
   }
@@ -110,8 +110,8 @@ void main() {
   test('write surfaces a non-zero Keychain status as an exception', () async {
     FlutterSecureStorageWatchos.backendOverride = _FailingBackend();
     expect(
-      FlutterSecureStorageWatchos().write(
-          key: 'k', value: 'v', options: options),
+      FlutterSecureStorageWatchos()
+          .write(key: 'k', value: 'v', options: options),
       throwsA(isA<Exception>()),
     );
   });

@@ -43,8 +43,7 @@ class _FakeBindings extends ConnectivityPlusWatchosBindings {
   /// Calls the real callback pointer rather than reaching into the stream, so
   /// the test exercises the actual NativeCallable trampoline — including the
   /// fact that it delivers asynchronously.
-  void fireChange() =>
-      _callback?.asFunction<void Function(int)>()(0);
+  void fireChange() => _callback?.asFunction<void Function(int)>()(0);
 }
 
 void main() {
@@ -69,15 +68,20 @@ void main() {
   test('checkConnectivity maps every native code', () async {
     final c = ConnectivityPlusWatchos();
     fake.code = 0;
-    expect(await c.checkConnectivity(), <ConnectivityResult>[ConnectivityResult.none]);
+    expect(await c.checkConnectivity(),
+        <ConnectivityResult>[ConnectivityResult.none]);
     fake.code = 1;
-    expect(await c.checkConnectivity(), <ConnectivityResult>[ConnectivityResult.wifi]);
+    expect(await c.checkConnectivity(),
+        <ConnectivityResult>[ConnectivityResult.wifi]);
     fake.code = 2;
-    expect(await c.checkConnectivity(), <ConnectivityResult>[ConnectivityResult.mobile]);
+    expect(await c.checkConnectivity(),
+        <ConnectivityResult>[ConnectivityResult.mobile]);
     fake.code = 3;
-    expect(await c.checkConnectivity(), <ConnectivityResult>[ConnectivityResult.ethernet]);
+    expect(await c.checkConnectivity(),
+        <ConnectivityResult>[ConnectivityResult.ethernet]);
     fake.code = 4;
-    expect(await c.checkConnectivity(), <ConnectivityResult>[ConnectivityResult.other]);
+    expect(await c.checkConnectivity(),
+        <ConnectivityResult>[ConnectivityResult.other]);
   });
 
   test('onConnectivityChanged emits current, then only on change', () async {

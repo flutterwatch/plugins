@@ -151,8 +151,8 @@ void main() {
     fake.fix = null;
     expect(
       geo.getCurrentPosition(
-          locationSettings: const LocationSettings(
-              timeLimit: Duration(milliseconds: 10))),
+          locationSettings:
+              const LocationSettings(timeLimit: Duration(milliseconds: 10))),
       throwsA(isA<TimeoutException>()),
     );
   });

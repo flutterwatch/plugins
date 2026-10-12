@@ -124,8 +124,7 @@ void main() {
     await sub.cancel();
   });
 
-  test('a sample of one kind does not emit on another sensor stream',
-      () async {
+  test('a sample of one kind does not emit on another sensor stream', () async {
     // All four share one native callback, so the fan-out has to respect kinds.
     final List<GyroscopeEvent> gyro = <GyroscopeEvent>[];
     final List<MagnetometerEvent> mag = <MagnetometerEvent>[];
@@ -248,7 +247,8 @@ void main() {
       return first;
     }
 
-    expect((await firstOf(sensors.userAccelerometerEventStream(), kUserAccel)).x,
+    expect(
+        (await firstOf(sensors.userAccelerometerEventStream(), kUserAccel)).x,
         1);
     expect((await firstOf(sensors.gyroscopeEventStream(), kGyro)).y, 2);
     expect((await firstOf(sensors.magnetometerEventStream(), kMag)).z, 3);

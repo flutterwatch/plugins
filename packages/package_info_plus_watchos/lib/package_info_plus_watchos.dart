@@ -87,9 +87,7 @@ class PackageInfoWatchosBindings {
 
   static DateTime? _dateFromMillis(String millis) {
     final int? value = int.tryParse(millis);
-    return value == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(value);
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
   }
 }
 

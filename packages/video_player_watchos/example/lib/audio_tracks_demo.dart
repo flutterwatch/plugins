@@ -313,7 +313,6 @@ class _AudioTracksDemoState extends State<AudioTracksDemo> {
             ],
           ),
           const SizedBox(height: 16),
-
           if (_audioTracks.isEmpty)
             const Expanded(
               child: Center(

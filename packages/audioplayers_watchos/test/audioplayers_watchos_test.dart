@@ -90,6 +90,7 @@ class _FakeBindings extends AudioplayersWatchosBindings {
     calls.add('setReleaseMode($playerId, $mode)');
     return controlResult;
   }
+
   @override
   WatchosAudioState? readState(String playerId) => state;
   @override
@@ -141,7 +142,8 @@ void main() {
   group('registerWith', () {
     test('installs both the player and the global implementation', () {
       AudioplayersWatchos.registerWith();
-      expect(AudioplayersPlatformInterface.instance, isA<AudioplayersWatchos>());
+      expect(
+          AudioplayersPlatformInterface.instance, isA<AudioplayersWatchos>());
       expect(GlobalAudioplayersPlatformInterface.instance,
           isA<GlobalAudioplayersWatchos>());
     });
@@ -255,8 +257,8 @@ void main() {
           AudioEventType.complete,
         ]),
       );
-      final AudioEvent duration = events.firstWhere(
-          (AudioEvent e) => e.eventType == AudioEventType.duration);
+      final AudioEvent duration = events
+          .firstWhere((AudioEvent e) => e.eventType == AudioEventType.duration);
       expect(duration.duration, const Duration(seconds: 30));
     });
 
@@ -303,8 +305,7 @@ void main() {
   });
 
   group('unsupported surfaces', () {
-    test('setBalance logs instead of throwing (no AVPlayer balance)',
-        () async {
+    test('setBalance logs instead of throwing (no AVPlayer balance)', () async {
       await player.create('p1');
       final Future<AudioEvent> first = player.getEventStream('p1').first;
       await player.setBalance('p1', 0.5);

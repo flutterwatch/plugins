@@ -17,7 +17,8 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('the app-facing API uses the watchOS implementation, with no app setup',
+  testWidgets(
+      'the app-facing API uses the watchOS implementation, with no app setup',
       (WidgetTester _) async {
     // watchOS reports as iOS, which is what makes `in_app_purchase` try to
     // install its StoreKit method-channel implementation over ours.
@@ -55,10 +56,11 @@ void main() {
     // ignore: avoid_print
     print('DIAG appFacing isAvailable=$available');
 
-    final ProductDetailsResponse r =
-        await InAppPurchase.instance.queryProductDetails(<String>{'consumable'});
+    final ProductDetailsResponse r = await InAppPurchase.instance
+        .queryProductDetails(<String>{'consumable'});
     // ignore: avoid_print
-    print('DIAG appFacing query error=${r.error?.code} notFound=${r.notFoundIDs}');
+    print(
+        'DIAG appFacing query error=${r.error?.code} notFound=${r.notFoundIDs}');
 
     // A channel error would mean StoreKit's method channel answered, not us.
     expect(r.error?.code, isNot('channel-error'));

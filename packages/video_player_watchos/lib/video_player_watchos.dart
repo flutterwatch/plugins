@@ -108,9 +108,9 @@ class VideoPlayerWatchosBindings {
 
   final DynamicLibrary? _lib;
 
-  late final int Function(Pointer<Utf8>, int) _create = _lib!
-      .lookupFunction<Int64 Function(Pointer<Utf8>, Int32),
-          int Function(Pointer<Utf8>, int)>('video_player_watchos_create');
+  late final int Function(Pointer<Utf8>, int) _create = _lib!.lookupFunction<
+      Int64 Function(Pointer<Utf8>, Int32),
+      int Function(Pointer<Utf8>, int)>('video_player_watchos_create');
 
   late final void Function(int) _dispose = _lib!
       .lookupFunction<Void Function(Int64), void Function(int)>(
@@ -145,26 +145,28 @@ class VideoPlayerWatchosBindings {
           'video_player_watchos_position');
 
   late final bool Function(int, Pointer<_NativeState>) _readState = _lib!
-      .lookupFunction<Bool Function(Int64, Pointer<_NativeState>),
-              bool Function(int, Pointer<_NativeState>)>(
-          'video_player_watchos_read_state');
+      .lookupFunction<
+          Bool Function(Int64, Pointer<_NativeState>),
+          bool Function(
+              int, Pointer<_NativeState>)>('video_player_watchos_read_state');
 
-  late final Pointer<Utf8> Function(int) _error = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Int64), Pointer<Utf8> Function(int)>(
-          'video_player_watchos_error');
+  late final Pointer<Utf8> Function(int) _error = _lib!.lookupFunction<
+      Pointer<Utf8> Function(Int64),
+      Pointer<Utf8> Function(int)>('video_player_watchos_error');
 
   late final void Function(bool) _setMixWithOthers = _lib!
       .lookupFunction<Void Function(Bool), void Function(bool)>(
           'video_player_watchos_set_mix_with_others');
 
-  late final Pointer<Utf8> Function(int) _getAudioTracks = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Int64), Pointer<Utf8> Function(int)>(
-          'video_player_watchos_get_audio_tracks');
+  late final Pointer<Utf8> Function(int) _getAudioTracks = _lib!.lookupFunction<
+      Pointer<Utf8> Function(Int64),
+      Pointer<Utf8> Function(int)>('video_player_watchos_get_audio_tracks');
 
   late final bool Function(int, Pointer<Utf8>) _selectAudioTrack = _lib!
-      .lookupFunction<Bool Function(Int64, Pointer<Utf8>),
-              bool Function(int, Pointer<Utf8>)>(
-          'video_player_watchos_select_audio_track');
+      .lookupFunction<
+          Bool Function(Int64, Pointer<Utf8>),
+          bool Function(
+              int, Pointer<Utf8>)>('video_player_watchos_select_audio_track');
 
   late final void Function() _registerViews = _lib!
       .lookupFunction<Void Function(), void Function()>(
@@ -320,8 +322,7 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
 
   /// A snapshot copy with [isPlaying] overridden — used to keep reporting the
   /// pre-completion play state during the completion hold window.
-  static WatchosVideoState _heldPlaying(
-          WatchosVideoState s, bool isPlaying) =>
+  static WatchosVideoState _heldPlaying(WatchosVideoState s, bool isPlaying) =>
       WatchosVideoState(
         status: s.status,
         isPlaying: isPlaying,
@@ -380,7 +381,8 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
         initializedSent = true;
         controller.add(VideoEvent(
           eventType: VideoEventType.initialized,
-          duration: Duration(milliseconds: state.durationMs < 0 ? 0 : state.durationMs),
+          duration: Duration(
+              milliseconds: state.durationMs < 0 ? 0 : state.durationMs),
           size: Size(state.width, state.height),
           rotationCorrection: 0,
         ));
@@ -393,7 +395,8 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
       // Replay buffering edges from the native counters (interleaved
       // start/end, starts first) so stalls shorter than one poll interval
       // are still reported.
-      final int starts = state.bufferingStartCount - previous.bufferingStartCount;
+      final int starts =
+          state.bufferingStartCount - previous.bufferingStartCount;
       final int ends = state.bufferingEndCount - previous.bufferingEndCount;
       for (int i = 0; i < starts || i < ends; i++) {
         if (i < starts) {
@@ -412,8 +415,7 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
           ],
         ));
       }
-      final bool justCompleted =
-          state.completedCount > previous.completedCount;
+      final bool justCompleted = state.completedCount > previous.completedCount;
       // At play-to-end, defer `completed` and keep reporting the pre-completion
       // play state for a short window. video_player's `completed` handler
       // (pause() + seekTo) notifies its listeners more than once; the auto-pop
@@ -539,7 +541,9 @@ class VideoPlayerWatchos extends VideoPlayerPlatform {
     if (decoded is! List) {
       return const <VideoAudioTrack>[];
     }
-    return decoded.whereType<Map<String, dynamic>>().map((Map<String, dynamic> t) {
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map((Map<String, dynamic> t) {
       final String language = (t['language'] as String?) ?? '';
       return VideoAudioTrack(
         id: t['id'] as String? ?? '',

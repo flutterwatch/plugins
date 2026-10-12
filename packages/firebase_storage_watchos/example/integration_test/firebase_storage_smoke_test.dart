@@ -76,11 +76,12 @@ void main() {
       (WidgetTester tester) async {
     await expectLater(
       FirebaseStorage.instance
-          .ref('flutter-tests/watch/definitely-missing-${DateTime.now().millisecondsSinceEpoch}.txt')
+          .ref(
+              'flutter-tests/watch/definitely-missing-${DateTime.now().millisecondsSinceEpoch}.txt')
           .getDownloadURL(),
       throwsA(isA<FirebaseException>()
-          .having((FirebaseException e) => e.plugin, 'plugin',
-              'firebase_storage')
+          .having(
+              (FirebaseException e) => e.plugin, 'plugin', 'firebase_storage')
           .having((FirebaseException e) => e.code, 'code', isNotEmpty)),
     );
   });

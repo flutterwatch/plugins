@@ -39,8 +39,7 @@ void main() {
         '/sandbox/Library/Application Support');
     expect(await provider.getLibraryPath(), '/sandbox/Library');
     expect(await provider.getApplicationDocumentsPath(), '/sandbox/Documents');
-    expect(
-        await provider.getApplicationCachePath(), '/sandbox/Library/Caches');
+    expect(await provider.getApplicationCachePath(), '/sandbox/Library/Caches');
   });
 
   test('watchOS-inapplicable directories keep throwing defaults', () {

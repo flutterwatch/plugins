@@ -21,9 +21,11 @@ class _FakeBindings extends PackageInfoWatchosBindings {
   @override
   String get installerStore => 'com.apple.simulator';
   @override
-  DateTime? get installTime => DateTime.fromMillisecondsSinceEpoch(1700000000000);
+  DateTime? get installTime =>
+      DateTime.fromMillisecondsSinceEpoch(1700000000000);
   @override
-  DateTime? get updateTime => DateTime.fromMillisecondsSinceEpoch(1700000005000);
+  DateTime? get updateTime =>
+      DateTime.fromMillisecondsSinceEpoch(1700000005000);
 }
 
 void main() {
@@ -45,9 +47,8 @@ void main() {
     // Installer source and install/update times are read from the App Store
     // receipt path and file attributes, exactly as upstream package_info_plus.
     expect(data.installerStore, 'com.apple.simulator');
-    expect(data.installTime,
-        DateTime.fromMillisecondsSinceEpoch(1700000000000));
-    expect(data.updateTime,
-        DateTime.fromMillisecondsSinceEpoch(1700000005000));
+    expect(
+        data.installTime, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+    expect(data.updateTime, DateTime.fromMillisecondsSinceEpoch(1700000005000));
   });
 }

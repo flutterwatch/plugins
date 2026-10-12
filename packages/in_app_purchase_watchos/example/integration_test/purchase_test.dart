@@ -30,7 +30,8 @@ const String _kConsumable = 'consumable';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('buy → purchaseStream → completePurchase', (WidgetTester _) async {
+  testWidgets('buy → purchaseStream → completePurchase',
+      (WidgetTester _) async {
     final InAppPurchase iap = InAppPurchase.instance;
 
     expect(await iap.isAvailable(), isTrue,

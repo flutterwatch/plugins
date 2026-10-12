@@ -49,23 +49,23 @@ class _MyAppState extends State<MyApp> {
       } else {
         deviceData = switch (defaultTargetPlatform) {
           TargetPlatform.android => _readAndroidBuildData(
-            await deviceInfoPlugin.androidInfo,
-          ),
+              await deviceInfoPlugin.androidInfo,
+            ),
           TargetPlatform.iOS => _readIosDeviceInfo(
-            await deviceInfoPlugin.iosInfo,
-          ),
+              await deviceInfoPlugin.iosInfo,
+            ),
           TargetPlatform.linux => _readLinuxDeviceInfo(
-            await deviceInfoPlugin.linuxInfo,
-          ),
+              await deviceInfoPlugin.linuxInfo,
+            ),
           TargetPlatform.windows => _readWindowsDeviceInfo(
-            await deviceInfoPlugin.windowsInfo,
-          ),
+              await deviceInfoPlugin.windowsInfo,
+            ),
           TargetPlatform.macOS => _readMacOsDeviceInfo(
-            await deviceInfoPlugin.macOsInfo,
-          ),
+              await deviceInfoPlugin.macOsInfo,
+            ),
           TargetPlatform.fuchsia => <String, dynamic>{
-            'Error:': 'Fuchsia platform isn\'t supported',
-          },
+              'Error:': 'Fuchsia platform isn\'t supported',
+            },
         };
       }
     } on PlatformException {

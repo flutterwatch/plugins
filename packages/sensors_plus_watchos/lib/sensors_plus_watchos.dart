@@ -95,8 +95,7 @@ base class SensorsPlusWatchos extends SensorsPlatform {
         _b.startAccelerometer,
         _b.readAccelerometer,
         _b.stopAccelerometer,
-        (List<double> v, DateTime t) =>
-            AccelerometerEvent(v[0], v[1], v[2], t),
+        (List<double> v, DateTime t) => AccelerometerEvent(v[0], v[1], v[2], t),
       );
 
   @override
@@ -325,10 +324,8 @@ class _FfiBackend implements SensorsPlusWatchosBackend {
 
   late final _StartDart _startGyro =
       _start('sensors_plus_watchos_start_gyroscope');
-  late final _ReadDart _readGyro =
-      _read('sensors_plus_watchos_read_gyroscope');
-  late final _StopDart _stopGyro =
-      _stop('sensors_plus_watchos_stop_gyroscope');
+  late final _ReadDart _readGyro = _read('sensors_plus_watchos_read_gyroscope');
+  late final _StopDart _stopGyro = _stop('sensors_plus_watchos_stop_gyroscope');
 
   late final _StartDart _startMag =
       _start('sensors_plus_watchos_start_magnetometer');

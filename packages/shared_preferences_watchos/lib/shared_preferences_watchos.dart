@@ -52,7 +52,8 @@ class SharedPreferencesWatchos extends SharedPreferencesStorePlatform {
   Future<bool> clearWithParameters(ClearParameters parameters) async {
     final PreferencesFilter filter = parameters.filter;
     final Map<String, Object> data = _store.readAll();
-    data.removeWhere((String key, Object _) => _matches(key, filter.prefix, filter.allowList));
+    data.removeWhere((String key, Object _) =>
+        _matches(key, filter.prefix, filter.allowList));
     _store.writeAll(data);
     return true;
   }
@@ -68,7 +69,8 @@ class SharedPreferencesWatchos extends SharedPreferencesStorePlatform {
   ) async {
     final PreferencesFilter filter = parameters.filter;
     final Map<String, Object> data = _store.readAll();
-    data.removeWhere((String key, Object _) => !_matches(key, filter.prefix, filter.allowList));
+    data.removeWhere((String key, Object _) =>
+        !_matches(key, filter.prefix, filter.allowList));
     return data;
   }
 
@@ -84,7 +86,8 @@ class SharedPreferencesWatchos extends SharedPreferencesStorePlatform {
 }
 
 /// Async watchOS implementation of [SharedPreferencesAsyncPlatform].
-base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform {
+base class SharedPreferencesAsyncWatchos
+    extends SharedPreferencesAsyncPlatform {
   WatchosPrefsStore get _store => WatchosPrefsStore.instance;
 
   /// Registers this class as the default async shared_preferences platform
@@ -105,19 +108,23 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
   }
 
   @override
-  Future<void> setString(String key, String value, SharedPreferencesOptions options) async =>
+  Future<void> setString(
+          String key, String value, SharedPreferencesOptions options) async =>
       _store.write(key, value);
 
   @override
-  Future<void> setBool(String key, bool value, SharedPreferencesOptions options) async =>
+  Future<void> setBool(
+          String key, bool value, SharedPreferencesOptions options) async =>
       _store.write(key, value);
 
   @override
-  Future<void> setDouble(String key, double value, SharedPreferencesOptions options) async =>
+  Future<void> setDouble(
+          String key, double value, SharedPreferencesOptions options) async =>
       _store.write(key, value);
 
   @override
-  Future<void> setInt(String key, int value, SharedPreferencesOptions options) async =>
+  Future<void> setInt(
+          String key, int value, SharedPreferencesOptions options) async =>
       _store.write(key, value);
 
   @override
@@ -129,7 +136,8 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
       _store.write(key, value);
 
   @override
-  Future<String?> getString(String key, SharedPreferencesOptions options) async =>
+  Future<String?> getString(
+          String key, SharedPreferencesOptions options) async =>
       _typed<String>(key);
 
   @override
@@ -137,7 +145,8 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
       _typed<bool>(key);
 
   @override
-  Future<double?> getDouble(String key, SharedPreferencesOptions options) async =>
+  Future<double?> getDouble(
+          String key, SharedPreferencesOptions options) async =>
       _typed<double>(key);
 
   @override
@@ -145,7 +154,8 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
       _typed<int>(key);
 
   @override
-  Future<List<String>?> getStringList(String key, SharedPreferencesOptions options) async {
+  Future<List<String>?> getStringList(
+      String key, SharedPreferencesOptions options) async {
     final Object? value = _store.read(key);
     if (value == null) {
       return null;
@@ -156,7 +166,8 @@ base class SharedPreferencesAsyncWatchos extends SharedPreferencesAsyncPlatform 
   }
 
   @override
-  Future<void> clear(ClearPreferencesParameters parameters, SharedPreferencesOptions options) async {
+  Future<void> clear(ClearPreferencesParameters parameters,
+      SharedPreferencesOptions options) async {
     final Set<String>? allowList = parameters.filter.allowList;
     final Map<String, Object> data = _store.readAll();
     if (allowList == null) {

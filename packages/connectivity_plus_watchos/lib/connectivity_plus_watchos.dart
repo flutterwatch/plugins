@@ -51,7 +51,8 @@ class ConnectivityPlusWatchosBindings {
   late final void Function(Pointer<NativeFunction<ConnectivityChangedNative>>)
       _setCallback = _lib!.lookupFunction<
               Void Function(Pointer<NativeFunction<ConnectivityChangedNative>>),
-              void Function(Pointer<NativeFunction<ConnectivityChangedNative>>)>(
+              void Function(
+                  Pointer<NativeFunction<ConnectivityChangedNative>>)>(
           'connectivity_plus_watchos_set_callback');
 
   /// Current native connectivity code (-1 unknown / 0 none / 1 wifi /

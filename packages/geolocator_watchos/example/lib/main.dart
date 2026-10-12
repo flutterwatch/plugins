@@ -39,8 +39,7 @@ class _GeolocatorDemoState extends State<GeolocatorDemo> {
         return;
       }
       final Position pos = await Geolocator.getCurrentPosition();
-      setState(() => _status =
-          '${pos.latitude.toStringAsFixed(4)}, '
+      setState(() => _status = '${pos.latitude.toStringAsFixed(4)}, '
           '${pos.longitude.toStringAsFixed(4)}');
     } catch (e) {
       setState(() => _status = 'error: $e');

@@ -100,7 +100,8 @@ void main() {
     expect(await GamesServicesWatchos().submitScore(score: Score()), isNotNull);
   });
 
-  test('loadLeaderboardScores emits the shape the upstream model reads', () async {
+  test('loadLeaderboardScores emits the shape the upstream model reads',
+      () async {
     GamesServicesWatchos.bindingsOverride = _FakeBindings(
       entries: const <GcEntry>[_first, _mine],
     );
@@ -127,7 +128,8 @@ void main() {
     expect(rows.first.scoreHolder.playerID, isNull);
   });
 
-  test('a failed read is null, an empty leaderboard is an empty list', () async {
+  test('a failed read is null, an empty leaderboard is an empty list',
+      () async {
     GamesServicesWatchos.bindingsOverride = _FakeBindings(readFails: true);
     expect(
       await GamesServicesWatchos().loadLeaderboardScores(

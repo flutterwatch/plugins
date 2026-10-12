@@ -19,8 +19,10 @@ void main() {
 
   test('registerWith installs both legacy and async implementations', () {
     SharedPreferencesWatchos.registerWith();
-    expect(SharedPreferencesStorePlatform.instance, isA<SharedPreferencesWatchos>());
-    expect(SharedPreferencesAsyncPlatform.instance, isA<SharedPreferencesAsyncWatchos>());
+    expect(SharedPreferencesStorePlatform.instance,
+        isA<SharedPreferencesWatchos>());
+    expect(SharedPreferencesAsyncPlatform.instance,
+        isA<SharedPreferencesAsyncWatchos>());
   });
 
   group('async', () {
@@ -60,7 +62,8 @@ void main() {
         filter: PreferencesFilters(allowList: <String>{'keep'}),
       );
       expect(await prefs.getKeys(params, _options), <String>{'keep'});
-      expect(await prefs.getPreferences(params, _options), <String, Object>{'keep': 1});
+      expect(await prefs.getPreferences(params, _options),
+          <String, Object>{'keep': 1});
     });
 
     test('clear with a null allowList wipes everything', () async {
@@ -70,10 +73,12 @@ void main() {
         const ClearPreferencesParameters(filter: PreferencesFilters()),
         _options,
       );
-      expect(await prefs.getKeys(
-        const GetPreferencesParameters(filter: PreferencesFilters()),
-        _options,
-      ), isEmpty);
+      expect(
+          await prefs.getKeys(
+            const GetPreferencesParameters(filter: PreferencesFilters()),
+            _options,
+          ),
+          isEmpty);
     });
   });
 
@@ -98,8 +103,10 @@ void main() {
       await store.setValue('Int', 'unprefixed', 2);
       await store.clear();
       // The unprefixed key survives (clear defaults to the flutter. prefix).
-      expect(WatchosPrefsStore.instance.readAll().containsKey('unprefixed'), isTrue);
-      expect(WatchosPrefsStore.instance.readAll().containsKey('flutter.a'), isFalse);
+      expect(WatchosPrefsStore.instance.readAll().containsKey('unprefixed'),
+          isTrue);
+      expect(WatchosPrefsStore.instance.readAll().containsKey('flutter.a'),
+          isFalse);
     });
   });
 }

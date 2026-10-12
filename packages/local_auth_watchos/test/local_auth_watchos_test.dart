@@ -123,7 +123,8 @@ void main() {
     final bool ok = await auth.authenticate(
         localizedReason: 'Unlock', authMessages: const <AuthMessages>[]);
     expect(ok, isFalse);
-    expect(fake.stopCount, 1, reason: 'a timed-out evaluation must be cancelled');
+    expect(fake.stopCount, 1,
+        reason: 'a timed-out evaluation must be cancelled');
   });
 
   test('authenticate returns false when the evaluation fails', () async {
@@ -167,8 +168,7 @@ void main() {
         reason: 'native is unregistered once the last caller settles');
   });
 
-  test('one call settling does not unregister another still waiting',
-      () async {
+  test('one call settling does not unregister another still waiting', () async {
     LocalAuthWatchos.timeout = const Duration(milliseconds: 50);
     final Future<bool> first = auth.authenticate(
         localizedReason: 'Unlock', authMessages: const <AuthMessages>[]);

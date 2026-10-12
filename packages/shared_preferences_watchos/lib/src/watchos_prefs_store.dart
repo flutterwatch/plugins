@@ -46,13 +46,13 @@ class WatchosPrefsStore {
       .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'shared_preferences_watchos_load');
 
-  late final void Function(Pointer<Utf8>) _saveFn =
-      _lib!.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>(
-          'shared_preferences_watchos_save');
+  late final void Function(Pointer<Utf8>) _saveFn = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('shared_preferences_watchos_save');
 
-  late final void Function(Pointer<Utf8>) _freeFn =
-      _lib!.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>(
-          'shared_preferences_watchos_free');
+  late final void Function(Pointer<Utf8>) _freeFn = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('shared_preferences_watchos_free');
 
   /// Loads the whole store.
   Map<String, Object> readAll() {

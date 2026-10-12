@@ -208,8 +208,8 @@ void main() {
     });
 
     test('maps tier names, defaulting unknown names to message', () {
-      expect(decodeTier('applicationContext'),
-          WatchLinkTier.applicationContext);
+      expect(
+          decodeTier('applicationContext'), WatchLinkTier.applicationContext);
       expect(decodeTier('userInfo'), WatchLinkTier.userInfo);
       expect(decodeTier('message'), WatchLinkTier.message);
       expect(decodeTier('something-newer'), WatchLinkTier.message);
@@ -338,15 +338,17 @@ void main() {
     test('reads the received application context, or null when none', () async {
       expect(await backend.receivedApplicationContext(), isNull);
       bindings.context = '{"items":["milk"]}';
-      expect(await backend.receivedApplicationContext(),
-          <String, Object?>{'items': <String>['milk']});
+      expect(await backend.receivedApplicationContext(), <String, Object?>{
+        'items': <String>['milk']
+      });
     });
 
     test('reads the sent application context, or null when none', () async {
       expect(await backend.sentApplicationContext(), isNull);
       bindings.sentContext = '{"items":["bread"]}';
-      expect(await backend.sentApplicationContext(),
-          <String, Object?>{'items': <String>['bread']});
+      expect(await backend.sentApplicationContext(), <String, Object?>{
+        'items': <String>['bread']
+      });
     });
 
     test('does not confuse the sent context with the received one', () async {
@@ -774,7 +776,8 @@ void main() {
       backend.messages.listen(seen.add);
       await Future<void>.delayed(Duration.zero);
 
-      bindings.inbound.add(envelope('message', <String, Object?>{'ping': true}));
+      bindings.inbound
+          .add(envelope('message', <String, Object?>{'ping': true}));
       backend.drainOnce();
       await Future<void>.delayed(Duration.zero);
 
@@ -836,7 +839,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       bindings.inbound.addAll(<String>[
-        jsonEncode(<String, Object?>{'tier': 'file', 'metadata': <String, Object?>{}}),
+        jsonEncode(
+            <String, Object?>{'tier': 'file', 'metadata': <String, Object?>{}}),
         jsonEncode(<String, Object?>{'tier': 'file', 'path': ''}),
       ]);
       backend.drainOnce();
@@ -954,8 +958,8 @@ void main() {
             payload: <String, Object?>{'m': 1}, tier: WatchLinkTier.message));
         backend.emitState(RecordingBackend.state);
         backend.emitError('boom');
-        backend.emitFile(const WatchLinkFile(
-            path: '/f', metadata: <String, Object?>{}));
+        backend.emitFile(
+            const WatchLinkFile(path: '/f', metadata: <String, Object?>{}));
         await pumpEventQueue();
 
         expect(messages.single.payload, <String, Object?>{'m': 1});

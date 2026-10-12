@@ -82,72 +82,73 @@ class WatchLinkFfiBindings {
               void Function(Pointer<NativeFunction<SignalNative>>)>(
           'flutter_watch_link_set_callback');
 
-  late final void Function() _activate =
-      _lib!.lookupFunction<Void Function(), void Function()>(
+  late final void Function() _activate = _lib!
+      .lookupFunction<Void Function(), void Function()>(
           'flutter_watch_link_activate');
 
-  late final int Function() _isSupported =
-      _lib!.lookupFunction<Int32 Function(), int Function()>(
+  late final int Function() _isSupported = _lib!
+      .lookupFunction<Int32 Function(), int Function()>(
           'flutter_watch_link_is_supported');
 
-  late final int Function() _state =
-      _lib!.lookupFunction<Int32 Function(), int Function()>(
+  late final int Function() _state = _lib!
+      .lookupFunction<Int32 Function(), int Function()>(
           'flutter_watch_link_state');
 
   late final int Function(Pointer<Utf8>) _sendMessage = _lib!.lookupFunction<
       Int32 Function(Pointer<Utf8>),
       int Function(Pointer<Utf8>)>('flutter_watch_link_send_message');
 
-  late final int Function(Pointer<Utf8>) _updateContext =
-      _lib!.lookupFunction<Int32 Function(Pointer<Utf8>),
-              int Function(Pointer<Utf8>)>(
-          'flutter_watch_link_update_application_context');
+  late final int Function(Pointer<Utf8>) _updateContext = _lib!.lookupFunction<
+      Int32 Function(Pointer<Utf8>),
+      int Function(
+          Pointer<Utf8>)>('flutter_watch_link_update_application_context');
 
-  late final int Function(Pointer<Utf8>) _transferUserInfo =
-      _lib!.lookupFunction<Int32 Function(Pointer<Utf8>),
-              int Function(Pointer<Utf8>)>(
-          'flutter_watch_link_transfer_user_info');
+  late final int Function(Pointer<Utf8>) _transferUserInfo = _lib!
+      .lookupFunction<Int32 Function(Pointer<Utf8>),
+          int Function(Pointer<Utf8>)>('flutter_watch_link_transfer_user_info');
 
-  late final int Function(Pointer<Utf8>, int) _sendMessageWithReply =
-      _lib!.lookupFunction<Int32 Function(Pointer<Utf8>, Int64),
-              int Function(Pointer<Utf8>, int)>(
-          'flutter_watch_link_send_message_with_reply');
+  late final int Function(Pointer<Utf8>, int) _sendMessageWithReply = _lib!
+      .lookupFunction<
+          Int32 Function(Pointer<Utf8>, Int64),
+          int Function(Pointer<Utf8>,
+              int)>('flutter_watch_link_send_message_with_reply');
 
   late final int Function(int, Pointer<Utf8>) _respond = _lib!.lookupFunction<
       Int32 Function(Int64, Pointer<Utf8>),
       int Function(int, Pointer<Utf8>)>('flutter_watch_link_respond');
 
-  late final int Function(Pointer<Utf8>, Pointer<Utf8>) _transferFile =
-      _lib!.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>),
-              int Function(Pointer<Utf8>, Pointer<Utf8>)>(
-          'flutter_watch_link_transfer_file');
+  late final int Function(Pointer<Utf8>, Pointer<Utf8>) _transferFile = _lib!
+      .lookupFunction<
+          Int32 Function(Pointer<Utf8>, Pointer<Utf8>),
+          int Function(Pointer<Utf8>,
+              Pointer<Utf8>)>('flutter_watch_link_transfer_file');
 
-  late final int Function() _outstandingFiles =
-      _lib!.lookupFunction<Int32 Function(), int Function()>(
+  late final int Function() _outstandingFiles = _lib!
+      .lookupFunction<Int32 Function(), int Function()>(
           'flutter_watch_link_outstanding_file_transfer_count');
 
-  late final Pointer<Utf8> Function() _applicationContext =
-      _lib!.lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+  late final Pointer<Utf8> Function() _applicationContext = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'flutter_watch_link_application_context');
 
-  late final Pointer<Utf8> Function() _sentApplicationContext =
-      _lib!.lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+  late final Pointer<Utf8> Function() _sentApplicationContext = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'flutter_watch_link_sent_application_context');
 
-  late final Pointer<Utf8> Function() _pollInbound =
-      _lib!.lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+  late final Pointer<Utf8> Function() _pollInbound = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'flutter_watch_link_poll_inbound');
 
-  late final int Function() _outstanding =
-      _lib!.lookupFunction<Int32 Function(), int Function()>(
+  late final int Function() _outstanding = _lib!
+      .lookupFunction<Int32 Function(), int Function()>(
           'flutter_watch_link_outstanding_transfer_count');
 
-  late final int Function() _dropped =
-      _lib!.lookupFunction<Int32 Function(), int Function()>(
+  late final int Function() _dropped = _lib!
+      .lookupFunction<Int32 Function(), int Function()>(
           'flutter_watch_link_dropped_inbound_count');
 
-  late final Pointer<Utf8> Function() _takeLastError =
-      _lib!.lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+  late final Pointer<Utf8> Function() _takeLastError = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'flutter_watch_link_take_last_error');
 
   late final void Function(Pointer<Utf8>) _freeString = _lib!.lookupFunction<

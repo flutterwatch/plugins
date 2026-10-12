@@ -253,7 +253,8 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
     }
 
     final products = <ProductDetails>[
-      for (final Object? p in (decoded['products'] as List<dynamic>? ?? const <dynamic>[]))
+      for (final Object? p
+          in (decoded['products'] as List<dynamic>? ?? const <dynamic>[]))
         if (p is Map<String, dynamic>)
           ProductDetails(
             id: p['id'] as String? ?? '',
@@ -266,7 +267,8 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
           ),
     ];
     final notFound = <String>[
-      for (final Object? id in (decoded['notFound'] as List<dynamic>? ?? const <dynamic>[]))
+      for (final Object? id
+          in (decoded['notFound'] as List<dynamic>? ?? const <dynamic>[]))
         if (id is String) id,
     ];
 
@@ -327,7 +329,8 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
         _drainTimer = null;
         return;
       }
-      final List<PurchaseDetails> updates = parsePurchaseUpdates(b.purchasesDrain());
+      final List<PurchaseDetails> updates =
+          parsePurchaseUpdates(b.purchasesDrain());
       if (updates.isNotEmpty) {
         controller.add(updates);
       }
@@ -353,9 +356,10 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
     // is no way to honour autoConsume: false. Upstream asserts; diverging
     // silently would make watchOS behave differently from iOS for the same
     // call.
-    assert(autoConsume, 'On watchOS, as on iOS, consumables are always consumed');
-    return _b.buy(
-        purchaseParam.productDetails.id, purchaseParam.applicationUserName ?? '', 1);
+    assert(
+        autoConsume, 'On watchOS, as on iOS, consumables are always consumed');
+    return _b.buy(purchaseParam.productDetails.id,
+        purchaseParam.applicationUserName ?? '', 1);
   }
 
   @override
@@ -515,17 +519,17 @@ class InAppPurchaseWatchosBindings {
       Int64 Function(Pointer<Utf8>),
       int Function(Pointer<Utf8>)>('in_app_purchase_watchos_query_start');
 
-  late final bool Function(int) _queryReady = _lib!.lookupFunction<
-      Bool Function(Int64),
-      bool Function(int)>('in_app_purchase_watchos_query_ready');
+  late final bool Function(int) _queryReady = _lib!
+      .lookupFunction<Bool Function(Int64), bool Function(int)>(
+          'in_app_purchase_watchos_query_ready');
 
   late final Pointer<Utf8> Function(int) _queryResult = _lib!.lookupFunction<
       Pointer<Utf8> Function(Int64),
       Pointer<Utf8> Function(int)>('in_app_purchase_watchos_query_result');
 
-  late final void Function(int) _queryRelease = _lib!.lookupFunction<
-      Void Function(Int64),
-      void Function(int)>('in_app_purchase_watchos_query_release');
+  late final void Function(int) _queryRelease = _lib!
+      .lookupFunction<Void Function(Int64), void Function(int)>(
+          'in_app_purchase_watchos_query_release');
 
   /// Starts a StoreKit product query for [idsJson] (a JSON array of ids).
   /// Returns a handle, or 0 if the query could not be started.
@@ -550,25 +554,26 @@ class InAppPurchaseWatchosBindings {
   /// Releases the result and handle. Must be called once per [queryStart].
   void queryRelease(int handle) => _queryRelease(handle);
 
-  late final bool Function() _canMakePayments = _lib!.lookupFunction<
-      Bool Function(),
-      bool Function()>('in_app_purchase_watchos_can_make_payments');
+  late final bool Function() _canMakePayments = _lib!
+      .lookupFunction<Bool Function(), bool Function()>(
+          'in_app_purchase_watchos_can_make_payments');
 
   /// Whether the device/account is allowed to make payments.
   bool canMakePayments() => _canMakePayments();
 
-  late final void Function() _purchasesStart = _lib!.lookupFunction<
-      Void Function(),
-      void Function()>('in_app_purchase_watchos_purchases_start');
+  late final void Function() _purchasesStart = _lib!
+      .lookupFunction<Void Function(), void Function()>(
+          'in_app_purchase_watchos_purchases_start');
 
-  late final bool Function(Pointer<Utf8>, Pointer<Utf8>, int) _buy =
-      _lib!.lookupFunction<Bool Function(Pointer<Utf8>, Pointer<Utf8>, Int32),
-              bool Function(Pointer<Utf8>, Pointer<Utf8>, int)>(
-          'in_app_purchase_watchos_buy');
+  late final bool Function(Pointer<Utf8>, Pointer<Utf8>, int) _buy = _lib!
+      .lookupFunction<
+          Bool Function(Pointer<Utf8>, Pointer<Utf8>, Int32),
+          bool Function(Pointer<Utf8>, Pointer<Utf8>,
+              int)>('in_app_purchase_watchos_buy');
 
-  late final Pointer<Utf8> Function() _purchasesDrain = _lib!.lookupFunction<
-      Pointer<Utf8> Function(),
-      Pointer<Utf8> Function()>('in_app_purchase_watchos_purchases_drain');
+  late final Pointer<Utf8> Function() _purchasesDrain = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'in_app_purchase_watchos_purchases_drain');
 
   late final void Function(Pointer<Utf8>) _finish = _lib!.lookupFunction<
       Void Function(Pointer<Utf8>),

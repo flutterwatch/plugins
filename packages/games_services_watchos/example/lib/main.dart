@@ -47,11 +47,11 @@ class _BodyState extends State<_Body> {
   Future<void> _load() async {
     final List<LeaderboardScoreData>? rows =
         await Leaderboards.loadLeaderboardScores(
-          iOSLeaderboardID: kLeaderboardId,
-          scope: PlayerScope.global,
-          timeScope: TimeScope.allTime,
-          maxResults: 5,
-        );
+      iOSLeaderboardID: kLeaderboardId,
+      scope: PlayerScope.global,
+      timeScope: TimeScope.allTime,
+      maxResults: 5,
+    );
     // Null and empty mean different things, and the example says which.
     if (rows == null) {
       _say('load failed');

@@ -116,7 +116,8 @@ WatchLinkFile? decodeFile(Object? decoded) {
   final Object? metadata = decoded['metadata'];
   return WatchLinkFile(
     path: path,
-    metadata: metadata is Map<String, Object?> ? metadata : const <String, Object?>{},
+    metadata:
+        metadata is Map<String, Object?> ? metadata : const <String, Object?>{},
   );
 }
 

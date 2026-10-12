@@ -210,8 +210,8 @@ void main() {
         EmailAuthProvider.credential(email: 'u@e.com', password: 'pw'));
     expect(fake.beginRequests.single['op'], 'signInWithEmailAndPassword');
     expect(
-      () => auth.signInWithCredential(
-          GoogleAuthProvider.credential(idToken: 't')),
+      () => auth
+          .signInWithCredential(GoogleAuthProvider.credential(idToken: 't')),
       throwsUnimplementedError,
     );
   });
@@ -314,6 +314,5 @@ class TestFirebaseApp implements FirebaseApp {
   final String name;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

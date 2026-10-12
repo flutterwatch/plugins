@@ -97,73 +97,79 @@ class AudioplayersWatchosBindings {
 
   final DynamicLibrary? _lib;
 
-  late final void Function(Pointer<Utf8>) _create = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_create');
+  late final void Function(Pointer<Utf8>) _create = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('audioplayers_watchos_create');
 
-  late final void Function(Pointer<Utf8>) _dispose = _lib!
-      .lookupFunction<Void Function(Pointer<Utf8>),
-          void Function(Pointer<Utf8>)>('audioplayers_watchos_dispose');
+  late final void Function(Pointer<Utf8>) _dispose = _lib!.lookupFunction<
+      Void Function(Pointer<Utf8>),
+      void Function(Pointer<Utf8>)>('audioplayers_watchos_dispose');
 
   late final int Function(Pointer<Utf8>, Pointer<Utf8>, bool, Pointer<Utf8>)
       _setSourceUrl = _lib!.lookupFunction<
-              Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool, Pointer<Utf8>),
-              int Function(Pointer<Utf8>, Pointer<Utf8>, bool, Pointer<Utf8>)>(
-          'audioplayers_watchos_set_source_url');
+          Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Bool, Pointer<Utf8>),
+          int Function(Pointer<Utf8>, Pointer<Utf8>, bool,
+              Pointer<Utf8>)>('audioplayers_watchos_set_source_url');
 
   late final int Function(Pointer<Utf8>, Pointer<Uint8>, int, Pointer<Utf8>)
       _setSourceBytes = _lib!.lookupFunction<
-              Int32 Function(Pointer<Utf8>, Pointer<Uint8>, Int64, Pointer<Utf8>),
-              int Function(Pointer<Utf8>, Pointer<Uint8>, int, Pointer<Utf8>)>(
-          'audioplayers_watchos_set_source_bytes');
+          Int32 Function(Pointer<Utf8>, Pointer<Uint8>, Int64, Pointer<Utf8>),
+          int Function(Pointer<Utf8>, Pointer<Uint8>, int,
+              Pointer<Utf8>)>('audioplayers_watchos_set_source_bytes');
 
-  late final bool Function(Pointer<Utf8>) _resume = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>),
-          bool Function(Pointer<Utf8>)>('audioplayers_watchos_resume');
+  late final bool Function(Pointer<Utf8>) _resume = _lib!.lookupFunction<
+      Bool Function(Pointer<Utf8>),
+      bool Function(Pointer<Utf8>)>('audioplayers_watchos_resume');
 
-  late final bool Function(Pointer<Utf8>) _pause = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>),
-          bool Function(Pointer<Utf8>)>('audioplayers_watchos_pause');
+  late final bool Function(Pointer<Utf8>) _pause = _lib!.lookupFunction<
+      Bool Function(Pointer<Utf8>),
+      bool Function(Pointer<Utf8>)>('audioplayers_watchos_pause');
 
-  late final bool Function(Pointer<Utf8>) _stop = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>),
-          bool Function(Pointer<Utf8>)>('audioplayers_watchos_stop');
+  late final bool Function(Pointer<Utf8>) _stop = _lib!.lookupFunction<
+      Bool Function(Pointer<Utf8>),
+      bool Function(Pointer<Utf8>)>('audioplayers_watchos_stop');
 
-  late final bool Function(Pointer<Utf8>) _release = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>),
-          bool Function(Pointer<Utf8>)>('audioplayers_watchos_release');
+  late final bool Function(Pointer<Utf8>) _release = _lib!.lookupFunction<
+      Bool Function(Pointer<Utf8>),
+      bool Function(Pointer<Utf8>)>('audioplayers_watchos_release');
 
-  late final bool Function(Pointer<Utf8>, int) _seek = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>, Int64),
-          bool Function(Pointer<Utf8>, int)>('audioplayers_watchos_seek');
+  late final bool Function(Pointer<Utf8>, int) _seek = _lib!.lookupFunction<
+      Bool Function(Pointer<Utf8>, Int64),
+      bool Function(Pointer<Utf8>, int)>('audioplayers_watchos_seek');
 
   late final bool Function(Pointer<Utf8>, double) _setVolume = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>, Double),
-              bool Function(Pointer<Utf8>, double)>(
-          'audioplayers_watchos_set_volume');
+      .lookupFunction<
+          Bool Function(Pointer<Utf8>, Double),
+          bool Function(
+              Pointer<Utf8>, double)>('audioplayers_watchos_set_volume');
 
   late final bool Function(Pointer<Utf8>, double) _setRate = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>, Double),
-          bool Function(Pointer<Utf8>, double)>('audioplayers_watchos_set_rate');
+      .lookupFunction<
+          Bool Function(Pointer<Utf8>, Double),
+          bool Function(
+              Pointer<Utf8>, double)>('audioplayers_watchos_set_rate');
 
   late final bool Function(Pointer<Utf8>, int) _setReleaseMode = _lib!
-      .lookupFunction<Bool Function(Pointer<Utf8>, Int32),
-              bool Function(Pointer<Utf8>, int)>(
-          'audioplayers_watchos_set_release_mode');
+      .lookupFunction<
+          Bool Function(Pointer<Utf8>, Int32),
+          bool Function(
+              Pointer<Utf8>, int)>('audioplayers_watchos_set_release_mode');
 
   late final bool Function(Pointer<Utf8>, Pointer<_NativeState>) _readState =
-      _lib!.lookupFunction<Bool Function(Pointer<Utf8>, Pointer<_NativeState>),
-              bool Function(Pointer<Utf8>, Pointer<_NativeState>)>(
-          'audioplayers_watchos_read_state');
+      _lib!.lookupFunction<
+          Bool Function(Pointer<Utf8>, Pointer<_NativeState>),
+          bool Function(Pointer<Utf8>,
+              Pointer<_NativeState>)>('audioplayers_watchos_read_state');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _error = _lib!
       .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
           Pointer<Utf8> Function(Pointer<Utf8>)>('audioplayers_watchos_error');
 
   late final int Function(Pointer<Utf8>, bool, bool) _setAudioContext = _lib!
-      .lookupFunction<Int32 Function(Pointer<Utf8>, Bool, Bool),
-              int Function(Pointer<Utf8>, bool, bool)>(
-          'audioplayers_watchos_set_audio_context');
+      .lookupFunction<
+          Int32 Function(Pointer<Utf8>, Bool, Bool),
+          int Function(Pointer<Utf8>, bool,
+              bool)>('audioplayers_watchos_set_audio_context');
 
   /// Runs [body] with a native UTF-8 copy of [s], freeing it afterwards.
   T _withUtf8<T>(String s, T Function(Pointer<Utf8>) body) {
@@ -183,8 +189,8 @@ class AudioplayersWatchosBindings {
 
   /// Loads a URL/path source; returns 0 on success. [mimeType] (may be
   /// empty) overrides container sniffing for extension-less sources.
-  int setSourceUrl(String playerId, String url, bool isLocal,
-          String mimeType) =>
+  int setSourceUrl(
+          String playerId, String url, bool isLocal, String mimeType) =>
       _withUtf8(
           playerId,
           (Pointer<Utf8> p) => _withUtf8(
@@ -316,8 +322,7 @@ class _PlayerEvents {
         controller.addError(PlatformException(
           code: 'WatchosAudioError',
           message: _kSetSourceFailure,
-          details:
-              'AVPlayerItem.Status.failed: ${bindings.error(playerId)}',
+          details: 'AVPlayerItem.Status.failed: ${bindings.error(playerId)}',
         ));
       }
       _last = state;
@@ -339,9 +344,7 @@ class _PlayerEvents {
         ));
       }
     }
-    for (int i = previous.seekCompleteCount;
-        i < state.seekCompleteCount;
-        i++) {
+    for (int i = previous.seekCompleteCount; i < state.seekCompleteCount; i++) {
       controller.add(const AudioEvent(eventType: AudioEventType.seekComplete));
     }
     for (int i = previous.completeCount; i < state.completeCount; i++) {
@@ -374,12 +377,11 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   /// implementation on watchOS.
   static void registerWith() {
     AudioplayersPlatformInterface.instance = AudioplayersWatchos();
-    GlobalAudioplayersPlatformInterface.instance =
-        GlobalAudioplayersWatchos();
+    GlobalAudioplayersPlatformInterface.instance = GlobalAudioplayersWatchos();
   }
 
-  _PlayerEvents _eventsFor(String playerId) => _events.putIfAbsent(
-      playerId, () => _PlayerEvents(playerId, _b));
+  _PlayerEvents _eventsFor(String playerId) =>
+      _events.putIfAbsent(playerId, () => _PlayerEvents(playerId, _b));
 
   /// Upstream's exact message when a player-scoped call arrives for an id
   /// that was never created or has been disposed.
@@ -417,8 +419,7 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
   Future<void> stop(String playerId) async => _ensure(_b.stop(playerId));
 
   @override
-  Future<void> release(String playerId) async =>
-      _ensure(_b.release(playerId));
+  Future<void> release(String playerId) async => _ensure(_b.release(playerId));
 
   @override
   Future<void> seek(String playerId, Duration position) async =>
@@ -438,8 +439,7 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
       _ensure(_b.setVolume(playerId, volume));
 
   @override
-  Future<void> setReleaseMode(
-          String playerId, ReleaseMode releaseMode) async =>
+  Future<void> setReleaseMode(String playerId, ReleaseMode releaseMode) async =>
       _ensure(_b.setReleaseMode(playerId, releaseMode.index));
 
   @override
@@ -540,8 +540,9 @@ class AudioplayersWatchos extends AudioplayersPlatformInterface {
 
   @override
   Future<void> emitLog(String playerId, String message) async {
-    _eventsFor(playerId).controller.add(
-        AudioEvent(eventType: AudioEventType.log, logMessage: message));
+    _eventsFor(playerId)
+        .controller
+        .add(AudioEvent(eventType: AudioEventType.log, logMessage: message));
   }
 
   @override

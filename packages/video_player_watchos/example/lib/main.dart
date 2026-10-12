@@ -160,8 +160,7 @@ class _ButterFlyAssetVideoInList extends StatelessWidget {
                     title: Text('Video video'),
                   ),
                   Stack(
-                    alignment:
-                        FractionalOffset.bottomRight +
+                    alignment: FractionalOffset.bottomRight +
                         const FractionalOffset(-0.1, -0.1),
                     children: <Widget>[
                       _ButterFlyAssetVideo(viewType),

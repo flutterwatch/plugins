@@ -42,31 +42,36 @@ class FirebaseStorageWatchosBindings {
   final DynamicLibrary? _lib;
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _begin = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('firebase_storage_watchos_begin');
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_storage_watchos_begin');
 
   late final Pointer<Utf8> Function(int) _poll = _lib!.lookupFunction<
       Pointer<Utf8> Function(Int64),
       Pointer<Utf8> Function(int)>('firebase_storage_watchos_poll');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _taskStart =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>)>(
-          'firebase_storage_watchos_task_start');
+  late final Pointer<Utf8> Function(Pointer<Utf8>) _taskStart = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_storage_watchos_task_start');
 
   late final Pointer<Utf8> Function(int) _taskSnapshot = _lib!.lookupFunction<
       Pointer<Utf8> Function(Int64),
       Pointer<Utf8> Function(int)>('firebase_storage_watchos_task_snapshot');
 
-  late final Pointer<Utf8> Function(int, Pointer<Utf8>) _taskControl =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Int64, Pointer<Utf8>),
-              Pointer<Utf8> Function(int, Pointer<Utf8>)>(
-          'firebase_storage_watchos_task_control');
+  late final Pointer<Utf8> Function(int, Pointer<Utf8>) _taskControl = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Int64, Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              int, Pointer<Utf8>)>('firebase_storage_watchos_task_control');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _configure =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>)>(
-          'firebase_storage_watchos_configure');
+  late final Pointer<Utf8> Function(Pointer<Utf8>) _configure = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_storage_watchos_configure');
 
   late final void Function(Pointer<Utf8>) _free = _lib!.lookupFunction<
       Void Function(Pointer<Utf8>),
@@ -245,7 +250,8 @@ class ReferenceWatchos extends ReferencePlatform {
   FirebaseStorageWatchos get _watchosStorage =>
       storage as FirebaseStorageWatchos;
 
-  Map<String, Object?> _op(String op, [Map<String, Object?> extra = const {}]) =>
+  Map<String, Object?> _op(String op,
+          [Map<String, Object?> extra = const {}]) =>
       <String, Object?>{'op': op, 'path': fullPath, ...extra};
 
   @override
@@ -295,8 +301,7 @@ class ReferenceWatchos extends ReferencePlatform {
     return ListResultWatchos(
       _watchosStorage,
       nextPageToken: map['nextPageToken'] as String?,
-      itemPaths:
-          (map['items'] as List<Object?>? ?? const []).cast<String>(),
+      itemPaths: (map['items'] as List<Object?>? ?? const []).cast<String>(),
       prefixPaths:
           (map['prefixes'] as List<Object?>? ?? const []).cast<String>(),
     );
@@ -483,8 +488,8 @@ class TaskWatchos extends TaskPlatform {
     controller = StreamController<TaskSnapshotPlatform>(
       onListen: () {
         poll();
-        timer = Timer.periodic(FirebaseStorageWatchos.opPollInterval,
-            (_) => poll());
+        timer = Timer.periodic(
+            FirebaseStorageWatchos.opPollInterval, (_) => poll());
       },
       onCancel: () {
         timer?.cancel();

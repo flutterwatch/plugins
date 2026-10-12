@@ -15,7 +15,8 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('initializes the default Firebase app on watchOS', (WidgetTester tester) async {
+  testWidgets('initializes the default Firebase app on watchOS',
+      (WidgetTester tester) async {
     final FirebaseApp app = await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );

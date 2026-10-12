@@ -303,8 +303,7 @@ void main() {
       expect(await player.getAudioTracks(7), isEmpty);
     });
 
-    test('getAudioTracks maps the native JSON into VideoAudioTracks',
-        () async {
+    test('getAudioTracks maps the native JSON into VideoAudioTracks', () async {
       fake.audioTracksJsonValue =
           '[{"id":"0","label":"English","language":"en","isSelected":true},'
           '{"id":"1","label":"Español","language":"","isSelected":false}]';

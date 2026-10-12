@@ -102,8 +102,8 @@ class _FfiBackend implements NetworkInfoPlusWatchosBackend {
   late final _StringDart _broadcast =
       _lib.lookupFunction<_StringNative, _StringDart>(
           'network_info_plus_watchos_wifi_broadcast');
-  late final _FreeDart _free = _lib.lookupFunction<_FreeNative, _FreeDart>(
-      'network_info_plus_watchos_free');
+  late final _FreeDart _free = _lib
+      .lookupFunction<_FreeNative, _FreeDart>('network_info_plus_watchos_free');
 
   /// Calls a native getter, copies the string, and releases the native buffer.
   String? _take(_StringDart f) {

@@ -31,8 +31,7 @@ export 'src/backend.dart' show WatchLinkBackend;
 // gets the stub instead of a compile error. An unconditional `dart:ffi` import
 // fails the *build* of any app that targets web, even one that never opens a
 // session — see src/ffi_backend_web.dart.
-export 'src/ffi_backend_web.dart'
-    if (dart.library.ffi) 'src/ffi_backend.dart'
+export 'src/ffi_backend_web.dart' if (dart.library.ffi) 'src/ffi_backend.dart'
     show
         FlutterWatchLink,
         SignalNative,

@@ -118,7 +118,8 @@ void main() {
       // drives in_app_purchase_android, whose billing client fails
       // asynchronously off-device. That noise is irrelevant here — the watch
       // takes the StoreKit path, which fails synchronously and is caught.
-      runZonedGuarded(InAppPurchaseWatchos.registerWith, (Object _, StackTrace __) {});
+      runZonedGuarded(
+          InAppPurchaseWatchos.registerWith, (Object _, StackTrace __) {});
 
       expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>(),
           reason: 'registerWith must install us even if pre-emption fails');
@@ -140,9 +141,11 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
 
-      expect(probeCalls, greaterThan(1), reason: 'it must retry, not give up at once');
+      expect(probeCalls, greaterThan(1),
+          reason: 'it must retry, not give up at once');
       expect(InAppPurchaseWatchos.preemptExhausted, isTrue,
-          reason: 'exhaustion must be observable — it silently breaks the plugin');
+          reason:
+              'exhaustion must be observable — it silently breaks the plugin');
       expect(InAppPurchaseWatchos.preemptError, isA<StateError>());
       // Even having lost the race, we must still be the installed platform.
       expect(InAppPurchasePlatform.instance, isA<InAppPurchaseWatchos>());
@@ -213,7 +216,8 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
 
-      expect(probeCalls, 1, reason: 'the selection must be triggered exactly once');
+      expect(probeCalls, 1,
+          reason: 'the selection must be triggered exactly once');
       expect(InAppPurchaseWatchos.preemptExhausted, isFalse);
       expect(InAppPurchaseWatchos.preemptError, isNull);
     });
@@ -344,7 +348,8 @@ void main() {
 
       final sub = stream.listen((_) {});
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(fake.drainCalls, greaterThan(0), reason: 'it must poll while listened to');
+      expect(fake.drainCalls, greaterThan(0),
+          reason: 'it must poll while listened to');
 
       await sub.cancel();
       final int afterCancel = fake.drainCalls;
@@ -376,10 +381,8 @@ void main() {
       final platform = InAppPurchaseWatchos();
 
       await expectLater(platform.isAvailable(), completes);
-      await expectLater(
-          platform.queryProductDetails(<String>{'a'}), completes);
-      await expectLater(
-          platform.restorePurchases(), completes);
+      await expectLater(platform.queryProductDetails(<String>{'a'}), completes);
+      await expectLater(platform.restorePurchases(), completes);
       await expectLater(
           platform.buyConsumable(
               purchaseParam: PurchaseParam(productDetails: _product('a'))),
@@ -444,7 +447,8 @@ void main() {
 
     test('null result is an error, not an empty success', () {
       final ProductDetailsResponse r =
-          InAppPurchaseWatchos.parseProductDetailsResponse(null, <String>{'a', 'b'});
+          InAppPurchaseWatchos.parseProductDetailsResponse(
+              null, <String>{'a', 'b'});
       expect(r.error, isNotNull);
       expect(r.error!.code, 'no_result');
       expect(r.notFoundIDs, containsAll(<String>['a', 'b']));
@@ -452,7 +456,8 @@ void main() {
 
     test('malformed JSON is reported as bad_result', () {
       final ProductDetailsResponse r =
-          InAppPurchaseWatchos.parseProductDetailsResponse('{not json', <String>{'a'});
+          InAppPurchaseWatchos.parseProductDetailsResponse(
+              '{not json', <String>{'a'});
       expect(r.error?.code, 'bad_result');
     });
 
@@ -462,10 +467,8 @@ void main() {
           <String, dynamic>{'id': 'only_id'},
         ],
       });
-      final ProductDetails p =
-          InAppPurchaseWatchos.parseProductDetailsResponse(json, <String>{'only_id'})
-              .productDetails
-              .single;
+      final ProductDetails p = InAppPurchaseWatchos.parseProductDetailsResponse(
+          json, <String>{'only_id'}).productDetails.single;
       expect(p.id, 'only_id');
       expect(p.rawPrice, 0.0);
       expect(p.title, '');
@@ -599,7 +602,11 @@ void main() {
     test('restored maps to restored', () {
       final PurchaseDetails d = InAppPurchaseWatchos.parsePurchaseUpdates(
         jsonEncode(<dynamic>[
-          <String, dynamic>{'productID': 'a', 'purchaseID': 'r1', 'status': 'restored'},
+          <String, dynamic>{
+            'productID': 'a',
+            'purchaseID': 'r1',
+            'status': 'restored'
+          },
         ]),
       ).single;
       expect(d.status, PurchaseStatus.restored);
@@ -644,7 +651,8 @@ void main() {
       InAppPurchaseWatchos.bindingsOverride = fake;
     });
 
-    test('buyNonConsumable forwards the product id and returns the result', () async {
+    test('buyNonConsumable forwards the product id and returns the result',
+        () async {
       fake.buyResult = true;
       final bool ok = await InAppPurchaseWatchos().buyNonConsumable(
         purchaseParam: PurchaseParam(
@@ -654,7 +662,8 @@ void main() {
       expect(fake.lastBuy, <Object?>['premium', 'u42', 1]);
     });
 
-    test('buyConsumable forwards and returns false when the queue rejects', () async {
+    test('buyConsumable forwards and returns false when the queue rejects',
+        () async {
       fake.buyResult = false;
       final bool ok = await InAppPurchaseWatchos().buyConsumable(
         purchaseParam: PurchaseParam(productDetails: _product('coins_100')),
@@ -671,7 +680,9 @@ void main() {
           status: PurchaseStatus.purchased,
           transactionDate: '1',
           verificationData: PurchaseVerificationData(
-              localVerificationData: '', serverVerificationData: '', source: 'app_store'),
+              localVerificationData: '',
+              serverVerificationData: '',
+              source: 'app_store'),
         ),
       );
       expect(fake.lastFinish, 't9');
@@ -684,7 +695,9 @@ void main() {
           status: PurchaseStatus.error,
           transactionDate: null,
           verificationData: PurchaseVerificationData(
-              localVerificationData: '', serverVerificationData: '', source: 'app_store'),
+              localVerificationData: '',
+              serverVerificationData: '',
+              source: 'app_store'),
         ),
       );
       expect(fake.lastFinish, isNull);
@@ -700,7 +713,11 @@ void main() {
     test('installs the observer and drains updates into the stream', () async {
       final fake = _FakeBindings(result: null);
       fake.drainScript.add(jsonEncode(<dynamic>[
-        <String, dynamic>{'productID': 'coins_100', 'purchaseID': 't1', 'status': 'purchased'},
+        <String, dynamic>{
+          'productID': 'coins_100',
+          'purchaseID': 't1',
+          'status': 'purchased'
+        },
       ]));
       InAppPurchaseWatchos.bindingsOverride = fake;
       InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 1);

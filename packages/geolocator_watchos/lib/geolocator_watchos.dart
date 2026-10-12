@@ -302,20 +302,27 @@ class _FfiBackend implements GeolocatorWatchosBackend {
   final DynamicLibrary _lib;
   final Pointer<Double> _buf = calloc<Double>(10);
 
-  late final _IntDart _serviceEnabled = _lib.lookupFunction<_IntNative,
-      _IntDart>('geolocator_watchos_is_service_enabled');
-  late final _IntDart _checkPermission = _lib.lookupFunction<_IntNative,
-      _IntDart>('geolocator_watchos_check_permission');
-  late final _VoidDart _requestPermission = _lib.lookupFunction<_VoidNative,
-      _VoidDart>('geolocator_watchos_request_permission');
-  late final _StartDart _startUpdates = _lib.lookupFunction<_StartNative,
-      _StartDart>('geolocator_watchos_start_updates');
-  late final _VoidDart _requestLocation = _lib.lookupFunction<_VoidNative,
-      _VoidDart>('geolocator_watchos_request_location');
-  late final _ReadDart _readPosition = _lib.lookupFunction<_ReadNative,
-      _ReadDart>('geolocator_watchos_read_position');
-  late final _VoidDart _stopUpdates = _lib.lookupFunction<_VoidNative,
-      _VoidDart>('geolocator_watchos_stop_updates');
+  late final _IntDart _serviceEnabled =
+      _lib.lookupFunction<_IntNative, _IntDart>(
+          'geolocator_watchos_is_service_enabled');
+  late final _IntDart _checkPermission =
+      _lib.lookupFunction<_IntNative, _IntDart>(
+          'geolocator_watchos_check_permission');
+  late final _VoidDart _requestPermission =
+      _lib.lookupFunction<_VoidNative, _VoidDart>(
+          'geolocator_watchos_request_permission');
+  late final _StartDart _startUpdates =
+      _lib.lookupFunction<_StartNative, _StartDart>(
+          'geolocator_watchos_start_updates');
+  late final _VoidDart _requestLocation =
+      _lib.lookupFunction<_VoidNative, _VoidDart>(
+          'geolocator_watchos_request_location');
+  late final _ReadDart _readPosition =
+      _lib.lookupFunction<_ReadNative, _ReadDart>(
+          'geolocator_watchos_read_position');
+  late final _VoidDart _stopUpdates =
+      _lib.lookupFunction<_VoidNative, _VoidDart>(
+          'geolocator_watchos_stop_updates');
   late final void Function(Pointer<NativeFunction<GeolocatorFixNative>>)
       _setCallback = _lib.lookupFunction<
               Void Function(Pointer<NativeFunction<GeolocatorFixNative>>),

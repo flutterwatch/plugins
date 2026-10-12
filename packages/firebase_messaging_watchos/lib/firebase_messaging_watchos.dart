@@ -41,26 +41,30 @@ class FirebaseMessagingWatchosBindings {
   final DynamicLibrary? _lib;
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _begin = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('firebase_messaging_watchos_begin');
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_messaging_watchos_begin');
 
   late final Pointer<Utf8> Function(int) _poll = _lib!.lookupFunction<
       Pointer<Utf8> Function(Int64),
       Pointer<Utf8> Function(int)>('firebase_messaging_watchos_poll');
 
-  late final Pointer<Utf8> Function() _state = _lib!.lookupFunction<
-      Pointer<Utf8> Function(),
-      Pointer<Utf8> Function()>('firebase_messaging_watchos_state');
+  late final Pointer<Utf8> Function() _state = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'firebase_messaging_watchos_state');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _takeMessages =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>)>(
-          'firebase_messaging_watchos_take_messages');
+  late final Pointer<Utf8> Function(Pointer<Utf8>) _takeMessages = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_messaging_watchos_take_messages');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _configure =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>)>(
-          'firebase_messaging_watchos_configure');
+  late final Pointer<Utf8> Function(Pointer<Utf8>) _configure = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_messaging_watchos_configure');
 
   late final void Function(Pointer<Utf8>) _free = _lib!.lookupFunction<
       Void Function(Pointer<Utf8>),
@@ -103,8 +107,7 @@ class FirebaseMessagingWatchosBindings {
 
   /// Drains a message queue ("foreground"/"opened") or takes the initial
   /// message ("initial").
-  Map<String, Object?> takeMessages(String kind) =>
-      _call1(_takeMessages, kind);
+  Map<String, Object?> takeMessages(String kind) => _call1(_takeMessages, kind);
 
   /// Applies synchronous configuration.
   Map<String, Object?> configure(Map<String, Object?> request) =>
@@ -206,8 +209,8 @@ class FirebaseMessagingWatchos extends FirebaseMessagingPlatform {
 
   @override
   Future<void> setAutoInitEnabled(bool enabled) async {
-    _throwIfError(_b.configure(
-        <String, Object?>{'op': 'setAutoInit', 'enabled': enabled}));
+    _throwIfError(_b
+        .configure(<String, Object?>{'op': 'setAutoInit', 'enabled': enabled}));
     _autoInitEnabled = enabled;
   }
 
@@ -227,15 +230,15 @@ class FirebaseMessagingWatchos extends FirebaseMessagingPlatform {
   }
 
   @override
-  Future<String?> getToken({String? serviceWorkerScriptPath, String? vapidKey}) async {
+  Future<String?> getToken(
+      {String? serviceWorkerScriptPath, String? vapidKey}) async {
     // FirebaseMessaging needs the APNs device token first; trigger the
     // registration and give the delegate callback a moment to arrive.
     Map<String, Object?> state = _b.state();
     if (state['apnsToken'] == null) {
       _throwIfError(_b.configure(
           <String, Object?>{'op': 'registerForRemoteNotifications'}));
-      final DateTime deadline =
-          DateTime.now().add(const Duration(seconds: 8));
+      final DateTime deadline = DateTime.now().add(const Duration(seconds: 8));
       while (state['apnsToken'] == null &&
           state['apnsError'] == null &&
           DateTime.now().isBefore(deadline)) {

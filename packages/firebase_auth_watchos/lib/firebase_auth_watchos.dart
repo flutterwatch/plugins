@@ -48,32 +48,35 @@ class FirebaseAuthWatchosBindings {
       Pointer<Utf8> Function(Int64),
       Pointer<Utf8> Function(int)>('firebase_auth_watchos_poll');
 
-  late final Pointer<Utf8> Function(Pointer<Utf8>) _currentUser =
-      _lib!.lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>)>(
-          'firebase_auth_watchos_current_user');
+  late final Pointer<Utf8> Function(Pointer<Utf8>) _currentUser = _lib!
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_auth_watchos_current_user');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>) _signOut = _lib!
-      .lookupFunction<Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('firebase_auth_watchos_sign_out');
+      .lookupFunction<
+          Pointer<Utf8> Function(Pointer<Utf8>),
+          Pointer<Utf8> Function(
+              Pointer<Utf8>)>('firebase_auth_watchos_sign_out');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>)
       _setLanguageCode = _lib!.lookupFunction<
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>)>(
-          'firebase_auth_watchos_set_language_code');
+          Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
+          Pointer<Utf8> Function(Pointer<Utf8>,
+              Pointer<Utf8>)>('firebase_auth_watchos_set_language_code');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, int)
       _useEmulator = _lib!.lookupFunction<
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Int64),
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, int)>(
-          'firebase_auth_watchos_use_emulator');
+          Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Int64),
+          Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
+              int)>('firebase_auth_watchos_use_emulator');
 
   late final Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>)
       _isSignInLink = _lib!.lookupFunction<
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
-              Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>)>(
-          'firebase_auth_watchos_is_sign_in_link');
+          Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>),
+          Pointer<Utf8> Function(Pointer<Utf8>,
+              Pointer<Utf8>)>('firebase_auth_watchos_is_sign_in_link');
 
   late final void Function(Pointer<Utf8>) _free = _lib!.lookupFunction<
       Void Function(Pointer<Utf8>),
@@ -362,7 +365,8 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
       authGeneration: result['authGeneration'] as int? ?? 0,
       idTokenGeneration: result['idTokenGeneration'] as int? ?? 0,
       userMutations: _userMutations,
-      user: userMap is Map ? _userFromMap(userMap.cast<String, Object?>()) : null,
+      user:
+          userMap is Map ? _userFromMap(userMap.cast<String, Object?>()) : null,
     );
   }
 
@@ -370,14 +374,16 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
   // change-stream subscription: N listeners cost one native snapshot per
   // interval, not N. The timer runs only while a subscription exists.
   final Set<void Function(_AuthSnapshot?, Object?, StackTrace?)>
-      _pollSubscribers = <void Function(_AuthSnapshot?, Object?, StackTrace?)>{};
+      _pollSubscribers =
+      <void Function(_AuthSnapshot?, Object?, StackTrace?)>{};
   Timer? _pollTimer;
   String? _lastPollErrorSignature;
 
   // When [target] is set, delivers only to it (the immediate first emit for
   // a new subscription) — bypassing the error dedup so a late listener still
   // observes the current failure state.
-  void _pollOnce({void Function(_AuthSnapshot?, Object?, StackTrace?)? target}) {
+  void _pollOnce(
+      {void Function(_AuthSnapshot?, Object?, StackTrace?)? target}) {
     final List<void Function(_AuthSnapshot?, Object?, StackTrace?)> targets =
         target != null
             ? <void Function(_AuthSnapshot?, Object?, StackTrace?)>[target]
@@ -413,7 +419,8 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
   Stream<UserPlatform?> _watch(int Function(_AuthSnapshot) generationOf) {
     late StreamController<UserPlatform?> controller;
     int? lastGeneration;
-    void onPoll(_AuthSnapshot? snapshot, Object? error, StackTrace? stackTrace) {
+    void onPoll(
+        _AuthSnapshot? snapshot, Object? error, StackTrace? stackTrace) {
       if (error != null) {
         controller.addError(error, stackTrace!);
         return;
@@ -428,8 +435,7 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
     controller = StreamController<UserPlatform?>(
       onListen: () {
         _pollSubscribers.add(onPoll);
-        _pollTimer ??=
-            Timer.periodic(streamPollInterval, (_) => _pollOnce());
+        _pollTimer ??= Timer.periodic(streamPollInterval, (_) => _pollOnce());
         _pollOnce(target: onPoll);
       },
       onCancel: () {
@@ -467,7 +473,8 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
     final Object? additional = result['additionalUserInfo'];
     return UserCredentialWatchos(
       auth: this,
-      user: userMap is Map ? _userFromMap(userMap.cast<String, Object?>()) : null,
+      user:
+          userMap is Map ? _userFromMap(userMap.cast<String, Object?>()) : null,
       additionalUserInfo: additional is Map
           ? _additionalUserInfoFromMap(additional.cast<String, Object?>())
           : null,
