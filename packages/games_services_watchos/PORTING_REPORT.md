@@ -7,19 +7,22 @@
 | Implementation | ✅ Working (GameKit FFI) — sign-in and submission; reads unconfirmed on device |
 | watchOS capability | Partial — sign-in, the player stream and leaderboards; no Game Center UI, achievements, saved games or access point |
 | Host unit tests | ✅ pass (FFI bindings faked) |
-| Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours covers registration, FFI linkage and graceful degradation, ✅ 7 pass on the watch simulator |
-| Unified demo | ✅ example included (`example/`), builds and drives on the watch simulator; its widget test (`example/test/watchos_layout_test.dart`) checks the layout on three watch screens in both safe areas |
+| Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours covers registration, FFI linkage, the player stream and how each signed-out call fails, ✅ 7 pass on the watchOS 26.5 Simulator (0.2.0, 12 October 2026) |
+| Unified demo | ✅ example included (`example/`), builds and starts on the watchOS 26.5 Simulator; its widget test (`example/test/watchos_layout_test.dart`, 11 pass) checks the layout on three watch screens in both safe areas |
 
 This package is published on pub.dev. The table is deliberately honest:
 sign-in and submission have been observed working on a physical Apple Watch
-Series 10, and reading entries has not.
+Series 10, and reading entries has not. 0.2.0 changes only Dart code: its
+sign-in and submission results and its player stream are checked by the host
+tests and on the Simulator, and have not run on a watch yet.
 
 ## What was ported
 
 `games_services` is federated over `games_services_platform_interface`, so
 this is a normal federated implementation registered through
-`dartPluginClass`. Only the leaderboard surface is overridden; everything
-else keeps the interface's `UnimplementedError`.
+`dartPluginClass`. Only sign-in, the player stream and the leaderboard
+surface are overridden; everything else keeps the interface's
+`UnimplementedError`.
 
 | Upstream method | Decision | Reason |
 |---|---|---|
