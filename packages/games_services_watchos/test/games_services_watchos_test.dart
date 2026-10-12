@@ -437,6 +437,14 @@ void main() {
   // games_services 5.x reads the player stream for GameAuth.isSignedIn and
   // for its Player getters, so these go through those classes.
   group('player', () {
+    test('every read is the same stream', () {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings();
+      GamesServicesWatchos.registerWith();
+      // A StreamBuilder compares its stream with the last build's, so a new
+      // stream on each read would resubscribe it on every rebuild.
+      expect(GameAuth.player, same(GameAuth.player));
+    });
+
     test('a new subscriber gets null while signed out', () async {
       GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
       GamesServicesWatchos.registerWith();

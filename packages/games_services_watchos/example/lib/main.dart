@@ -32,10 +32,6 @@ class _Body extends StatefulWidget {
 class _BodyState extends State<_Body> {
   final List<String> _log = <String>[];
 
-  /// Read once, so a rebuild does not subscribe again. It gives the current
-  /// sign-in state at once, and a new one when a call changes it.
-  final Stream<PlayerData?> _player = GameAuth.player;
-
   void _say(String line) => setState(() => _log.insert(0, line));
 
   // As on iOS with games_services 5.x, signIn and submitScore complete with
@@ -91,8 +87,10 @@ class _BodyState extends State<_Body> {
               .copyWith(top: WatchStatusBar.heightOf(context)) +
           const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       children: <Widget>[
+        // GameAuth.player gives the current sign-in state at once, and a new
+        // one when a call changes it.
         StreamBuilder<PlayerData?>(
-          stream: _player,
+          stream: GameAuth.player,
           builder: (BuildContext context, AsyncSnapshot<PlayerData?> player) {
             final String? name = player.data?.displayName;
             return Text(

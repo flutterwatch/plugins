@@ -23,8 +23,9 @@
   first; after that, a change reaches subscribers when one of the plugin's
   calls finds it, because the native side pushes nothing. The `PlayerData`
   has GameKit's alias as its `displayName`; `playerID`, `teamPlayerID`,
-  `iconImage` and the restriction flags are null. It reads the existing
-  symbols, so the native code is unchanged.
+  `iconImage` and the restriction flags are null. Every read returns the
+  same stream, as on the other platforms. It reads the existing symbols, so
+  the native code is unchanged.
 * `loadLeaderboardScores` and `getPlayerScore` take their leaderboard ids as
   `String`, as 5.3.0 declares them; 0.1.0 left them untyped. What they return
   is unchanged. The leaderboard JSON decodes with 5.3.0's

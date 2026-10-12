@@ -89,7 +89,9 @@ its own from `loadLeaderboardScores`.
   change when one of this plugin's calls finds it: the native side pushes
   nothing, so a sign-in that lapses between calls shows at the next call.
   The `PlayerData` has GameKit's alias as its `displayName`; `playerID`,
-  `teamPlayerID`, `iconImage` and the restriction flags are null.
+  `teamPlayerID`, `iconImage` and the restriction flags are null. Every read
+  of `GameAuth.player` is the same stream, so a `StreamBuilder` can read it
+  in `build`.
 - **A different `authenticateHandler`.** On watchOS the block takes only
   an error; the iOS signature with a `UIViewController` does not exist.
 - **Failure and emptiness are distinct.** `loadLeaderboardScores` returns

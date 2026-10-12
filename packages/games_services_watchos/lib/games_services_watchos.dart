@@ -77,32 +77,39 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// loses its phone, reaches a subscriber at the next call. A new subscriber
   /// sees it at once.
   ///
+  /// Every read returns the same stream, as the method-channel implementation
+  /// does, so a `StreamBuilder` that reads `GameAuth.player` in `build` keeps
+  /// its subscription across rebuilds.
+  @override
+  Stream<PlayerData?> get player => _player;
+
   /// [Stream.multi] rather than a broadcast controller: a broadcast `onListen`
   /// fires only for the first subscriber, so a later one would never be told
-  /// the current state.
-  @override
-  Stream<PlayerData?> get player => Stream<PlayerData?>.multi(
-        (MultiStreamController<PlayerData?> out) {
-          bool seeded = false;
-          PlayerData? last;
-          void update() {
-            final PlayerData? now = _localPlayer();
-            if (seeded && _samePlayer(last, now)) return;
-            seeded = true;
-            last = now;
-            // add, not addSync: a subscriber runs in a later microtask, never
-            // inside the plugin call that noticed the change.
-            out.add(now);
-          }
+  /// the current state. Each listen gets its own controller here.
+  late final Stream<PlayerData?> _player = Stream<PlayerData?>.multi(
+    _listenToPlayer,
+    isBroadcast: true,
+  );
 
-          _playerListeners.add(update);
-          out.onCancel = () {
-            _playerListeners.remove(update);
-          };
-          update();
-        },
-        isBroadcast: true,
-      );
+  void _listenToPlayer(MultiStreamController<PlayerData?> out) {
+    bool seeded = false;
+    PlayerData? last;
+    void update() {
+      final PlayerData? now = _localPlayer();
+      if (seeded && _samePlayer(last, now)) return;
+      seeded = true;
+      last = now;
+      // add, not addSync: a subscriber runs in a later microtask, never
+      // inside the plugin call that noticed the change.
+      out.add(now);
+    }
+
+    _playerListeners.add(update);
+    out.onCancel = () {
+      _playerListeners.remove(update);
+    };
+    update();
+  }
 
   /// The local player as GameKit reports it now, or null when nobody is
   /// signed in or the GameKit symbols are not linked.
