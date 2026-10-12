@@ -13,9 +13,15 @@
   `PlatformException`: `failed_to_authenticate`, or `sign_in_unavailable`
   when GameKit has already answered this launch's sign-in and the player is
   not signed in (the plugin asks once per launch), and
-  `failed_to_send_score`. Version 0.1.0 completed both with null on success
-  and with the error message on failure, so code that reads null as success
-  has to change.
+  `failed_to_send_score`; as on iOS, the message is in `details` too. Version
+  0.1.0 completed both with null on success and with the error message on
+  failure, so code that reads null as success has to change.
+* A sign-in waits at most 20 seconds for GameKit's answer, and then fails
+  with `failed_to_authenticate` and a message that says so. `submitScore`
+  never fails with iOS's `leaderboard_not_found`: the watch submits without
+  loading the leaderboard first, so that case arrives as
+  `failed_to_send_score`. The README lists both, with the wait for a sign-in
+  already in flight.
 * Bindings: `authState` reads the sign-in state in one native call, as a new
   `GcAuthState` (`unavailable`, `idle`, `pending`, `signedIn`, `failed`).
   `available`, `authenticated` and the new `signInFailed` (true for

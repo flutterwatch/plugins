@@ -38,6 +38,14 @@ const String _unlinked =
     'Game Center is not available: the GameKit symbols are not linked into '
     'this app.';
 
+/// How long a sign-in waits for GameKit's answer.
+const Duration _signInWait = Duration(seconds: 20);
+
+/// A failure as games_services' iOS implementation reports one: its
+/// FlutterError carries the description as the message and as the details.
+PlatformException _failure(String code, String message) =>
+    PlatformException(code: code, message: message, details: message);
+
 /// watchOS implementation of [GamesServicesPlatform], over GameKit through
 /// `dart:ffi`.
 ///
@@ -142,6 +150,11 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// `sign_in_unavailable` when GameKit has already answered this launch's
   /// sign-in and the player is not signed in, since the plugin asks once per
   /// launch, and `failed_to_authenticate` otherwise, with GameKit's message.
+  /// As on iOS, the message is in the exception's `details` too.
+  ///
+  /// A sign-in waits at most 20 seconds for GameKit's answer. After that it
+  /// fails with `failed_to_authenticate`, and says so; GameKit may still sign
+  /// the player in later, which [player] shows at the plugin's next call.
   ///
   /// A call made while another sign-in is in flight waits for that sign-in's
   /// answer. (On iOS it completes at once with "Player already
@@ -165,25 +178,35 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     // failed_to_authenticate into sign_in_unavailable.
     final GcAuthState before = native.authState;
     if (before == GcAuthState.unavailable) {
-      throw PlatformException(code: _failedToAuthenticate, message: _unlinked);
+      throw _failure(_failedToAuthenticate, _unlinked);
     }
     if (before == GcAuthState.signedIn) return _alreadyAuthenticated;
-    if (await native.signIn()) return _authenticatedSuccessfully;
+    if (await native.signIn(timeout: _signInWait)) {
+      return _authenticatedSuccessfully;
+    }
     // The native side installs GameKit's authentication handler once per
     // launch. Once GameKit has answered it and the player is not signed in,
     // whether that answer failed or the sign-in lapsed since, there is
     // nothing left to ask, which iOS reports as sign_in_unavailable.
     if (before == GcAuthState.failed) {
-      throw PlatformException(
-        code: _signInUnavailable,
-        message: 'Game Center has already answered this launch\'s sign-in, '
-            'and the player is not signed in; the plugin asks once per '
-            'launch.',
+      throw _failure(
+        _signInUnavailable,
+        'Game Center has already answered this launch\'s sign-in, and the '
+        'player is not signed in; the plugin asks once per launch.',
       );
     }
-    throw PlatformException(
-      code: _failedToAuthenticate,
-      message: native.lastError ?? 'Not signed in to Game Center',
+    // Still in flight: the wait ran out before GameKit answered. This read
+    // only picks the message; the code was settled by the read above.
+    if (native.authState == GcAuthState.pending) {
+      throw _failure(
+        _failedToAuthenticate,
+        'Game Center did not answer the sign-in within '
+        '${_signInWait.inSeconds} seconds; it may still sign the player in.',
+      );
+    }
+    throw _failure(
+      _failedToAuthenticate,
+      native.lastError ?? 'Not signed in to Game Center',
     );
   }
 
@@ -193,7 +216,12 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// Completes with "Success". Otherwise it fails with a [PlatformException]
   /// whose code is `failed_to_send_score`: the score has no leaderboard id or
   /// no value, the player is not signed in, or GameKit refused it, with
-  /// GameKit's message.
+  /// GameKit's message. As on iOS, the message is in `details` too.
+  ///
+  /// It never fails with `leaderboard_not_found`, which iOS reports when it
+  /// cannot load the leaderboard: the watch submits without loading it first,
+  /// so GameKit's error for an unknown leaderboard is `failed_to_send_score`
+  /// here.
   ///
   /// Version 0.1.0 completed with null on success and with the message on
   /// failure, as `games_services` 4.x did.
@@ -210,26 +238,20 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     final String? id = score.iOSLeaderboardID;
     final int? value = score.value;
     if (id == null || id.isEmpty || value == null) {
-      throw PlatformException(
-        code: _failedToSendScore,
-        message: 'Missing leaderboard id or value',
-      );
+      throw _failure(_failedToSendScore, 'Missing leaderboard id or value');
     }
     final GamesServicesWatchosBindings native = _native;
     final GcAuthState state = native.authState;
     if (state == GcAuthState.unavailable) {
-      throw PlatformException(code: _failedToSendScore, message: _unlinked);
+      throw _failure(_failedToSendScore, _unlinked);
     }
     if (state != GcAuthState.signedIn) {
-      throw PlatformException(
-        code: _failedToSendScore,
-        message: 'Not signed in to Game Center',
-      );
+      throw _failure(_failedToSendScore, 'Not signed in to Game Center');
     }
     if (await native.submitScore(value, id)) return _success;
-    throw PlatformException(
-      code: _failedToSendScore,
-      message: native.lastError ?? 'Score submission failed',
+    throw _failure(
+      _failedToSendScore,
+      native.lastError ?? 'Score submission failed',
     );
   }
 

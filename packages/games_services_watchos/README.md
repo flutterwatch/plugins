@@ -52,6 +52,19 @@ same code reads them on the wrist and on the phone.
 | `GameAuth.signIn` | completes with "Player authenticated successfully", or "Player already authenticated" when the player already was | a `PlatformException`: `failed_to_authenticate` with GameKit's message, or `sign_in_unavailable` when GameKit has already answered this launch's sign-in and the player is not signed in, since the plugin asks once per launch |
 | `GamesServices.submitScore` | completes with "Success" | a `PlatformException`: `failed_to_send_score` |
 
+As on iOS, each exception carries its message in `details` too. Three
+things differ from iOS:
+
+- A sign-in waits at most 20 seconds for GameKit's answer. After that it
+  fails with `failed_to_authenticate`, and says so; GameKit may still sign
+  the player in, which the player stream shows at the plugin's next call.
+- A sign-in made while another is in flight waits for that one's answer,
+  where iOS answers "Player already authenticated" at once.
+- `submitScore` never fails with `leaderboard_not_found`. iOS loads the
+  leaderboard before it submits and reports that code when it finds none;
+  the watch submits without loading it, so GameKit's error for an unknown
+  leaderboard arrives as `failed_to_send_score`.
+
 **Changed in 0.2.0.** Version 0.1.0 completed both calls with null on
 success and with an error message on failure, the convention of
 `games_services` 4.x. Code that reads null as success has to change: a

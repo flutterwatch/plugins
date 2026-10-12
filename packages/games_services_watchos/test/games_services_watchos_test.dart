@@ -48,6 +48,11 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   /// Whether a sign-in that GameKit has not answered yet ends signed in.
   bool signInSucceeds;
 
+  /// Whether GameKit leaves a sign-in unanswered until the wait runs out.
+  bool signInTimesOut = false;
+
+  Duration? lastSignInTimeout;
+
   /// GameKit's message when the sign-in fails.
   String? signInError;
 
@@ -91,6 +96,7 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   @override
   Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
     signIns++;
+    lastSignInTimeout = timeout;
     switch (state) {
       case GcAuthState.unavailable:
       case GcAuthState.failed:
@@ -100,6 +106,10 @@ class _FakeBindings extends GamesServicesWatchosBindings {
         return true;
       case GcAuthState.idle:
       case GcAuthState.pending:
+        if (signInTimesOut) {
+          state = GcAuthState.pending;
+          return false;
+        }
         if (signInSucceeds) {
           state = GcAuthState.signedIn;
           return true;
@@ -267,6 +277,41 @@ void main() {
       );
     });
 
+    test('fails with failed_to_authenticate after 20 s without an answer',
+        () async {
+      final fake = _FakeBindings(signedIn: false)..signInTimesOut = true;
+      GamesServicesWatchos.bindingsOverride = fake;
+      await expectLater(
+        GamesServicesWatchos().signIn(),
+        throwsA(
+          _platformException(
+            'failed_to_authenticate',
+            message: 'Game Center did not answer the sign-in within 20 '
+                'seconds; it may still sign the player in.',
+          ),
+        ),
+      );
+      expect(fake.lastSignInTimeout, const Duration(seconds: 20));
+    });
+
+    test('puts the message in details too, as iOS does', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(
+        signedIn: false,
+        signInSucceeds: false,
+        signInError: 'The user canceled.',
+      );
+      await expectLater(
+        GamesServicesWatchos().signIn(),
+        throwsA(
+          isA<PlatformException>().having(
+            (PlatformException e) => e.details,
+            'details',
+            'The user canceled.',
+          ),
+        ),
+      );
+    });
+
     test('decides from one read of the sign-in state', () async {
       // A sign-in already in flight fails between two reads of the state.
       // A call that read the state twice would see "in flight", then
@@ -311,6 +356,24 @@ void main() {
           _platformException(
             'failed_to_send_score',
             message: 'The requested leaderboard does not exist.',
+          ),
+        ),
+      );
+    });
+
+    test('puts the message in details too, as iOS does', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(
+        submitError: 'The requested leaderboard does not exist.',
+      );
+      await expectLater(
+        GamesServicesWatchos().submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 42),
+        ),
+        throwsA(
+          isA<PlatformException>().having(
+            (PlatformException e) => e.details,
+            'details',
+            'The requested leaderboard does not exist.',
           ),
         ),
       );
