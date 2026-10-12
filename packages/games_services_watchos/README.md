@@ -137,6 +137,7 @@ These members of `games_services_platform_interface` 5.3.0 throw or fail on watc
 
 Sign-in and score submission have been observed working on a physical Apple
 Watch; leaderboard reads have not yet. See [PORTING_REPORT.md](PORTING_REPORT.md)
-for the verification table.
+for the verification table. Version 0.2.0 changes only Dart code: its results
+and its player stream have run on the Simulator, not yet on a watch.
 
 [upstream]: https://pub.dev/packages/games_services

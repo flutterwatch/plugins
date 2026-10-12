@@ -76,13 +76,15 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// `games_services` 5.x reads it for `GameAuth.isSignedIn`, `GameAuth.player`
   /// and the getters of its `Player` class. The [PlayerData] carries GameKit's
   /// alias as its `displayName`. Its `playerID` and `teamPlayerID` are null,
-  /// because watchOS has no stable player identifier, and so are `iconImage`
-  /// and the three restriction flags, which the native side does not report.
+  /// because watchOS has no stable player identifier; `iconImage` and
+  /// `isUnderage`, because the native side does not report them; and the
+  /// other two restriction flags, because GameKit has neither on watchOS.
   ///
   /// Each subscriber's first event is the live state. After that, each of
   /// this plugin's calls (sign-in, submission and the leaderboard reads)
   /// re-reads the state when it finishes, and a subscriber gets an event when
-  /// the state changed. The native side reports nothing by itself, so a change
+  /// the state changed. A read without a leaderboard id, or without the
+  /// native code, returns at once and reads nothing. The native side reports nothing by itself, so a change
   /// GameKit makes between calls, such as a sign-in that lapses when the watch
   /// loses its phone, reaches a subscriber at the next call. A new subscriber
   /// sees it at once.
