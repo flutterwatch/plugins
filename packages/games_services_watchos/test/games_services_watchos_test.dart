@@ -155,6 +155,11 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   }
 }
 
+/// The plugin's message when its native code is not in the app.
+const String _notLinked =
+    'Game Center is not available: the GameKit symbols are not linked into '
+    'this app.';
+
 const GcEntry _first = GcEntry(
   rank: 1,
   score: 900,
@@ -273,7 +278,24 @@ void main() {
       GamesServicesWatchos.bindingsOverride = _FakeBindings(linked: false);
       await expectLater(
         GamesServicesWatchos().signIn(),
-        throwsA(_platformException('failed_to_authenticate')),
+        throwsA(
+          _platformException('failed_to_authenticate', message: _notLinked),
+        ),
+      );
+    });
+
+    test('fails with sign_in_unavailable after the sign-in lapsed', () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      final plugin = GamesServicesWatchos();
+      expect(await plugin.signIn(), 'Player already authenticated');
+      // The watch loses its phone and GameKit drops the sign-in. The handler
+      // has answered this launch, so there is nothing left to ask, as after
+      // a failed sign-in.
+      fake.state = GcAuthState.failed;
+      await expectLater(
+        plugin.signIn(),
+        throwsA(_platformException('sign_in_unavailable')),
       );
     });
 
@@ -386,7 +408,12 @@ void main() {
         GamesServicesWatchos().submitScore(
           score: Score(iOSLeaderboardID: 'board.id', value: 42),
         ),
-        throwsA(_platformException('failed_to_send_score')),
+        throwsA(
+          _platformException(
+            'failed_to_send_score',
+            message: 'Not signed in to Game Center',
+          ),
+        ),
       );
       expect(fake.submitted, 0);
     });
@@ -416,7 +443,8 @@ void main() {
         GamesServicesWatchos().submitScore(
           score: Score(iOSLeaderboardID: 'board.id', value: 42),
         ),
-        throwsA(_platformException('failed_to_send_score')),
+        throwsA(
+            _platformException('failed_to_send_score', message: _notLinked)),
       );
     });
   });
@@ -672,6 +700,82 @@ void main() {
       );
       await pumpEventQueue();
       expect(events, <String?>['Me', null]);
+    });
+
+    test('a failed read reaches subscribers', () async {
+      final fake = _FakeBindings(entries: const <GcEntry>[_first]);
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      final List<String?> events = <String?>[];
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        (PlayerData? p) => events.add(p?.displayName),
+      );
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+
+      // The sign-in lapses; the read cannot sign in again and fails.
+      fake.state = GcAuthState.failed;
+      expect(
+        await Leaderboards.loadLeaderboardScores(
+          iOSLeaderboardID: 'board.id',
+          scope: PlayerScope.global,
+          timeScope: TimeScope.allTime,
+          maxResults: 10,
+        ),
+        isNull,
+      );
+      await pumpEventQueue();
+      expect(events, <String?>['Me', null]);
+    });
+
+    test('a failed score read reaches subscribers', () async {
+      final fake = _FakeBindings(entries: const <GcEntry>[_mine]);
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      final List<String?> events = <String?>[];
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        (PlayerData? p) => events.add(p?.displayName),
+      );
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+
+      fake.state = GcAuthState.failed;
+      expect(await Player.getPlayerScore(iOSLeaderboardID: 'board.id'), isNull);
+      await pumpEventQueue();
+      expect(events, <String?>['Me', null]);
+    });
+
+    test('a new subscriber reads the state live, with no call between',
+        () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      final StreamSubscription<PlayerData?> early = GameAuth.player.listen(
+        (_) {},
+      );
+      addTearDown(early.cancel);
+      await pumpEventQueue();
+
+      // GameKit drops the sign-in, and no call of the plugin follows.
+      fake.state = GcAuthState.failed;
+      expect(await GameAuth.player.first, isNull);
+      expect(await GameAuth.isSignedIn, isFalse);
+    });
+
+    test('a cancelled subscriber is not read for again', () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        (_) {},
+      );
+      await pumpEventQueue();
+      await sub.cancel();
+      fake.aliasReads = 0;
+      await GamesServices.submitScore(
+        score: Score(iOSLeaderboardID: 'board.id', value: 1),
+      );
+      expect(fake.aliasReads, 0, reason: 'nobody is subscribed any more');
     });
 
     test('a cancelled subscriber gets nothing more', () async {
