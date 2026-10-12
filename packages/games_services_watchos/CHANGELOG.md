@@ -11,10 +11,11 @@
   the player in, and with "Player already authenticated" when the player
   already was; `submitScore` completes with "Success". A failure is a
   `PlatformException`: `failed_to_authenticate`, or `sign_in_unavailable`
-  when GameKit has already answered this launch's sign-in without signing the
-  player in, and `failed_to_send_score`. Version 0.1.0 completed both with
-  null on success and with the error message on failure, so code that reads
-  null as success has to change.
+  when GameKit has already answered this launch's sign-in and the player is
+  not signed in (the plugin asks once per launch), and
+  `failed_to_send_score`. Version 0.1.0 completed both with null on success
+  and with the error message on failure, so code that reads null as success
+  has to change.
 * `player` is implemented, so `GameAuth.isSignedIn`, `GameAuth.player` and
   the getters of `Player` (`getPlayerName`, `getPlayerID`, ...) work on the
   watch. In 0.1.0 `player` threw `UnimplementedError`, so

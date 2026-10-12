@@ -133,8 +133,8 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// the player in, and with "Player already authenticated" when the player
   /// already was. Otherwise it fails with a [PlatformException]: its code is
   /// `sign_in_unavailable` when GameKit has already answered this launch's
-  /// sign-in without signing the player in, and `failed_to_authenticate`
-  /// otherwise, with GameKit's message.
+  /// sign-in and the player is not signed in, since the plugin asks once per
+  /// launch, and `failed_to_authenticate` otherwise, with GameKit's message.
   ///
   /// A call made while another sign-in is in flight waits for that sign-in's
   /// answer. (On iOS it completes at once with "Player already
@@ -158,15 +158,17 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     }
     if (native.authenticated) return _alreadyAuthenticated;
     // The native side installs GameKit's authentication handler once per
-    // launch. Once GameKit has answered it without signing the player in,
-    // there is nothing left to ask, which iOS reports as sign_in_unavailable.
+    // launch. Once GameKit has answered it and the player is not signed in,
+    // whether that answer failed or the sign-in lapsed since, there is
+    // nothing left to ask, which iOS reports as sign_in_unavailable.
     final bool answered = native.signInFailed;
     if (await native.signIn()) return _authenticatedSuccessfully;
     if (answered) {
       throw PlatformException(
         code: _signInUnavailable,
-        message: 'Game Center has already answered this launch\'s sign-in '
-            'without signing the player in, and asks once per launch.',
+        message: 'Game Center has already answered this launch\'s sign-in, '
+            'and the player is not signed in; the plugin asks once per '
+            'launch.',
       );
     }
     throw PlatformException(

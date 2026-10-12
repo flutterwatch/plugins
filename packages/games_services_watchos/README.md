@@ -49,7 +49,7 @@ same code reads them on the wrist and on the phone.
 
 | Call | Success | Failure |
 |---|---|---|
-| `GameAuth.signIn` | completes with "Player authenticated successfully", or "Player already authenticated" when the player already was | a `PlatformException`: `failed_to_authenticate` with GameKit's message, or `sign_in_unavailable` when GameKit has already answered this launch's sign-in without signing the player in |
+| `GameAuth.signIn` | completes with "Player authenticated successfully", or "Player already authenticated" when the player already was | a `PlatformException`: `failed_to_authenticate` with GameKit's message, or `sign_in_unavailable` when GameKit has already answered this launch's sign-in and the player is not signed in, since the plugin asks once per launch |
 | `GamesServices.submitScore` | completes with "Success" | a `PlatformException`: `failed_to_send_score` |
 
 **Changed in 0.2.0.** Version 0.1.0 completed both calls with null on
@@ -67,9 +67,9 @@ result now means success, and a failure arrives as the exception.
 | `loadLeaderboardScores` | ✅ | `loadEntriesForPlayerScope`, watchOS 7+ |
 | `getPlayerScore` | ✅ | derived from the local player's own entry |
 
-◐: implemented, with the limit its note gives. The other members keep the platform interface's `UnimplementedError`
-default rather than returning a plausible-looking empty value; see "Not
-supported on watchOS" below.
+◐: implemented, with the limit its note gives. The other members keep the
+platform interface's `UnimplementedError` default rather than returning a
+plausible-looking empty value; see "Not supported on watchOS" below.
 
 Because there is no system leaderboard UI on watchOS, a watch app draws
 its own from `loadLeaderboardScores`.

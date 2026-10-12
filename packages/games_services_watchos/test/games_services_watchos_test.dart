@@ -52,7 +52,7 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   /// Distinct from an empty [entries]: this is the read failing outright.
   bool readFails;
 
-  /// Whether GameKit has answered a sign-in without signing the player in.
+  /// Whether GameKit has answered this launch's sign-in.
   bool answeredSignedOut = false;
 
   String? error;
