@@ -15,6 +15,15 @@
   player in, and `failed_to_send_score`. Version 0.1.0 completed both with
   null on success and with the error message on failure, so code that reads
   null as success has to change.
+* `player` is implemented, so `GameAuth.isSignedIn`, `GameAuth.player` and
+  the getters of `Player` (`getPlayerName`, `getPlayerID`, ...) work on the
+  watch. In 0.1.0 `player` threw `UnimplementedError`, so
+  `GameAuth.isSignedIn` failed. Each subscriber gets the live sign-in state
+  first; after that, a change reaches subscribers when one of the plugin's
+  calls finds it, because the native side pushes nothing. The `PlayerData`
+  has GameKit's alias as its `displayName`; `playerID`, `teamPlayerID`,
+  `iconImage` and the restriction flags are null. It reads the existing
+  symbols, so the native code is unchanged.
 * `loadLeaderboardScores` and `getPlayerScore` take their leaderboard ids as
   `String`, as 5.3.0 declares them; 0.1.0 left them untyped. What they return
   is unchanged. The leaderboard JSON decodes with 5.3.0's

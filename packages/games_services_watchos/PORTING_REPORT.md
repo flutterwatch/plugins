@@ -5,7 +5,7 @@
 | Aspect | Status |
 |---|---|
 | Implementation | ✅ Working (GameKit FFI) — sign-in and submission; reads unconfirmed on device |
-| watchOS capability | Partial — leaderboards only; no Game Center UI, achievements, saved games or access point |
+| watchOS capability | Partial — sign-in, the player stream and leaderboards; no Game Center UI, achievements, saved games or access point |
 | Host unit tests | ✅ pass (FFI bindings faked) |
 | Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours covers registration, FFI linkage and graceful degradation, ✅ 7 pass on the watch simulator |
 | Unified demo | ✅ example included (`example/`), builds and drives on the watch simulator |
@@ -27,12 +27,13 @@ else keeps the interface's `UnimplementedError`.
 | `submitScore` | implemented | `GKLeaderboard.submitScore`, watchOS 7+ |
 | `loadLeaderboardScores` | implemented | `loadEntriesForPlayerScope`, watchOS 7+ |
 | `getPlayerScore` | implemented | from the local player's own entry |
+| `player` | implemented, with a limit | the live sign-in state and alias, from the existing symbols; changes arrive with the plugin's next call |
 | `showLeaderboards`, `showAchievements` | unsupported | `GKGameCenterViewController` is not on watchOS |
 | `showAccessPoint`, `hideAccessPoint` | unsupported | `GKAccessPoint` is not on watchOS |
 | `unlock`, `increment`, `loadAchievements`, `resetAchievements` | unsupported | achievements not implemented |
 | `setSteps`, `getAuthCode`, `showSavedGames` | unsupported | Android only |
 | `saveGame`, `loadGame`, `deleteGame`, `getSavedGames` | unsupported | `GKSavedGame` is not on watchOS |
-| `getPlayerScoreObject`, `loadPreviousOccurrence`, `getPlayerHiResImage`, `fetchIdentityVerificationSignature`, `player` | unsupported | not implemented |
+| `getPlayerScoreObject`, `loadPreviousOccurrence`, `getPlayerHiResImage`, `fetchIdentityVerificationSignature` | unsupported | not implemented |
 
 ## watchOS API differences that shaped the implementation
 
@@ -118,7 +119,7 @@ a case for each member.
 | `setSteps` | ✗ fails with `UnimplementedError`: an incremental Play Games achievement, Android only |
 | `getPlayerScoreObject` | ✗ fails with `UnimplementedError`: not implemented yet (`getPlayerScore` gives the local score) |
 | `loadPreviousOccurrence` | ✗ fails with `UnimplementedError`: not implemented yet (`GKLeaderboard.loadPreviousOccurrence`, watchOS 7+, needs new native code) |
-| `player` | ✗ throws `UnimplementedError` when read: not implemented yet |
+| `player` | ◐ seeded with the live sign-in state for every subscriber, so `GameAuth.isSignedIn` and the `Player` getters of `games_services` work; a later change reaches subscribers when one of the plugin's calls finds it, since the native side pushes nothing; the `PlayerData` has the alias as `displayName` and null elsewhere |
 | `getAuthCode` | ✗ throws `UnimplementedError` when called: a Play Games server code, Android only |
 | `getPlayerHiResImage` | ✗ fails with `UnimplementedError`: not implemented yet |
 | `fetchIdentityVerificationSignature` | ✗ fails with `UnimplementedError`: not implemented yet (`fetchItemsForIdentityVerificationSignature`, watchOS 6.5+, needs new native code) |

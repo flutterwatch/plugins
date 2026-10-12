@@ -56,6 +56,13 @@ void main() {
     );
   });
 
+  testWidgets('the player stream says signed out', (WidgetTester _) async {
+    // GameAuth.isSignedIn completes from the stream's first event; in 0.1.0
+    // the stream threw UnimplementedError instead.
+    expect(await GameAuth.player.first, isNull);
+    expect(await GameAuth.isSignedIn, isFalse);
+  });
+
   testWidgets('submitting while signed out fails with failed_to_send_score', (
     WidgetTester _,
   ) async {

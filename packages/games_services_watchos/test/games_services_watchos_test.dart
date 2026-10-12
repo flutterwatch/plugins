@@ -8,6 +8,7 @@
 // models and the decoders its app-facing classes run on what this package
 // returns; every other member must keep the interface's default.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -25,6 +26,7 @@ class _FakeBindings extends GamesServicesWatchosBindings {
     this.signInSucceeds = true,
     this.signInError,
     this.submitError,
+    this.alias = 'Me',
     this.entries = const <GcEntry>[],
     this.readFails = false,
   }) : super.forTesting();
@@ -41,6 +43,9 @@ class _FakeBindings extends GamesServicesWatchosBindings {
 
   /// GameKit's message when a submission fails; null means it succeeds.
   String? submitError;
+
+  /// The signed-in player's alias.
+  String alias;
 
   List<GcEntry> entries;
 
@@ -68,6 +73,9 @@ class _FakeBindings extends GamesServicesWatchosBindings {
 
   @override
   String? get lastError => error;
+
+  @override
+  String? get playerAlias => authenticated ? alias : null;
 
   @override
   Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
@@ -426,6 +434,159 @@ void main() {
     });
   });
 
+  // games_services 5.x reads the player stream for GameAuth.isSignedIn and
+  // for its Player getters, so these go through those classes.
+  group('player', () {
+    test('a new subscriber gets null while signed out', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.registerWith();
+      expect(await GameAuth.player.first, isNull);
+      expect(await GameAuth.isSignedIn, isFalse);
+      await expectLater(
+        Player.getPlayerName(),
+        throwsA(_platformException('not_authenticated')),
+      );
+    });
+
+    test('a new subscriber gets the local player while signed in', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(alias: 'Gardener');
+      GamesServicesWatchos.registerWith();
+      final PlayerData? player = await GameAuth.player.first;
+      expect(player, isNotNull);
+      expect(player!.displayName, 'Gardener');
+      // No stable player identifier exists on watchOS, and the native side
+      // reports no photo and no restriction flags.
+      expect(player.playerID, isNull);
+      expect(player.teamPlayerID, isNull);
+      expect(player.iconImage, isNull);
+      expect(player.isUnderage, isNull);
+      expect(player.isMultiplayerGamingRestricted, isNull);
+      expect(player.isPersonalizedCommunicationRestricted, isNull);
+
+      expect(await GameAuth.isSignedIn, isTrue);
+      expect(await Player.getPlayerName(), 'Gardener');
+      expect(await Player.getPlayerID(), isNull);
+      expect(await Player.isUnderage, isNull);
+    });
+
+    test('isSignedIn lets go of its subscription', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.registerWith();
+      expect(await GameAuth.isSignedIn, isFalse);
+      // isSignedIn completes from the first event and cancels. This change
+      // must not reach that subscription, which would complete its future a
+      // second time; a new call reads the new state.
+      await GameAuth.signIn();
+      await pumpEventQueue();
+      expect(await GameAuth.isSignedIn, isTrue);
+    });
+
+    test('a sign-in reaches every subscriber, once each', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.registerWith();
+      final List<String?> first = <String?>[];
+      final List<String?> second = <String?>[];
+      final StreamSubscription<PlayerData?> a = GameAuth.player.listen(
+        (PlayerData? p) => first.add(p?.displayName),
+      );
+      final StreamSubscription<PlayerData?> b = GameAuth.player.listen(
+        (PlayerData? p) => second.add(p?.displayName),
+      );
+      addTearDown(a.cancel);
+      addTearDown(b.cancel);
+      await pumpEventQueue();
+      expect(first, <String?>[null]);
+      expect(second, <String?>[null]);
+
+      await GameAuth.signIn();
+      await pumpEventQueue();
+      expect(first, <String?>[null, 'Me']);
+      expect(second, <String?>[null, 'Me']);
+
+      // Signed in already: nothing changed, so nothing is sent.
+      await GameAuth.signIn();
+      await pumpEventQueue();
+      expect(first, <String?>[null, 'Me']);
+      expect(second, <String?>[null, 'Me']);
+    });
+
+    test('a later subscriber starts from the current state', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.registerWith();
+      final StreamSubscription<PlayerData?> early = GameAuth.player.listen(
+        (_) {},
+      );
+      addTearDown(early.cancel);
+      await GameAuth.signIn();
+      expect((await GameAuth.player.first)?.displayName, 'Me');
+    });
+
+    test('a failed sign-in leaves the subscribers on null', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(
+        signedIn: false,
+        signInSucceeds: false,
+      );
+      GamesServicesWatchos.registerWith();
+      final List<PlayerData?> events = <PlayerData?>[];
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        events.add,
+      );
+      addTearDown(sub.cancel);
+      await expectLater(
+        GameAuth.signIn(),
+        throwsA(isA<PlatformException>()),
+      );
+      await pumpEventQueue();
+      expect(events, <PlayerData?>[null]);
+    });
+
+    test('a lapsed sign-in reaches subscribers at the next call', () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      final List<String?> events = <String?>[];
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        (PlayerData? p) => events.add(p?.displayName),
+      );
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      expect(events, <String?>['Me']);
+
+      // GameKit drops the sign-in, say when the watch loses its phone. The
+      // native side reports nothing until the plugin is called again.
+      fake.signedIn = false;
+      await expectLater(
+        GamesServices.submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 1),
+        ),
+        throwsA(isA<PlatformException>()),
+      );
+      await pumpEventQueue();
+      expect(events, <String?>['Me', null]);
+    });
+
+    test('a cancelled subscriber gets nothing more', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.registerWith();
+      final List<PlayerData?> events = <PlayerData?>[];
+      final StreamSubscription<PlayerData?> sub = GameAuth.player.listen(
+        events.add,
+      );
+      await pumpEventQueue();
+      await sub.cancel();
+      await GameAuth.signIn();
+      await pumpEventQueue();
+      expect(events, <PlayerData?>[null]);
+    });
+
+    test('says signed out when GameKit is not linked', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(linked: false);
+      GamesServicesWatchos.registerWith();
+      expect(await GameAuth.player.first, isNull);
+      expect(await GameAuth.isSignedIn, isFalse);
+    });
+  });
+
   // The rest of the 5.3.0 interface, one case per member, each called with
   // the parameters 5.3.0 gives it.
   group('keeps the interface default', () {
@@ -439,10 +600,6 @@ void main() {
     setUp(() {
       GamesServicesWatchos.bindingsOverride = _FakeBindings();
       plugin = GamesServicesWatchos();
-    });
-
-    test('player', () {
-      _expectThrowsUnimplemented(() => plugin.player);
     });
 
     test('increment', () async {

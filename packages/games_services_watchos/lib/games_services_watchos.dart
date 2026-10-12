@@ -5,12 +5,14 @@
 /// talks to GameKit through a C ABI ([games_services_watchos_ffi.m]) resolved with
 /// `DynamicLibrary.process()`.
 ///
-/// Only the leaderboard surface is implemented. Achievements, saved games and
-/// the access point are left to the interface's `UnimplementedError` defaults,
-/// which is honest: `GKGameCenterViewController` and `GKAccessPoint` do not
-/// exist on watchOS, so there is no way to present them.
+/// Only sign-in, the player stream and the leaderboard surface are
+/// implemented. Achievements, saved games and the access point are left to
+/// the interface's `UnimplementedError` defaults, which is honest:
+/// `GKGameCenterViewController`, `GKAccessPoint` and `GKSavedGame` do not
+/// exist on watchOS, so there is no way to present or call them.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show PlatformException;
@@ -39,9 +41,9 @@ const String _unlinked =
 /// watchOS implementation of [GamesServicesPlatform], over GameKit through
 /// `dart:ffi`.
 ///
-/// Implements sign-in, score submission and leaderboard reads. The other
-/// members keep the interface's `UnimplementedError` default; the README's
-/// "Not supported on watchOS" table lists them.
+/// Implements sign-in, the player stream, score submission and leaderboard
+/// reads. The other members keep the interface's `UnimplementedError`
+/// default; the README's "Not supported on watchOS" table lists them.
 class GamesServicesWatchos extends GamesServicesPlatform {
   /// Called by the Flutter plugin machinery on watchOS via `dartPluginClass`.
   static void registerWith() {
@@ -53,6 +55,75 @@ class GamesServicesWatchos extends GamesServicesPlatform {
 
   GamesServicesWatchosBindings get _native =>
       bindingsOverride ??= GamesServicesWatchosBindings();
+
+  /// One entry per [player] subscriber: it re-reads the state and sends an
+  /// event when it changed.
+  final Set<void Function()> _playerListeners = <void Function()>{};
+
+  /// The signed-in local player, or null while nobody is signed in, seeded
+  /// with the live state for every subscriber.
+  ///
+  /// `games_services` 5.x reads it for `GameAuth.isSignedIn`, `GameAuth.player`
+  /// and the getters of its `Player` class. The [PlayerData] carries GameKit's
+  /// alias as its `displayName`. Its `playerID` and `teamPlayerID` are null,
+  /// because watchOS has no stable player identifier, and so are `iconImage`
+  /// and the three restriction flags, which the native side does not report.
+  ///
+  /// Each subscriber's first event is the live state. After that, each of
+  /// this plugin's calls (sign-in, submission and the leaderboard reads)
+  /// re-reads the state when it finishes, and a subscriber gets an event when
+  /// the state changed. The native side reports nothing by itself, so a change
+  /// GameKit makes between calls, such as a sign-in that lapses when the watch
+  /// loses its phone, reaches a subscriber at the next call. A new subscriber
+  /// sees it at once.
+  ///
+  /// [Stream.multi] rather than a broadcast controller: a broadcast `onListen`
+  /// fires only for the first subscriber, so a later one would never be told
+  /// the current state.
+  @override
+  Stream<PlayerData?> get player => Stream<PlayerData?>.multi(
+        (MultiStreamController<PlayerData?> out) {
+          bool seeded = false;
+          PlayerData? last;
+          void update() {
+            final PlayerData? now = _localPlayer();
+            if (seeded && _samePlayer(last, now)) return;
+            seeded = true;
+            last = now;
+            // add, not addSync: a subscriber runs in a later microtask, never
+            // inside the plugin call that noticed the change.
+            out.add(now);
+          }
+
+          _playerListeners.add(update);
+          out.onCancel = () {
+            _playerListeners.remove(update);
+          };
+          update();
+        },
+        isBroadcast: true,
+      );
+
+  /// The local player as GameKit reports it now, or null when nobody is
+  /// signed in or the GameKit symbols are not linked.
+  PlayerData? _localPlayer() {
+    final GamesServicesWatchosBindings native = _native;
+    if (!native.authenticated) return null;
+    return PlayerData(playerID: null, displayName: native.playerAlias ?? '');
+  }
+
+  /// Whether [a] and [b] describe the same state. Only the alias can differ
+  /// between two players here; every other field is null on watchOS.
+  static bool _samePlayer(PlayerData? a, PlayerData? b) =>
+      a == null ? b == null : b != null && a.displayName == b.displayName;
+
+  /// Tells every [player] subscriber to re-read the state, from a copy of the
+  /// set, since a subscriber may cancel while it is told.
+  void _playerMayHaveChanged() {
+    for (final void Function() update in _playerListeners.toList()) {
+      update();
+    }
+  }
 
   /// Signs the local player in to Game Center, and answers as
   /// `games_services` 5.x does on iOS, so app code reads the same on the
@@ -73,6 +144,14 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// failure, as `games_services` 4.x did.
   @override
   Future<String?> signIn() async {
+    try {
+      return await _signIn();
+    } finally {
+      _playerMayHaveChanged();
+    }
+  }
+
+  Future<String?> _signIn() async {
     final GamesServicesWatchosBindings native = _native;
     if (!native.available) {
       throw PlatformException(code: _failedToAuthenticate, message: _unlinked);
@@ -108,6 +187,14 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// failure, as `games_services` 4.x did.
   @override
   Future<String?> submitScore({required Score score}) async {
+    try {
+      return await _submitScore(score);
+    } finally {
+      _playerMayHaveChanged();
+    }
+  }
+
+  Future<String?> _submitScore(Score score) async {
     final String? id = score.iOSLeaderboardID;
     final int? value = score.value;
     if (id == null || id.isEmpty || value == null) {
@@ -150,10 +237,13 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     bool forceRefresh = false,
   }) async {
     if (iOSLeaderboardID.isEmpty || !_native.available) return null;
-    final entries = await _native.topScores(
-      iOSLeaderboardID,
-      count: maxResults,
-    );
+    final List<GcEntry>? entries;
+    try {
+      entries = await _native.topScores(iOSLeaderboardID, count: maxResults);
+    } finally {
+      // A read signs in again when the sign-in has lapsed.
+      _playerMayHaveChanged();
+    }
     // Null propagates as null: the caller reads that as a failed load, and an
     // empty list as a leaderboard with nothing on it.
     if (entries == null) return null;
@@ -197,7 +287,12 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     if (iOSLeaderboardID.isEmpty || !_native.available) return null;
     // The local player's own row comes back flagged: GKPlayer has no stable
     // identifier on watchOS to match against instead.
-    final entries = await _native.topScores(iOSLeaderboardID, count: 100);
+    final List<GcEntry>? entries;
+    try {
+      entries = await _native.topScores(iOSLeaderboardID, count: 100);
+    } finally {
+      _playerMayHaveChanged();
+    }
     if (entries == null) return null;
     for (final e in entries) {
       if (e.isLocal) return e.score;

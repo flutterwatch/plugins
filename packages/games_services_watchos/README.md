@@ -62,11 +62,12 @@ result now means success, and a failure arrives as the exception.
 | Interface method | watchOS | Notes |
 |---|---|---|
 | `signIn` | ✅ | `GKLocalPlayer.authenticateHandler`; results as above |
+| `player` | ◐ | the live sign-in state and GameKit's alias; changes arrive with the plugin's next call (see below) |
 | `submitScore` | ✅ | `GKLeaderboard.submitScore`, watchOS 7+; results as above |
 | `loadLeaderboardScores` | ✅ | `loadEntriesForPlayerScope`, watchOS 7+ |
 | `getPlayerScore` | ✅ | derived from the local player's own entry |
 
-The other members keep the platform interface's `UnimplementedError`
+◐: implemented, with the limit its note gives. The other members keep the platform interface's `UnimplementedError`
 default rather than returning a plausible-looking empty value; see "Not
 supported on watchOS" below.
 
@@ -81,6 +82,14 @@ its own from `loadLeaderboardScores`.
   GameKit returns alongside the list. `scoreHolder.playerID` is therefore
   always null — the upstream model already allows this, since Android
   omits it for privacy.
+- **The player stream follows the plugin's calls.** `GameAuth.player` gives
+  each new subscriber the live sign-in state at once, so
+  `GameAuth.isSignedIn` is always current, and the getters of
+  `games_services`' `Player` class work. After that, a subscriber hears of a
+  change when one of this plugin's calls finds it: the native side pushes
+  nothing, so a sign-in that lapses between calls shows at the next call.
+  The `PlayerData` has GameKit's alias as its `displayName`; `playerID`,
+  `teamPlayerID`, `iconImage` and the restriction flags are null.
 - **A different `authenticateHandler`.** On watchOS the block takes only
   an error; the iOS signature with a `UIViewController` does not exist.
 - **Failure and emptiness are distinct.** `loadLeaderboardScores` returns
@@ -101,7 +110,6 @@ These members of `games_services_platform_interface` 5.3.0 throw or fail on watc
 | `setSteps` | fails with `UnimplementedError` | an incremental Play Games achievement; Android only |
 | `getPlayerScoreObject` | fails with `UnimplementedError` | not implemented yet; `getPlayerScore` gives the local score |
 | `loadPreviousOccurrence` | fails with `UnimplementedError` | not implemented yet |
-| `player` | throws `UnimplementedError` when read | not implemented yet |
 | `getAuthCode` | throws `UnimplementedError` when called | a Play Games server code; Android only |
 | `getPlayerHiResImage` | fails with `UnimplementedError` | not implemented yet |
 | `fetchIdentityVerificationSignature` | fails with `UnimplementedError` | not implemented yet |
