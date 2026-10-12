@@ -110,7 +110,9 @@ its own from `loadLeaderboardScores`.
 - **Failure and emptiness are distinct.** `loadLeaderboardScores` returns
   null when the read failed and an empty list when the leaderboard has no
   entries. Collapsing the two makes a broken leaderboard look like an
-  empty one, which is a genuinely hard bug to see.
+  empty one, which is a genuinely hard bug to see. On iOS a failed read
+  throws a `PlatformException` instead, so code that runs on both handles
+  both.
 
 ## Not supported on watchOS
 

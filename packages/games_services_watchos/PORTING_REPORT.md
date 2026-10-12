@@ -60,9 +60,13 @@ not by reading iOS documentation.
 - **Poll, not callback.** GameKit answers on its own queues. Calling into
   Dart from an arbitrary thread needs a `NativeCallable` and a live
   isolate; a state word the caller reads from a frame it already runs is
-  simpler and cannot misbehave at shutdown. `NativeCallable.listener` is
-  available on this engine and would be the right choice for anything
-  long-lived — nothing here is.
+  simpler and cannot misbehave at shutdown. That suits the one-shot calls.
+  The player stream (0.2.0) is long-lived, and it still reads the state
+  word: it re-reads after each of the plugin's calls, so a change GameKit
+  makes between calls reaches subscribers at the next one. Pushing changes
+  as they happen would take a `NativeCallable.listener` (available on this
+  engine) that the authentication handler calls, which is new native code;
+  `AUTHORING.md` §2b has the pattern.
 - **Auth state is read live.** An earlier version cached the result of the
   authentication handler and never re-asked GameKit. A session that
   authenticated at launch and lost it afterwards still reported success,

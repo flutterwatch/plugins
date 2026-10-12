@@ -6,10 +6,12 @@
 /// `DynamicLibrary.process()`.
 ///
 /// Only sign-in, the player stream and the leaderboard surface are
-/// implemented. Achievements, saved games and the access point are left to
-/// the interface's `UnimplementedError` defaults, which is honest:
+/// implemented; every other member keeps the interface's
+/// `UnimplementedError` default. For the system leaderboard and achievement
+/// screens, the access point and saved games that is the only honest answer:
 /// `GKGameCenterViewController`, `GKAccessPoint` and `GKSavedGame` do not
-/// exist on watchOS, so there is no way to present or call them.
+/// exist on watchOS. Achievements are different: `GKAchievement` exists
+/// there, and this package does not implement it yet.
 library;
 
 import 'dart:async';
@@ -276,7 +278,10 @@ class GamesServicesWatchos extends GamesServicesPlatform {
     try {
       entries = await _native.topScores(iOSLeaderboardID, count: maxResults);
     } finally {
-      // A read signs in again when the sign-in has lapsed.
+      // The read may have changed the state: when the player is signed out,
+      // the bindings ask GameKit to sign in first. That signs in only when
+      // nothing has asked yet this launch; after a failed or lapsed sign-in
+      // GameKit is not asked again, and the read returns null.
       _playerMayHaveChanged();
     }
     // Null propagates as null: the caller reads that as a failed load, and an

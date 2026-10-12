@@ -247,10 +247,13 @@ class GamesServicesWatchosBindings {
   }) async {
     final b = _resolve();
     if (b == null) return null;
-    // Authentication can lapse between launch and here -- the watch drops it
-    // when it loses the phone, and GameKit then rejects the read from the
-    // inside. Re-drive the handler once rather than reporting a load failure
-    // for what is really a sign-in that went away.
+    // Signed out: ask GameKit to sign in first, rather than send a read it
+    // would reject from the inside. That signs the player in only when
+    // nothing has asked yet this launch. The native side installs the
+    // authentication handler once, so after a failed sign-in, or one that
+    // lapsed (the watch drops it when it loses the phone), signIn fails at
+    // once and the read returns null. If GameKit signs the player back in by
+    // itself, the live state shows it at the next call.
     if (_state(b.authState()) != _GcState.ok) {
       if (!await signIn(timeout: timeout)) return null;
     }

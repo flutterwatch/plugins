@@ -8,8 +8,9 @@
 //
 // A simulator has no Game Center account, so no call here can succeed. That is
 // deliberate: what this asserts is that the plugin is *linked and registered*,
-// and that every signed-out path fails the way games_services 5.x fails on
-// iOS: sign-in and submission with a PlatformException, a read with null.
+// and how each signed-out path fails. Sign-in and submission fail with a
+// PlatformException, as games_services 5.x does on iOS. A read returns null,
+// this package's own answer: on iOS a failed read throws a PlatformException.
 // The first of those is not reachable from a host test -- symbols that were
 // silently dead-stripped still pass `flutter test` and fail only on a device.
 
