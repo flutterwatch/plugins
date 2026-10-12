@@ -40,6 +40,12 @@
 * Example: signs in and submits as 5.x code does, catching
   `PlatformException`, and its integration test expects those failures on the
   Simulator.
+* Example: the list fills the screen and starts below the clock, at
+  `WatchStatusBar.heightOf` (from `flutter_watchos: ^0.1.0`), with its other
+  insets from `MediaQuery`; a status row shows the sign-in state from
+  `GameAuth.player`. A widget test lays it out on three watch screens in both
+  safe areas, and checks what it shows when a call fails and when the player
+  signs in.
 
 ## 0.1.0
 

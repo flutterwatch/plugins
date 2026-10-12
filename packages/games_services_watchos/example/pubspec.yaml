@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # WatchStatusBar.heightOf, where the list starts below the clock.
+  flutter_watchos: ^0.1.0
   games_services: ^5.3.0
   games_services_platform_interface: ^5.3.0
   games_services_watchos:
