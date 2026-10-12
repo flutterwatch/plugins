@@ -22,7 +22,7 @@ import 'package:games_services_platform_interface/models.dart';
 import 'src/games_services_watchos_bindings.dart';
 
 export 'src/games_services_watchos_bindings.dart'
-    show GamesServicesWatchosBindings, GcEntry;
+    show GamesServicesWatchosBindings, GcAuthState, GcEntry;
 
 // What games_services 5.x's iOS implementation answers (its Messages and
 // PluginError), so that app code reads the same on the wrist as on the phone.
@@ -160,17 +160,20 @@ class GamesServicesWatchos extends GamesServicesPlatform {
 
   Future<String?> _signIn() async {
     final GamesServicesWatchosBindings native = _native;
-    if (!native.available) {
+    // One read decides both questions below. Read twice, a sign-in in flight
+    // that failed between the reads would turn this call's
+    // failed_to_authenticate into sign_in_unavailable.
+    final GcAuthState before = native.authState;
+    if (before == GcAuthState.unavailable) {
       throw PlatformException(code: _failedToAuthenticate, message: _unlinked);
     }
-    if (native.authenticated) return _alreadyAuthenticated;
+    if (before == GcAuthState.signedIn) return _alreadyAuthenticated;
+    if (await native.signIn()) return _authenticatedSuccessfully;
     // The native side installs GameKit's authentication handler once per
     // launch. Once GameKit has answered it and the player is not signed in,
     // whether that answer failed or the sign-in lapsed since, there is
     // nothing left to ask, which iOS reports as sign_in_unavailable.
-    final bool answered = native.signInFailed;
-    if (await native.signIn()) return _authenticatedSuccessfully;
-    if (answered) {
+    if (before == GcAuthState.failed) {
       throw PlatformException(
         code: _signInUnavailable,
         message: 'Game Center has already answered this launch\'s sign-in, '
@@ -213,10 +216,11 @@ class GamesServicesWatchos extends GamesServicesPlatform {
       );
     }
     final GamesServicesWatchosBindings native = _native;
-    if (!native.available) {
+    final GcAuthState state = native.authState;
+    if (state == GcAuthState.unavailable) {
       throw PlatformException(code: _failedToSendScore, message: _unlinked);
     }
-    if (!native.authenticated) {
+    if (state != GcAuthState.signedIn) {
       throw PlatformException(
         code: _failedToSendScore,
         message: 'Not signed in to Game Center',

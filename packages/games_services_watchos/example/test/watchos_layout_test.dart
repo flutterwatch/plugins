@@ -78,29 +78,24 @@ class _GameKit extends GamesServicesWatchosBindings {
   _GameKit({this.hasAccount = false}) : super.forTesting();
 
   final bool hasAccount;
-  bool _signedIn = false;
-  bool _answered = false;
+  GcAuthState _state = GcAuthState.idle;
 
   @override
-  bool get available => true;
-
-  @override
-  bool get authenticated => _signedIn;
-
-  @override
-  bool get signInFailed => _answered && !_signedIn;
+  GcAuthState get authState => _state;
 
   @override
   String? get lastError => 'The player is not signed in.';
 
   @override
-  String? get playerAlias => _signedIn ? 'Gardener' : null;
+  String? get playerAlias => _state == GcAuthState.signedIn ? 'Gardener' : null;
 
   @override
   Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
-    _answered = true;
-    _signedIn = hasAccount;
-    return _signedIn;
+    // GameKit answers a launch's sign-in once.
+    if (_state == GcAuthState.idle) {
+      _state = hasAccount ? GcAuthState.signedIn : GcAuthState.failed;
+    }
+    return _state == GcAuthState.signedIn;
   }
 
   @override
@@ -109,7 +104,7 @@ class _GameKit extends GamesServicesWatchosBindings {
     String leaderboardId, {
     Duration timeout = const Duration(seconds: 15),
   }) async =>
-      _signedIn;
+      _state == GcAuthState.signedIn;
 
   @override
   Future<List<GcEntry>?> topScores(
@@ -117,7 +112,7 @@ class _GameKit extends GamesServicesWatchosBindings {
     int count = 10,
     Duration timeout = const Duration(seconds: 20),
   }) async =>
-      _signedIn ? const <GcEntry>[] : null;
+      _state == GcAuthState.signedIn ? const <GcEntry>[] : null;
 }
 
 void main() {

@@ -18,24 +18,34 @@ import 'package:games_services/games_services.dart';
 import 'package:games_services_platform_interface/game_services_platform_interface.dart';
 import 'package:games_services_watchos/games_services_watchos.dart';
 
-/// Fake bindings — no FFI, no GameKit, scripted answers.
+/// Fake bindings — no FFI, no GameKit, scripted answers. The sign-in follows
+/// the native side's states: a launch asks GameKit once, so a sign-in that
+/// failed or lapsed is not asked again, and a read asks only when nothing has
+/// asked yet.
 class _FakeBindings extends GamesServicesWatchosBindings {
   _FakeBindings({
-    this.linked = true,
-    this.signedIn = true,
+    bool linked = true,
+    bool signedIn = true,
     this.signInSucceeds = true,
     this.signInError,
     this.submitError,
     this.alias = 'Me',
     this.entries = const <GcEntry>[],
     this.readFails = false,
-  }) : super.forTesting();
+  })  : state = !linked
+            ? GcAuthState.unavailable
+            : (signedIn ? GcAuthState.signedIn : GcAuthState.idle),
+        super.forTesting();
 
-  /// False stands for an app the plugin's native code is not linked into.
-  bool linked;
-  bool signedIn;
+  /// The native sign-in state. A test sets it directly for what GameKit does
+  /// between the plugin's calls.
+  GcAuthState state;
 
-  /// Whether a sign-in that starts while signed out ends signed in.
+  /// When set, each read of [authState] first moves [state] to the next entry
+  /// here, and the last one stays: a state that changes between two reads.
+  List<GcAuthState>? reads;
+
+  /// Whether a sign-in that GameKit has not answered yet ends signed in.
   bool signInSucceeds;
 
   /// GameKit's message when the sign-in fails.
@@ -52,43 +62,52 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   /// Distinct from an empty [entries]: this is the read failing outright.
   bool readFails;
 
-  /// Whether GameKit has answered this launch's sign-in.
-  bool answeredSignedOut = false;
-
   String? error;
   int signIns = 0;
+  int aliasReads = 0;
   int submitted = 0;
   int? lastSubmittedScore;
   String? lastLeaderboardId;
   int? lastCount;
 
   @override
-  bool get available => linked;
-
-  @override
-  bool get authenticated => linked && signedIn;
-
-  @override
-  bool get signInFailed => linked && !signedIn && answeredSignedOut;
+  GcAuthState get authState {
+    final List<GcAuthState>? next = reads;
+    if (next != null && next.isNotEmpty) {
+      state = next.length > 1 ? next.removeAt(0) : next.single;
+    }
+    return state;
+  }
 
   @override
   String? get lastError => error;
 
   @override
-  String? get playerAlias => authenticated ? alias : null;
+  String? get playerAlias {
+    aliasReads++;
+    return state == GcAuthState.signedIn ? alias : null;
+  }
 
   @override
   Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
     signIns++;
-    if (signedIn) return true;
-    // GameKit answers a launch's sign-in once.
-    if (!answeredSignedOut && signInSucceeds) {
-      signedIn = true;
-      return true;
+    switch (state) {
+      case GcAuthState.unavailable:
+      case GcAuthState.failed:
+        // GameKit has answered this launch, so there is nothing to ask.
+        return false;
+      case GcAuthState.signedIn:
+        return true;
+      case GcAuthState.idle:
+      case GcAuthState.pending:
+        if (signInSucceeds) {
+          state = GcAuthState.signedIn;
+          return true;
+        }
+        error = signInError;
+        state = GcAuthState.failed;
+        return false;
     }
-    if (!answeredSignedOut) error = signInError;
-    answeredSignedOut = true;
-    return false;
   }
 
   @override
@@ -97,7 +116,7 @@ class _FakeBindings extends GamesServicesWatchosBindings {
     String leaderboardId, {
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    if (!signedIn) return false;
+    if (state != GcAuthState.signedIn) return false;
     lastLeaderboardId = leaderboardId;
     if (submitError != null) {
       error = submitError;
@@ -116,7 +135,12 @@ class _FakeBindings extends GamesServicesWatchosBindings {
   }) async {
     lastLeaderboardId = leaderboardId;
     lastCount = count;
-    if (!signedIn || readFails) return null;
+    // As the real bindings do, a read that finds the player signed out asks
+    // GameKit to sign in first.
+    if (state != GcAuthState.signedIn && !await signIn(timeout: timeout)) {
+      return null;
+    }
+    if (readFails) return null;
     return entries.take(count).toList();
   }
 }
@@ -237,6 +261,20 @@ void main() {
     test('fails with failed_to_authenticate when GameKit is not linked',
         () async {
       GamesServicesWatchos.bindingsOverride = _FakeBindings(linked: false);
+      await expectLater(
+        GamesServicesWatchos().signIn(),
+        throwsA(_platformException('failed_to_authenticate')),
+      );
+    });
+
+    test('decides from one read of the sign-in state', () async {
+      // A sign-in already in flight fails between two reads of the state.
+      // A call that read the state twice would see "in flight", then
+      // "answered", and report sign_in_unavailable for the attempt it joined;
+      // read once, the call reports that attempt's failure.
+      final fake = _FakeBindings(signedIn: false, signInSucceeds: false)
+        ..reads = <GcAuthState>[GcAuthState.pending, GcAuthState.failed];
+      GamesServicesWatchos.bindingsOverride = fake;
       await expectLater(
         GamesServicesWatchos().signIn(),
         throwsA(_platformException('failed_to_authenticate')),
@@ -562,7 +600,7 @@ void main() {
 
       // GameKit drops the sign-in, say when the watch loses its phone. The
       // native side reports nothing until the plugin is called again.
-      fake.signedIn = false;
+      fake.state = GcAuthState.failed;
       await expectLater(
         GamesServices.submitScore(
           score: Score(iOSLeaderboardID: 'board.id', value: 1),

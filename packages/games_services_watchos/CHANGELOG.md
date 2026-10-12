@@ -16,6 +16,13 @@
   `failed_to_send_score`. Version 0.1.0 completed both with null on success
   and with the error message on failure, so code that reads null as success
   has to change.
+* Bindings: `authState` reads the sign-in state in one native call, as a new
+  `GcAuthState` (`unavailable`, `idle`, `pending`, `signedIn`, `failed`).
+  `available`, `authenticated` and the new `signInFailed` (true for
+  `failed`) derive from it. `signIn` takes both of its decisions from one
+  read, so an attempt that fails while the call starts cannot turn
+  `failed_to_authenticate` into `sign_in_unavailable`. The plugin reads
+  `authState`, so a test fake overrides it rather than `authenticated`.
 * `player` is implemented, so `GameAuth.isSignedIn`, `GameAuth.player` and
   the getters of `Player` (`getPlayerName`, `getPlayerID`, ...) work on the
   watch. In 0.1.0 `player` threw `UnimplementedError`, so

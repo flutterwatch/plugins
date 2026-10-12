@@ -43,6 +43,28 @@ class GcEntry {
   final bool isLocal;
 }
 
+/// The local player's Game Center sign-in state, as the native side reports
+/// it in one read.
+enum GcAuthState {
+  /// The GameKit symbols are not linked into the app.
+  unavailable,
+
+  /// Nothing has asked GameKit to sign in yet this launch.
+  idle,
+
+  /// A sign-in is in flight.
+  pending,
+
+  /// The local player is signed in.
+  signedIn,
+
+  /// GameKit has answered this launch's sign-in and the local player is not
+  /// signed in: the sign-in failed, or the player was signed in and no
+  /// longer is. The native side installs the authentication handler once
+  /// per launch, so a sign-in then fails at once rather than asking again.
+  failed,
+}
+
 typedef _VoidFn = void Function();
 typedef _IntFn = int Function();
 typedef _StrFn = Pointer<Utf8> Function();
@@ -110,26 +132,35 @@ class GamesServicesWatchosBindings {
   _Symbols? _bindings;
   bool _resolved = false;
 
-  /// Whether the GameKit symbols are linked into the app.
-  bool get available => _resolve() != null;
-
-  /// Whether the native side reports a signed-in local player. Read live, not
+  /// The local player's sign-in state, in one native read. Read live, not
   /// cached: an authentication that lapses after launch otherwise leaves the
   /// caller believing it is still signed in while GameKit refuses every call.
-  bool get authenticated {
+  ///
+  /// [available], [authenticated] and [signInFailed] each derive from it, so
+  /// a fake overrides this getter alone. A caller that makes more than one
+  /// decision from the state reads it once, here.
+  GcAuthState get authState {
     final b = _resolve();
-    return b != null && _state(b.authState()) == _GcState.ok;
+    if (b == null) return GcAuthState.unavailable;
+    return switch (_state(b.authState())) {
+      _GcState.idle => GcAuthState.idle,
+      _GcState.pending => GcAuthState.pending,
+      _GcState.ok => GcAuthState.signedIn,
+      _GcState.failed => GcAuthState.failed,
+    };
   }
 
+  /// Whether the GameKit symbols are linked into the app: [authState] is not
+  /// [GcAuthState.unavailable].
+  bool get available => authState != GcAuthState.unavailable;
+
+  /// Whether the native side reports a signed-in local player: [authState] is
+  /// [GcAuthState.signedIn].
+  bool get authenticated => authState == GcAuthState.signedIn;
+
   /// Whether GameKit has answered this launch's sign-in and the local player
-  /// is not signed in: the authentication handler ran, or the player was
-  /// signed in and no longer is. The native side installs the handler once
-  /// per launch, so [signIn] then fails at once rather than asking again.
-  /// Read live, like [authenticated].
-  bool get signInFailed {
-    final b = _resolve();
-    return b != null && _state(b.authState()) == _GcState.failed;
-  }
+  /// is not signed in: [authState] is [GcAuthState.failed].
+  bool get signInFailed => authState == GcAuthState.failed;
 
   _Symbols? _resolve() {
     if (_resolved) return _bindings;
