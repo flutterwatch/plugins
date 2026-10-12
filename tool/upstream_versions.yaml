@@ -28,15 +28,8 @@ upstreams:
   url_launcher: 6.3.2
   video_player: 2.14.0
 
-# A README may name an older major only when it is listed here, with the
-# exact constraint and the reason. Spec 0006 allows one, and only under the
-# fallback of its Decision 5, which holds while games_services_watchos
-# implements the 4.x platform interface. Remove it in the commit that moves
-# the package and its README to games_services 5.x.
-exceptions:
-  games_services:
-    constraint: ^4.1.1
-    reason: >-
-      games_services_watchos implements games_services_platform_interface
-      4.x, and games_services 5.x needs 5.x (spec 0006 Decision 5, its
-      fallback).
+# A README may name an older major only when it is listed under
+# `exceptions:`, with the exact constraint and the reason. None is listed:
+# the only one, games_services ^4.1.1 under the fallback of spec 0006
+# Decision 5, ended when games_services_watchos 0.2.0 moved to the 5.x
+# platform interface.

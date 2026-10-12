@@ -15,14 +15,13 @@ package alongside it; the implementation registers itself.
 
 ```yaml
 dependencies:
-  games_services: ^4.1.1
-  games_services_watchos: ^0.1.0
+  games_services: ^5.3.0
+  games_services_watchos: ^0.2.0
 ```
 
-This release implements `games_services_platform_interface` 4.x, so it works
-with `games_services` 4.x. `games_services` 5.x requires the 5.x interface,
-which this package does not implement yet, so `games_services: ^5` does not
-resolve alongside it.
+This release implements `games_services_platform_interface` 5.x, so it works
+with `games_services` 5.x. Version 0.1.0 implements the 4.x interface, for an
+app that stays on `games_services` 4.x.
 
 Then use `games_services` as normal:
 
@@ -72,7 +71,7 @@ its own from `loadLeaderboardScores`.
 
 ## Not supported on watchOS
 
-These members of `games_services_platform_interface` 4.1.1 throw or fail on watchOS.
+These members of `games_services_platform_interface` 5.3.0 throw or fail on watchOS.
 `PORTING_REPORT.md` lists every member under "Interface coverage".
 
 | Member | On watchOS | Why |
@@ -80,11 +79,15 @@ These members of `games_services_platform_interface` 4.1.1 throw or fail on watc
 | `showLeaderboards` / `showAchievements` | fails with `UnimplementedError` | `GKGameCenterViewController` does not exist on watchOS |
 | `showAccessPoint` / `hideAccessPoint` | fails with `UnimplementedError` | `GKAccessPoint` does not exist on watchOS |
 | `unlock` / `increment` / `loadAchievements` / `resetAchievements` | fails with `UnimplementedError` | achievements are not implemented yet |
+| `setSteps` | fails with `UnimplementedError` | an incremental Play Games achievement; Android only |
 | `getPlayerScoreObject` | fails with `UnimplementedError` | not implemented yet; `getPlayerScore` gives the local score |
+| `loadPreviousOccurrence` | fails with `UnimplementedError` | not implemented yet |
 | `player` | throws `UnimplementedError` when read | not implemented yet |
 | `getAuthCode` | throws `UnimplementedError` when called | a Play Games server code; Android only |
 | `getPlayerHiResImage` | fails with `UnimplementedError` | not implemented yet |
-| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | fails with `UnimplementedError` | saved games are not implemented yet |
+| `fetchIdentityVerificationSignature` | fails with `UnimplementedError` | not implemented yet |
+| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | fails with `UnimplementedError` | `GKSavedGame` does not exist on watchOS |
+| `showSavedGames` | fails with `UnimplementedError` | the Play Games saved-games screen; Android only |
 
 ## Status
 

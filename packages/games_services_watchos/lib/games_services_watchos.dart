@@ -61,27 +61,32 @@ class GamesServicesWatchos extends GamesServicesPlatform {
   /// method-channel implementations return so callers decode it the same way
   /// on every platform.
   ///
-  /// The parameter list mirrors the interface exactly, untyped defaults and
-  /// all; narrowing them to String? would not be a valid override.
+  /// The parameter list is the interface's exactly, `String` types and
+  /// defaults included.
   @override
   Future<String?> loadLeaderboardScores({
-    dynamic iOSLeaderboardID = '',
-    dynamic androidLeaderboardID = '',
+    String iOSLeaderboardID = '',
+    String androidLeaderboardID = '',
     bool playerCentered = false,
     required PlayerScope scope,
     required TimeScope timeScope,
     required int maxResults,
     bool forceRefresh = false,
   }) async {
-    final String id = '$iOSLeaderboardID';
-    if (id.isEmpty || !_native.available) return null;
-    final entries = await _native.topScores(id, count: maxResults);
+    if (iOSLeaderboardID.isEmpty || !_native.available) return null;
+    final entries = await _native.topScores(
+      iOSLeaderboardID,
+      count: maxResults,
+    );
     // Null propagates as null: the caller reads that as a failed load, and an
     // empty list as a leaderboard with nothing on it.
     if (entries == null) return null;
-    // The shape is LeaderboardScoreData.fromJson's, exactly: it reads
-    // displayScore, rawScore, timestampMillis and a nested scoreHolder
-    // unchecked, so a missing key is a runtime type error rather than a null.
+    // The shape is that of games_services' LeaderboardScoreData.fromJson, the
+    // decoder its Leaderboards.loadLeaderboardScores runs on this string. It
+    // reads rank, displayScore, rawScore, timestampMillis and scoreHolder
+    // unchecked, and PlayerData.fromJson then reads scoreHolder's displayName
+    // the same way, so a missing key is a runtime type error rather than a
+    // null.
     //
     // playerID and teamPlayerID are null because watchOS has no stable
     // GKPlayer identifier to report -- the model already allows that, since
@@ -110,14 +115,13 @@ class GamesServicesWatchos extends GamesServicesPlatform {
 
   @override
   Future<int?> getPlayerScore({
-    dynamic iOSLeaderboardID = '',
-    dynamic androidLeaderboardID = '',
+    String iOSLeaderboardID = '',
+    String androidLeaderboardID = '',
   }) async {
-    final String id = '$iOSLeaderboardID';
-    if (id.isEmpty || !_native.available) return null;
+    if (iOSLeaderboardID.isEmpty || !_native.available) return null;
     // The local player's own row comes back flagged: GKPlayer has no stable
     // identifier on watchOS to match against instead.
-    final entries = await _native.topScores(id, count: 100);
+    final entries = await _native.topScores(iOSLeaderboardID, count: 100);
     if (entries == null) return null;
     for (final e in entries) {
       if (e.isLocal) return e.score;

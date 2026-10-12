@@ -1,3 +1,24 @@
+## 0.2.0
+
+* Implements `games_services_platform_interface` 5.3.0 (`^5.3.0`, was
+  `^4.1.1`), so it works with `games_services` 5.x. The README's install
+  snippet names `games_services: ^5.3.0`; an app that stays on
+  `games_services` 4.x keeps 0.1.0. The example and the dev dependency name
+  `games_services: ^5.3.0` too.
+* `loadLeaderboardScores` and `getPlayerScore` take their leaderboard ids as
+  `String`, as 5.3.0 declares them; 0.1.0 left them untyped. What they return
+  is unchanged. The leaderboard JSON decodes with 5.3.0's
+  `LeaderboardScoreData.fromJson`, the same decoder as 4.1.1's.
+* The members 5.x adds keep the interface's `UnimplementedError`: `setSteps`
+  and `showSavedGames` (Android only), `loadPreviousOccurrence` and
+  `fetchIdentityVerificationSignature` (not implemented yet). The README's
+  "Not supported on watchOS" table and the PORTING_REPORT's interface list
+  cover 5.3.0.
+* README: saved games fail because `GKSavedGame` does not exist on watchOS,
+  not because they are not implemented yet.
+* Tests: a case for every public member of the 5.3.0 interface, each called
+  with the parameters 5.3.0 gives it.
+
 ## 0.1.0
 
 * The version moves from 0.0.1 to 0.1.0, so that a `^0.1.0` constraint

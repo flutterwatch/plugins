@@ -30,8 +30,9 @@ else keeps the interface's `UnimplementedError`.
 | `showLeaderboards`, `showAchievements` | unsupported | `GKGameCenterViewController` is not on watchOS |
 | `showAccessPoint`, `hideAccessPoint` | unsupported | `GKAccessPoint` is not on watchOS |
 | `unlock`, `increment`, `loadAchievements`, `resetAchievements` | unsupported | achievements not implemented |
-| `saveGame`, `loadGame`, `deleteGame`, `getSavedGames` | unsupported | saved games not implemented |
-| `getPlayerHiResImage`, `getAuthCode`, `player` | unsupported | not implemented |
+| `setSteps`, `getAuthCode`, `showSavedGames` | unsupported | Android only |
+| `saveGame`, `loadGame`, `deleteGame`, `getSavedGames` | unsupported | `GKSavedGame` is not on watchOS |
+| `getPlayerScoreObject`, `loadPreviousOccurrence`, `getPlayerHiResImage`, `fetchIdentityVerificationSignature`, `player` | unsupported | not implemented |
 
 ## watchOS API differences that shaped the implementation
 
@@ -98,11 +99,12 @@ offering a leaderboard UI on watchOS.
 
 ## Interface coverage
 
-Every public member of `games_services_platform_interface` 4.1.1
+Every public member of `games_services_platform_interface` 5.3.0
 (`GamesServicesPlatform`), audited by hand against this package's code. The
 static `instance` is set by `registerWith()`. ✅ implemented · ◐ implemented
 with a limit · ✗ throws or fails on watchOS. The README's "Not supported on
-watchOS" table lists the ✗ rows.
+watchOS" table lists the ✗ rows. `test/games_services_watchos_test.dart` has
+a case for each member.
 
 | Member | watchOS |
 |---|---|
@@ -113,8 +115,12 @@ watchOS" table lists the ✗ rows.
 | `showLeaderboards` / `showAchievements` | ✗ fails with `UnimplementedError`: `GKGameCenterViewController` does not exist on watchOS |
 | `showAccessPoint` / `hideAccessPoint` | ✗ fails with `UnimplementedError`: `GKAccessPoint` does not exist on watchOS |
 | `unlock` / `increment` / `loadAchievements` / `resetAchievements` | ✗ fails with `UnimplementedError`: achievements are not implemented yet |
+| `setSteps` | ✗ fails with `UnimplementedError`: an incremental Play Games achievement, Android only |
 | `getPlayerScoreObject` | ✗ fails with `UnimplementedError`: not implemented yet (`getPlayerScore` gives the local score) |
+| `loadPreviousOccurrence` | ✗ fails with `UnimplementedError`: not implemented yet (`GKLeaderboard.loadPreviousOccurrence`, watchOS 7+, needs new native code) |
 | `player` | ✗ throws `UnimplementedError` when read: not implemented yet |
 | `getAuthCode` | ✗ throws `UnimplementedError` when called: a Play Games server code, Android only |
 | `getPlayerHiResImage` | ✗ fails with `UnimplementedError`: not implemented yet |
-| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | ✗ fails with `UnimplementedError`: saved games are not implemented yet |
+| `fetchIdentityVerificationSignature` | ✗ fails with `UnimplementedError`: not implemented yet (`fetchItemsForIdentityVerificationSignature`, watchOS 6.5+, needs new native code) |
+| `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | ✗ fails with `UnimplementedError`: `GKSavedGame` does not exist on watchOS |
+| `showSavedGames` | ✗ fails with `UnimplementedError`: the Play Games saved-games screen, Android only |
