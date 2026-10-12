@@ -4,8 +4,8 @@
 
 // The pana comparison on its fixtures, in tool/test/fixtures/pana_scores/.
 // The reports are `pana --json` output of pana 0.23.19 with Flutter 3.47.5,
-// run on 2026-09-30 on battery_plus_watchos (140), url_launcher_watchos
-// (130), games_services_watchos (120) and flutter_watch_link (150), trimmed
+// run on 2026-09-30 on fixture_battery_plus_watchos (140), fixture_url_launcher_watchos
+// (130), fixture_games_services_watchos (120) and fixture_flutter_watch_link (150), trimmed
 // to the parts the check reads. ios_full, ios_without_platform_points and
 // watchos_with_platform_points change one section's points of those.
 
@@ -75,7 +75,7 @@ void main() {
     final Map<String, Object?> report =
         jsonDecode(
               File(
-                p.join(fixture, 'reports', 'url_launcher_watchos.json'),
+                p.join(fixture, 'reports', 'fixture_url_launcher_watchos.json'),
               ).readAsStringSync(),
             )
             as Map<String, Object?>;
@@ -91,7 +91,7 @@ void main() {
     );
     addTearDown(() => reports.deleteSync(recursive: true));
     File(
-      p.join(reports.path, 'url_launcher_watchos.json'),
+      p.join(reports.path, 'fixture_url_launcher_watchos.json'),
     ).writeAsStringSync(jsonEncode(report));
 
     final StringBuffer out = StringBuffer();
@@ -112,8 +112,8 @@ void main() {
     );
     addTearDown(() => reports.deleteSync(recursive: true));
     File(
-      p.join(reports.path, 'battery_plus_watchos.json'),
-    ).writeAsStringSync('{"packageName": "battery_plus_watchos"}');
+      p.join(reports.path, 'fixture_battery_plus_watchos.json'),
+    ).writeAsStringSync('{"packageName": "fixture_battery_plus_watchos"}');
     final StringBuffer out = StringBuffer();
     final int code = runPanaScores(
       p.join(fixtureRoot, 'watchos_only', 'repo'),

@@ -9,7 +9,7 @@
 // printed and its exit code. Those of clean, warning, refused, unresolved
 // and mixed were captured from Dart 3.13.4 on 2026-09-30, in a copy of the
 // repository: as it is, with a modified README, without a LICENSE, and for
-// video_player_watchos, whose flutter_watchos ^0.1.0 is not on pub.dev
+// fixture_video_player_watchos, whose flutter_watchos ^0.1.0 is not on pub.dev
 // until the release (its last line, which names a pre-release, is left
 // out). hint follows the same format with a hint in place of a warning.
 
@@ -140,7 +140,9 @@ void main() {
       expect(words.wordsIn('$out'), isEmpty, reason: '$out');
       expect(
         '$out',
-        contains('FAIL battery_plus_watchos: pub named a forbidden word'),
+        contains(
+          'FAIL fixture_battery_plus_watchos: pub named a forbidden word',
+        ),
       );
     });
   });

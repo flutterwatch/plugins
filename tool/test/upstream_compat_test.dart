@@ -126,7 +126,7 @@ void main() {
       p.join(fixture, 'upstream_versions.yaml'),
       mapFetcher(<String, String>{
         'battery_plus': '7.1.1',
-        'battery_plus_watchos': '0.1.0-${words.words.first}.1',
+        'fixture_battery_plus_watchos': '0.1.0-${words.words.first}.1',
       }),
       fixtureResolver(fixture, root),
       words,
@@ -190,14 +190,14 @@ void main() {
               scratchPubspec(
                 upstream: 'battery_plus',
                 upstreamVersion: Version.parse('7.1.1'),
-                package: 'battery_plus_watchos',
+                package: 'fixture_battery_plus_watchos',
                 packageVersion: Version.parse('0.1.0'),
               ),
             )
             as YamlMap;
     expect(pubspec['publish_to'], 'none');
     expect(pubspec['dependencies']['battery_plus'], '^7.1.1');
-    expect(pubspec['dependencies']['battery_plus_watchos'], '^0.1.0');
+    expect(pubspec['dependencies']['fixture_battery_plus_watchos'], '^0.1.0');
   });
 
   test('resolutionReason drops the progress lines', () {
@@ -217,10 +217,10 @@ void main() {
     setUp(() async {
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((HttpRequest request) async {
-        if (request.uri.path == '/api/packages/battery_plus_watchos') {
+        if (request.uri.path == '/api/packages/fixture_battery_plus_watchos') {
           request.response.write(
             jsonEncode(<String, Object?>{
-              'name': 'battery_plus_watchos',
+              'name': 'fixture_battery_plus_watchos',
               'latest': <String, Object?>{'version': '0.1.0'},
               'versions': <Object?>[
                 <String, Object?>{'version': '0.1.0'},
@@ -245,7 +245,10 @@ void main() {
         client,
         host: 'http://127.0.0.1:${server.port}',
       );
-      expect(await fetch('battery_plus_watchos'), Version.parse('0.1.0'));
+      expect(
+        await fetch('fixture_battery_plus_watchos'),
+        Version.parse('0.1.0'),
+      );
       expect(await fetch('no_such_package'), isNull);
     });
   });

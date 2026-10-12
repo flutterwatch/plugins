@@ -1,0 +1,8 @@
+name: fixture_url_launcher_watchos
+version: 0.1.0
+flutter:
+  plugin:
+    implements: url_launcher
+    platforms:
+      watchos:
+        ffiPlugin: true
