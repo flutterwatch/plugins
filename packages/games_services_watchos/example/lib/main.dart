@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:games_services/games_services.dart';
 
 /// Replace with a leaderboard id from your own App Store Connect record; a
@@ -32,16 +33,25 @@ class _BodyState extends State<_Body> {
 
   void _say(String line) => setState(() => _log.insert(0, line));
 
+  // As on iOS with games_services 5.x, signIn and submitScore complete with
+  // a message on success and throw a PlatformException on failure.
   Future<void> _signIn() async {
-    final String? error = await GameAuth.signIn();
-    _say(error == null ? 'signed in' : 'sign-in failed: $error');
+    try {
+      _say(await GameAuth.signIn() ?? 'signed in');
+    } on PlatformException catch (e) {
+      _say('sign-in failed: ${e.message}');
+    }
   }
 
   Future<void> _submit() async {
-    final String? error = await GamesServices.submitScore(
-      score: Score(iOSLeaderboardID: kLeaderboardId, value: 10),
-    );
-    _say(error == null ? 'submitted 10' : 'submit failed: $error');
+    try {
+      await GamesServices.submitScore(
+        score: Score(iOSLeaderboardID: kLeaderboardId, value: 10),
+      );
+      _say('submitted 10');
+    } on PlatformException catch (e) {
+      _say('submit failed: ${e.message}');
+    }
   }
 
   Future<void> _load() async {

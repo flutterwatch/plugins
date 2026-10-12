@@ -11,6 +11,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:games_services/games_services.dart';
 import 'package:games_services_platform_interface/game_services_platform_interface.dart';
@@ -19,31 +20,68 @@ import 'package:games_services_watchos/games_services_watchos.dart';
 /// Fake bindings — no FFI, no GameKit, scripted answers.
 class _FakeBindings extends GamesServicesWatchosBindings {
   _FakeBindings({
+    this.linked = true,
     this.signedIn = true,
+    this.signInSucceeds = true,
+    this.signInError,
+    this.submitError,
     this.entries = const <GcEntry>[],
     this.readFails = false,
   }) : super.forTesting();
 
+  /// False stands for an app the plugin's native code is not linked into.
+  bool linked;
   bool signedIn;
+
+  /// Whether a sign-in that starts while signed out ends signed in.
+  bool signInSucceeds;
+
+  /// GameKit's message when the sign-in fails.
+  String? signInError;
+
+  /// GameKit's message when a submission fails; null means it succeeds.
+  String? submitError;
+
   List<GcEntry> entries;
 
   /// Distinct from an empty [entries]: this is the read failing outright.
   bool readFails;
 
+  /// Whether GameKit has answered a sign-in without signing the player in.
+  bool answeredSignedOut = false;
+
+  String? error;
+  int signIns = 0;
   int submitted = 0;
   int? lastSubmittedScore;
   String? lastLeaderboardId;
   int? lastCount;
 
   @override
-  bool get available => true;
+  bool get available => linked;
 
   @override
-  bool get authenticated => signedIn;
+  bool get authenticated => linked && signedIn;
 
   @override
-  Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async =>
-      signedIn;
+  bool get signInFailed => linked && !signedIn && answeredSignedOut;
+
+  @override
+  String? get lastError => error;
+
+  @override
+  Future<bool> signIn({Duration timeout = const Duration(seconds: 20)}) async {
+    signIns++;
+    if (signedIn) return true;
+    // GameKit answers a launch's sign-in once.
+    if (!answeredSignedOut && signInSucceeds) {
+      signedIn = true;
+      return true;
+    }
+    if (!answeredSignedOut) error = signInError;
+    answeredSignedOut = true;
+    return false;
+  }
 
   @override
   Future<bool> submitScore(
@@ -52,9 +90,13 @@ class _FakeBindings extends GamesServicesWatchosBindings {
     Duration timeout = const Duration(seconds: 15),
   }) async {
     if (!signedIn) return false;
+    lastLeaderboardId = leaderboardId;
+    if (submitError != null) {
+      error = submitError;
+      return false;
+    }
     submitted++;
     lastSubmittedScore = score;
-    lastLeaderboardId = leaderboardId;
     return true;
   }
 
@@ -102,6 +144,26 @@ void _expectThrowsUnimplemented(Object? Function() call) {
   expect(error, isUnimplementedError);
 }
 
+/// A [PlatformException] with [code], and with [message] when it is given.
+Matcher _platformException(String code, {String? message}) {
+  Matcher matcher = isA<PlatformException>().having(
+    (PlatformException e) => e.code,
+    'code',
+    code,
+  );
+  if (message != null) {
+    matcher = allOf(
+      matcher,
+      isA<PlatformException>().having(
+        (PlatformException e) => e.message,
+        'message',
+        message,
+      ),
+    );
+  }
+  return matcher;
+}
+
 void main() {
   tearDown(() => GamesServicesWatchos.bindingsOverride = null);
 
@@ -110,34 +172,142 @@ void main() {
     expect(GamesServicesPlatform.instance, isA<GamesServicesWatchos>());
   });
 
+  // games_services 5.x answers on iOS with a message on success and a
+  // PlatformException on failure; these hold the watch to the same answers,
+  // through 5.3.0's own GameAuth and Leaderboards where an app would call.
   group('signIn', () {
-    test('reports null on success, a message on failure', () async {
-      GamesServicesWatchos.bindingsOverride = _FakeBindings();
-      expect(await GamesServicesWatchos().signIn(), isNull);
+    test('answers "Player authenticated successfully" when it signs in',
+        () async {
+      final fake = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      expect(await GameAuth.signIn(), 'Player authenticated successfully');
+      expect(fake.signIns, 1);
+    });
 
-      GamesServicesWatchos.bindingsOverride = _FakeBindings(signedIn: false);
-      expect(await GamesServicesWatchos().signIn(), isNotNull);
+    test('answers "Player already authenticated" when already signed in',
+        () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      GamesServicesWatchos.registerWith();
+      expect(await GameAuth.signIn(), 'Player already authenticated');
+      expect(fake.signIns, 0, reason: 'nothing to ask GameKit');
+    });
+
+    test('fails with failed_to_authenticate and GameKit\'s message', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(
+        signedIn: false,
+        signInSucceeds: false,
+        signInError: 'The user canceled.',
+      );
+      GamesServicesWatchos.registerWith();
+      await expectLater(
+        GameAuth.signIn(),
+        throwsA(
+          _platformException(
+            'failed_to_authenticate',
+            message: 'The user canceled.',
+          ),
+        ),
+      );
+    });
+
+    test('fails with sign_in_unavailable once GameKit has answered', () async {
+      final fake = _FakeBindings(signedIn: false, signInSucceeds: false);
+      GamesServicesWatchos.bindingsOverride = fake;
+      final plugin = GamesServicesWatchos();
+      await expectLater(
+        plugin.signIn(),
+        throwsA(_platformException('failed_to_authenticate')),
+      );
+      await expectLater(
+        plugin.signIn(),
+        throwsA(_platformException('sign_in_unavailable')),
+      );
+    });
+
+    test('fails with failed_to_authenticate when GameKit is not linked',
+        () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(linked: false);
+      await expectLater(
+        GamesServicesWatchos().signIn(),
+        throwsA(_platformException('failed_to_authenticate')),
+      );
     });
   });
 
   group('submitScore', () {
-    test('passes the iOS leaderboard id and value through', () async {
+    test('answers "Success" and passes the iOS leaderboard id and value',
+        () async {
       final fake = _FakeBindings();
       GamesServicesWatchos.bindingsOverride = fake;
-      final err = await GamesServicesWatchos().submitScore(
-        score: Score(iOSLeaderboardID: 'board.id', value: 42),
+      GamesServicesWatchos.registerWith();
+      expect(
+        await Leaderboards.submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 42),
+        ),
+        'Success',
       );
-      expect(err, isNull);
       expect(fake.submitted, 1);
       expect(fake.lastSubmittedScore, 42);
       expect(fake.lastLeaderboardId, 'board.id');
     });
 
-    test('refuses a score with no leaderboard or value', () async {
-      GamesServicesWatchos.bindingsOverride = _FakeBindings();
-      expect(
-        await GamesServicesWatchos().submitScore(score: Score()),
-        isNotNull,
+    test('fails with failed_to_send_score and GameKit\'s message', () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(
+        submitError: 'The requested leaderboard does not exist.',
+      );
+      await expectLater(
+        GamesServicesWatchos().submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 42),
+        ),
+        throwsA(
+          _platformException(
+            'failed_to_send_score',
+            message: 'The requested leaderboard does not exist.',
+          ),
+        ),
+      );
+    });
+
+    test('fails with failed_to_send_score while signed out', () async {
+      final fake = _FakeBindings(signedIn: false);
+      GamesServicesWatchos.bindingsOverride = fake;
+      await expectLater(
+        GamesServicesWatchos().submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 42),
+        ),
+        throwsA(_platformException('failed_to_send_score')),
+      );
+      expect(fake.submitted, 0);
+    });
+
+    test('fails with failed_to_send_score without a leaderboard or value',
+        () async {
+      final fake = _FakeBindings();
+      GamesServicesWatchos.bindingsOverride = fake;
+      for (final Score score in <Score>[
+        Score(),
+        Score(iOSLeaderboardID: 'board.id'),
+        Score(iOSLeaderboardID: '', value: 42),
+        Score(androidLeaderboardID: 'android.board', value: 42),
+      ]) {
+        await expectLater(
+          GamesServicesWatchos().submitScore(score: score),
+          throwsA(_platformException('failed_to_send_score')),
+        );
+      }
+      expect(fake.submitted, 0);
+    });
+
+    test('fails with failed_to_send_score when GameKit is not linked',
+        () async {
+      GamesServicesWatchos.bindingsOverride = _FakeBindings(linked: false);
+      await expectLater(
+        GamesServicesWatchos().submitScore(
+          score: Score(iOSLeaderboardID: 'board.id', value: 42),
+        ),
+        throwsA(_platformException('failed_to_send_score')),
       );
     });
   });

@@ -8,10 +8,12 @@
 //
 // A simulator has no Game Center account, so no call here can succeed. That is
 // deliberate: what this asserts is that the plugin is *linked and registered*,
-// and that every unauthenticated path degrades instead of throwing. The first
-// of those is not reachable from a host test -- symbols that were silently
-// dead-stripped still pass `flutter test` and fail only on a device.
+// and that every signed-out path fails the way games_services 5.x fails on
+// iOS: sign-in and submission with a PlatformException, a read with null.
+// The first of those is not reachable from a host test -- symbols that were
+// silently dead-stripped still pass `flutter test` and fail only on a device.
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:games_services/games_services.dart';
 import 'package:games_services_platform_interface/game_services_platform_interface.dart';
@@ -43,21 +45,31 @@ void main() {
     );
   });
 
-  testWidgets('sign-in reports failure rather than throwing', (
+  testWidgets('sign-in fails with a PlatformException', (
     WidgetTester _,
   ) async {
-    // No Game Center account on a simulator, so this must fail politely.
-    expect(await GameAuth.signIn(), isNotNull);
+    // No Game Center account on a simulator, so this must fail, and fail as
+    // it does on iOS rather than with a message that reads like success.
+    await expectLater(
+      GameAuth.signIn(),
+      throwsA(isA<PlatformException>()),
+    );
   });
 
-  testWidgets('submitting while unauthenticated fails without throwing', (
+  testWidgets('submitting while signed out fails with failed_to_send_score', (
     WidgetTester _,
   ) async {
-    expect(
-      await GamesServices.submitScore(
+    await expectLater(
+      GamesServices.submitScore(
         score: Score(iOSLeaderboardID: _leaderboard, value: 1),
       ),
-      isNotNull,
+      throwsA(
+        isA<PlatformException>().having(
+          (PlatformException e) => e.code,
+          'code',
+          'failed_to_send_score',
+        ),
+      ),
     );
   });
 

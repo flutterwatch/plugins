@@ -108,8 +108,8 @@ a case for each member.
 
 | Member | watchOS |
 |---|---|
-| `signIn` | ✅ `GKLocalPlayer.authenticateHandler` |
-| `submitScore` | ✅ `GKLeaderboard.submitScore` |
+| `signIn` | ✅ `GKLocalPlayer.authenticateHandler`; completes with iOS's messages and fails with a `PlatformException` (`failed_to_authenticate`, `sign_in_unavailable`), as `games_services` 5.x does on iOS |
+| `submitScore` | ✅ `GKLeaderboard.submitScore`; completes with "Success" and fails with a `PlatformException` (`failed_to_send_score`), as on iOS |
 | `loadLeaderboardScores` | ✅ `loadEntriesForPlayerScope`; null when the read failed, an empty list when there are no entries |
 | `getPlayerScore` | ✅ from the local player's own entry |
 | `showLeaderboards` / `showAchievements` | ✗ fails with `UnimplementedError`: `GKGameCenterViewController` does not exist on watchOS |

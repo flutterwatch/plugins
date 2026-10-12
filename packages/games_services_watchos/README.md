@@ -26,10 +26,14 @@ app that stays on `games_services` 4.x.
 Then use `games_services` as normal:
 
 ```dart
-await GameAuth.signIn();
-await GamesServices.submitScore(
-  score: Score(iOSLeaderboardID: 'your.leaderboard.id', value: 42),
-);
+try {
+  await GameAuth.signIn();
+  await GamesServices.submitScore(
+    score: Score(iOSLeaderboardID: 'your.leaderboard.id', value: 42),
+  );
+} on PlatformException catch (e) {
+  // Not signed in, or GameKit refused the score; e.code says which.
+}
 final rows = await Leaderboards.loadLeaderboardScores(
   iOSLeaderboardID: 'your.leaderboard.id',
   scope: PlayerScope.global,
@@ -38,12 +42,27 @@ final rows = await Leaderboards.loadLeaderboardScores(
 );
 ```
 
+## Sign-in and submission results
+
+`signIn` and `submitScore` answer as `games_services` 5.x does on iOS, so the
+same code reads them on the wrist and on the phone.
+
+| Call | Success | Failure |
+|---|---|---|
+| `GameAuth.signIn` | completes with "Player authenticated successfully", or "Player already authenticated" when the player already was | a `PlatformException`: `failed_to_authenticate` with GameKit's message, or `sign_in_unavailable` when GameKit has already answered this launch's sign-in without signing the player in |
+| `GamesServices.submitScore` | completes with "Success" | a `PlatformException`: `failed_to_send_score` |
+
+**Changed in 0.2.0.** Version 0.1.0 completed both calls with null on
+success and with an error message on failure, the convention of
+`games_services` 4.x. Code that reads null as success has to change: a
+result now means success, and a failure arrives as the exception.
+
 ## What is supported
 
 | Interface method | watchOS | Notes |
 |---|---|---|
-| `signIn` | ✅ | `GKLocalPlayer.authenticateHandler` |
-| `submitScore` | ✅ | `GKLeaderboard.submitScore`, watchOS 7+ |
+| `signIn` | ✅ | `GKLocalPlayer.authenticateHandler`; results as above |
+| `submitScore` | ✅ | `GKLeaderboard.submitScore`, watchOS 7+; results as above |
 | `loadLeaderboardScores` | ✅ | `loadEntriesForPlayerScope`, watchOS 7+ |
 | `getPlayerScore` | ✅ | derived from the local player's own entry |
 

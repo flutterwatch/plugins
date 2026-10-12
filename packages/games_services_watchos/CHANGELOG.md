@@ -5,6 +5,16 @@
   snippet names `games_services: ^5.3.0`; an app that stays on
   `games_services` 4.x keeps 0.1.0. The example and the dev dependency name
   `games_services: ^5.3.0` too.
+* **Breaking:** `signIn` and `submitScore` answer as `games_services` 5.x
+  does on iOS, so app code reads them the same on the wrist as on the phone.
+  `signIn` completes with "Player authenticated successfully" when it signs
+  the player in, and with "Player already authenticated" when the player
+  already was; `submitScore` completes with "Success". A failure is a
+  `PlatformException`: `failed_to_authenticate`, or `sign_in_unavailable`
+  when GameKit has already answered this launch's sign-in without signing the
+  player in, and `failed_to_send_score`. Version 0.1.0 completed both with
+  null on success and with the error message on failure, so code that reads
+  null as success has to change.
 * `loadLeaderboardScores` and `getPlayerScore` take their leaderboard ids as
   `String`, as 5.3.0 declares them; 0.1.0 left them untyped. What they return
   is unchanged. The leaderboard JSON decodes with 5.3.0's
@@ -18,6 +28,9 @@
   not because they are not implemented yet.
 * Tests: a case for every public member of the 5.3.0 interface, each called
   with the parameters 5.3.0 gives it.
+* Example: signs in and submits as 5.x code does, catching
+  `PlatformException`, and its integration test expects those failures on the
+  Simulator.
 
 ## 0.1.0
 

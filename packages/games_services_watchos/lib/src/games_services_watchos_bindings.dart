@@ -121,6 +121,16 @@ class GamesServicesWatchosBindings {
     return b != null && _state(b.authState()) == _GcState.ok;
   }
 
+  /// Whether GameKit has answered this launch's sign-in and the local player
+  /// is not signed in: the authentication handler ran, or the player was
+  /// signed in and no longer is. The native side installs the handler once
+  /// per launch, so [signIn] then fails at once rather than asking again.
+  /// Read live, like [authenticated].
+  bool get signInFailed {
+    final b = _resolve();
+    return b != null && _state(b.authState()) == _GcState.failed;
+  }
+
   _Symbols? _resolve() {
     if (_resolved) return _bindings;
     _resolved = true;
