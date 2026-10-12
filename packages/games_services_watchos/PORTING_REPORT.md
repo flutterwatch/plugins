@@ -27,9 +27,9 @@ surface are overridden; everything else keeps the interface's
 | Upstream method | Decision | Reason |
 |---|---|---|
 | `signIn` | implemented | `GKLocalPlayer.authenticateHandler` |
-| `submitScore` | implemented | `GKLeaderboard.submitScore`, watchOS 7+ |
-| `loadLeaderboardScores` | implemented | `loadEntriesForPlayerScope`, watchOS 7+ |
-| `getPlayerScore` | implemented | from the local player's own entry |
+| `submitScore` | implemented, with a limit | `GKLeaderboard.submitScore`, watchOS 7+; `Score.token` is ignored |
+| `loadLeaderboardScores` | implemented, with a limit | `loadEntriesForPlayerScope`, watchOS 7+; the global, all-time board only |
+| `getPlayerScore` | implemented, with a limit | from the local player's row in the top 100 |
 | `player` | implemented, with a limit | the live sign-in state and alias, from the existing symbols; changes arrive with the plugin's next call |
 | `showLeaderboards`, `showAchievements` | unsupported | `GKGameCenterViewController` is not on watchOS |
 | `showAccessPoint`, `hideAccessPoint` | unsupported | `GKAccessPoint` is not on watchOS |
@@ -117,9 +117,9 @@ a case for each member.
 | Member | watchOS |
 |---|---|
 | `signIn` | ✅ `GKLocalPlayer.authenticateHandler`; completes with iOS's messages and fails with a `PlatformException` (`failed_to_authenticate`, `sign_in_unavailable`), as `games_services` 5.x does on iOS |
-| `submitScore` | ✅ `GKLeaderboard.submitScore`; completes with "Success" and fails with a `PlatformException` (`failed_to_send_score`), as on iOS |
-| `loadLeaderboardScores` | ✅ `loadEntriesForPlayerScope`; null when the read failed, an empty list when there are no entries |
-| `getPlayerScore` | ✅ from the local player's own entry |
+| `submitScore` | ◐ `GKLeaderboard.submitScore`; completes with "Success" and fails with a `PlatformException` (`failed_to_send_score`), as on iOS, though never with iOS's `leaderboard_not_found`; `Score.token` is ignored (context 0, where iOS sends the token) |
+| `loadLeaderboardScores` | ◐ `loadEntriesForPlayerScope` on the global, all-time board from rank 1, at most 100 rows: `scope`, `timeScope` and `playerCentered` are ignored; `displayScore` is the raw score and `timestampMillis` is 0; null when the read failed, an empty list when there are no entries |
+| `getPlayerScore` | ◐ from the local player's row in the top 100; null when the player is not there, where iOS reads the player's own entry and answers 0 when there is none |
 | `showLeaderboards` / `showAchievements` | ✗ fails with `UnimplementedError`: `GKGameCenterViewController` does not exist on watchOS |
 | `showAccessPoint` / `hideAccessPoint` | ✗ fails with `UnimplementedError`: `GKAccessPoint` does not exist on watchOS |
 | `unlock` / `increment` / `loadAchievements` / `resetAchievements` | ✗ fails with `UnimplementedError`: achievements are not implemented yet |

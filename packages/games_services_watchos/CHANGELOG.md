@@ -39,6 +39,13 @@
   `iconImage` and the restriction flags are null. Every read returns the
   same stream, as on the other platforms. It reads the existing symbols, so
   the native code is unchanged.
+* README and PORTING_REPORT: `submitScore`, `loadLeaderboardScores` and
+  `getPlayerScore` are marked ◐, with limits 0.1.0 had too but did not
+  state. Reads are always of the global, all-time board from rank 1
+  (`scope`, `timeScope` and `playerCentered` are ignored, at most 100 rows),
+  `getPlayerScore` finds the player only in the top 100 and is null
+  otherwise (iOS answers 0 when there is no score), and `Score.token` is
+  ignored.
 * `loadLeaderboardScores` and `getPlayerScore` take their leaderboard ids as
   `String`, as 5.3.0 declares them; 0.1.0 left them untyped. What they return
   is unchanged. The leaderboard JSON decodes with 5.3.0's

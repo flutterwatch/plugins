@@ -76,9 +76,9 @@ result now means success, and a failure arrives as the exception.
 |---|---|---|
 | `signIn` | ✅ | `GKLocalPlayer.authenticateHandler`; results as above |
 | `player` | ◐ | the live sign-in state and GameKit's alias; changes arrive with the plugin's next call (see below) |
-| `submitScore` | ✅ | `GKLeaderboard.submitScore`, watchOS 7+; results as above |
-| `loadLeaderboardScores` | ✅ | `loadEntriesForPlayerScope`, watchOS 7+ |
-| `getPlayerScore` | ✅ | derived from the local player's own entry |
+| `submitScore` | ◐ | `GKLeaderboard.submitScore`, watchOS 7+; results as above. `Score.token` is ignored: the score goes in with context 0, where iOS sends the token as the context |
+| `loadLeaderboardScores` | ◐ | `loadEntriesForPlayerScope`, watchOS 7+, always on the global, all-time board from rank 1: `scope`, `timeScope` and `playerCentered` are ignored, and at most 100 rows come back. A row's `displayScore` is the raw score as text, and its `timestampMillis` is 0 |
+| `getPlayerScore` | ◐ | the local player's row in the top 100 of the global, all-time board; null when the player is not there. iOS reads the player's own entry at any rank, and answers 0 when there is none |
 
 ◐: implemented, with the limit its note gives. The other members keep the
 platform interface's `UnimplementedError` default rather than returning a
