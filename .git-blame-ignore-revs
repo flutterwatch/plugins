@@ -1,0 +1,5 @@
+# Commits that only reformat, so git blame skips them:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Format every Dart file under packages/ with Dart 3.13.4
+95638fd77baf349a430632fd0fde78508c0e187b

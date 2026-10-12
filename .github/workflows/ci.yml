@@ -82,6 +82,16 @@ jobs:
         if: success() || failure()
         run: tool/check_clean_tree.sh
 
+      # Spec 0007 criterion 32 (M164): every Dart file under packages/ stays
+      # as the pinned SDK's formatter writes it. pana takes 10 of a package's
+      # 50 static-analysis points for a file in lib/ that does not match.
+      # It runs after the loop's pub get on purpose: the formatter takes each
+      # package's language version from its package config, and without one
+      # it formats in the newest style, which these packages do not use.
+      - name: Formatting
+        if: success() || failure()
+        run: dart format --output=none --set-exit-if-changed packages
+
       # Spec 0007 criterion 32 (M165): pub's own checks on every package, so
       # a warning or a refusal shows before the publish round, not during
       # it. It reads pub.dev as `pub get` does and publishes nothing. The
@@ -176,8 +186,3 @@ jobs:
         if: success() || failure()
         working-directory: tool
         run: dart run bin/check_test_names.dart
-
-  # No `dart format` gate yet. Many files under packages/*/lib and
-  # packages/*/test are not formatted today, so a gate would fail on its first
-  # run and force a mechanical reformat of published sources as a side effect.
-  # The reformat is a change of its own, and the gate follows it.
