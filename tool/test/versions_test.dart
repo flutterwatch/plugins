@@ -108,4 +108,35 @@ void main() {
       <String>['b', 'c', 'd'],
     );
   });
+
+  group('the language version a format-only change is judged at', () {
+    String languageVersionOf(String pubspec) {
+      final Directory package = Directory.systemTemp.createTempSync(
+        'plugins_tool_lv_',
+      );
+      addTearDown(() => package.deleteSync(recursive: true));
+      File(p.join(package.path, 'pubspec.yaml')).writeAsStringSync(pubspec);
+      return packageLanguageVersion(package.path) ?? 'none';
+    }
+
+    test('is the lower bound of the SDK constraint', () {
+      expect(
+        languageVersionOf("name: a\nenvironment:\n  sdk: '>=3.0.0 <4.0.0'\n"),
+        '3.0',
+      );
+      expect(
+        languageVersionOf("name: a\nenvironment:\n  sdk: '^3.7.2'\n"),
+        '3.7',
+      );
+    });
+
+    test('is the formatter default without a constraint', () {
+      expect(languageVersionOf('name: a\n'), 'none');
+    });
+
+    test('a source the formatter refuses is not format-only', () {
+      expect(formatDart('void a( {', '3.0'), isNull);
+      expect(formatDart('void a(){}\n', '3.0'), 'void a() {}\n');
+    });
+  });
 }

@@ -10,6 +10,12 @@
 /// and a top CHANGELOG heading equal to it. No package may be at a
 /// pre-release. A package without a row has never been published; it gets
 /// the last two checks only.
+///
+/// A Dart file that differs only in formatting does not count as changed:
+/// the published copy, run through the formatter at the package's language
+/// version, is byte for byte the file in the tree. A format-only commit then
+/// ships with each package's next version (spec 0007 criterion 32) instead of
+/// forcing a release of every package it touches.
 library;
 
 import 'dart:io';
@@ -19,6 +25,7 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:yaml/yaml.dart';
 
 import 'published_files.dart';
+import 'repository.dart';
 
 /// One row of `tool/published.yaml`.
 class PublishedRow {
@@ -159,21 +166,37 @@ List<PackageVersionResult> checkVersions(
       );
       continue;
     }
+    final Map<String, String> before = publishedFilesAt(
+      root,
+      row.commit,
+      package,
+    );
     final List<String> changed = changedPaths(
-      publishedFilesAt(root, row.commit, package),
+      before,
       publishedFilesInWorkingTree(root, package),
     );
-    if (changed.isNotEmpty && version == row.version) {
-      final String shown = changed.take(5).join(', ');
-      final String more = changed.length > 5
-          ? ' and ${changed.length - 5} more'
-          : '';
+    final Set<String> formatOnly = changed.isNotEmpty && version == row.version
+        ? formatOnlyChanges(root, directory, changed, before)
+        : const <String>{};
+    final List<String> real = changed
+        .where((String path) => !formatOnly.contains(path))
+        .toList();
+    if (real.isNotEmpty && version == row.version) {
+      final String shown = real.take(5).join(', ');
+      final String more = real.length > 5 ? ' and ${real.length - 5} more' : '';
       result.problems.add(
-        '${changed.length} publishable files changed since ${row.version} '
+        '${real.length} publishable files changed since ${row.version} '
         '(${row.commit.substring(0, 7)}), but the version is still $version: '
         '$shown$more.',
       );
-    } else if (changed.isEmpty && version != row.version) {
+    }
+    if (formatOnly.isNotEmpty) {
+      result.notes.add(
+        '${formatOnly.length} publishable files changed only in formatting '
+        'since ${row.version}; they ship with the next version.',
+      );
+    }
+    if (changed.isEmpty && version != row.version) {
       result.notes.add(
         'The version moved to $version with no publishable change.',
       );
@@ -191,6 +214,88 @@ List<PackageVersionResult> checkVersions(
     }
   }
   return results;
+}
+
+/// The paths in [changed] whose only difference from the published commit
+/// is formatting.
+///
+/// A path counts when it is a Dart file present both in [before] (path to
+/// blob id, as [publishedFilesAt] returns) and in the working tree, and the
+/// formatter turns the published blob into exactly the file in the tree. It
+/// formats at the language version of the package in [packageDirectory], the
+/// lower bound of its SDK constraint, which is the one pub writes into the
+/// package config and so the one `dart format` uses there. A blob the
+/// formatter cannot parse is a real change.
+Set<String> formatOnlyChanges(
+  String root,
+  String packageDirectory,
+  Iterable<String> changed,
+  Map<String, String> before,
+) {
+  final String? languageVersion = packageLanguageVersion(packageDirectory);
+  final Set<String> formatOnly = <String>{};
+  for (final String path in changed) {
+    final String? blob = before[path];
+    final File current = File(p.join(root, path));
+    if (!path.endsWith('.dart') || blob == null || !current.existsSync()) {
+      continue;
+    }
+    final String? formatted = formatDart(
+      git(root, <String>['cat-file', 'blob', blob]),
+      languageVersion,
+    );
+    if (formatted != null && formatted == current.readAsStringSync()) {
+      formatOnly.add(path);
+    }
+  }
+  return formatOnly;
+}
+
+/// The language version of the package in [packageDirectory]: the
+/// `major.minor` of the lower bound of its `environment: sdk:` constraint, or
+/// null when the pubspec gives none.
+String? packageLanguageVersion(String packageDirectory) {
+  final Object? pubspec = loadYaml(
+    File(p.join(packageDirectory, 'pubspec.yaml')).readAsStringSync(),
+  );
+  final Object? environment = pubspec is YamlMap
+      ? pubspec['environment']
+      : null;
+  final Object? sdk = environment is YamlMap ? environment['sdk'] : null;
+  if (sdk is! String) {
+    return null;
+  }
+  final VersionConstraint constraint = VersionConstraint.parse(sdk);
+  final Version? min = constraint is VersionRange ? constraint.min : null;
+  return min == null ? null : '${min.major}.${min.minor}';
+}
+
+/// [source] as `dart format` writes it at [languageVersion] (the formatter's
+/// default when null), or null when the formatter refuses it.
+///
+/// It runs the formatter of the Dart SDK this tool runs on, the one CI pins.
+String? formatDart(String source, String? languageVersion) {
+  final String dart = Platform.resolvedExecutable;
+  final Directory scratch = Directory.systemTemp.createTempSync(
+    'plugins_tool_format_',
+  );
+  try {
+    // A file rather than stdin, which runSync cannot feed. Its name decides
+    // nothing, because the language version is passed. --summary=none keeps
+    // the "Formatted 1 file" line out of the source on stdout.
+    final File file = File(p.join(scratch.path, 'source.dart'))
+      ..writeAsStringSync(source);
+    final ProcessResult result = Process.runSync(dart, <String>[
+      'format',
+      '--output=show',
+      '--summary=none',
+      if (languageVersion != null) '--language-version=$languageVersion',
+      file.path,
+    ]);
+    return result.exitCode == 0 ? result.stdout as String : null;
+  } finally {
+    scratch.deleteSync(recursive: true);
+  }
 }
 
 bool _commitExists(String root, String commit) {
