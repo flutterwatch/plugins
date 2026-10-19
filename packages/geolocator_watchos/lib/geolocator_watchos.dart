@@ -6,9 +6,13 @@
 //
 // Method-channel plugins are not supported on watchOS, so this package follows
 // the FFI plugin model: `watchos/Classes/geolocator_watchos_ffi.m` wraps
-// CoreLocation (CLLocationManager) and caches the latest fix on a delegate;
-// this class resolves the symbols via `DynamicLibrary.process()` and polls the
-// cached fix (the same poll-based approach the other streaming plugins use).
+// CoreLocation (CLLocationManager) and caches the latest fix on a delegate,
+// which wakes Dart through a `NativeCallable.listener`; this class resolves
+// the symbols via `DynamicLibrary.process()` and re-reads what it waits on.
+//
+// `AppleSettings` from geolocator_apple is read through `toJson()`, so its
+// `activityType` and `allowBackgroundLocationUpdates` reach CoreLocation
+// without this package depending on geolocator_apple.
 
 import 'dart:async';
 import 'dart:ffi';
@@ -31,7 +35,17 @@ abstract class GeolocatorWatchosBackend {
 
   /// Starts continuous updates at [accuracyIndex] (the `LocationAccuracy`
   /// index) with [distanceFilter] in metres (0 or less means none).
-  void startUpdates(int accuracyIndex, double distanceFilter);
+  ///
+  /// [activityType] is a `CLActivityType` raw value, or 0 for CoreLocation's
+  /// default. [allowBackground] turns on background updates when the
+  /// `Info.plist` has the `location` background mode, and is ignored
+  /// otherwise.
+  void startUpdates(
+    int accuracyIndex,
+    double distanceFilter, {
+    int activityType = 0,
+    bool allowBackground = false,
+  });
 
   /// Asks for a single fix.
   void requestLocation();
@@ -42,8 +56,21 @@ abstract class GeolocatorWatchosBackend {
   /// Stops continuous updates.
   void stopUpdates();
 
-  /// Registers the function native calls when a new fix lands, or `nullptr`
-  /// to stop.
+  /// The `LocationAccuracyStatus` index the wearer allows: 0 reduced,
+  /// 1 precise.
+  int accuracyAuthorization();
+
+  /// Asks for temporary full accuracy, explained by [purposeKey]. Returns
+  /// false without asking when the `Info.plist` has no
+  /// `NSLocationTemporaryUsageDescriptionDictionary`.
+  bool requestTemporaryFullAccuracy(String purposeKey);
+
+  /// How many temporary full-accuracy requests have finished.
+  int accuracyRequestsDone();
+
+  /// Registers the function native calls when a new fix lands, the
+  /// authorization or accuracy changes, or an accuracy request ends; or
+  /// `nullptr` to stop.
   void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> callback);
 }
 
@@ -52,8 +79,7 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   /// Test hook: set before first use to replace the native backend with a fake.
   static GeolocatorWatchosBackend? backendOverride;
 
-  /// How often the Dart side polls the native fix while awaiting one.
-  /// How long to wait for the user to answer the system permission prompt.
+  /// How long to wait for the user to answer a system permission prompt.
   ///
   /// The prompt has no timeout of its own; this only bounds the future.
   static Duration permissionTimeout = const Duration(minutes: 2);
@@ -154,12 +180,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
       throw const PermissionDeniedException(
           'Location permission is denied on this device.');
     }
-    final LocationAccuracy accuracy =
-        locationSettings?.accuracy ?? LocationAccuracy.best;
     final Duration timeLimit =
         locationSettings?.timeLimit ?? const Duration(seconds: 30);
-    final double distanceFilter =
-        (locationSettings?.distanceFilter ?? 0).toDouble();
 
     final Completer<Position> completer = Completer<Position>();
 
@@ -172,7 +194,7 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
     final void Function() stopListening = _Notifier.listen(_b, check);
     _b.requestLocation();
-    _b.startUpdates(accuracy.index, distanceFilter);
+    _start(locationSettings);
     // A cached fix may already satisfy this, in which case no delegate callback
     // is coming and waiting for one would burn the whole time limit.
     check();
@@ -193,10 +215,6 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   Stream<Position> getPositionStream({
     LocationSettings? locationSettings,
   }) {
-    final LocationAccuracy accuracy =
-        locationSettings?.accuracy ?? LocationAccuracy.best;
-    final double distanceFilter =
-        (locationSettings?.distanceFilter ?? 0).toDouble();
     late StreamController<Position> controller;
     List<double>? last;
     void Function()? stopListening;
@@ -212,7 +230,7 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
     controller = StreamController<Position>.broadcast(
       onListen: () {
         stopListening = _Notifier.listen(_b, emitIfNew);
-        _b.startUpdates(accuracy.index, distanceFilter);
+        _start(locationSettings);
         // CLLocationManager delivers the last known fix immediately on start,
         // which can land before the callback is in place.
         emitIfNew();
@@ -228,6 +246,94 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
   static bool _sameFix(List<double> a, List<double>? b) =>
       b != null && a[0] == b[0] && a[1] == b[1] && a[9] == b[9];
+
+  /// The `CLActivityType` raw value for each geolocator `ActivityType` index:
+  /// automotiveNavigation, fitness, otherNavigation, airborne, other,
+  /// maritime.
+  static const List<int> _clActivityTypes = <int>[2, 3, 4, 5, 1, 6];
+
+  /// Starts updates with [settings], including what an `AppleSettings`
+  /// carries beyond the base class: its `toJson()` has `activityType` and
+  /// `allowBackgroundLocationUpdates`.
+  static void _start(LocationSettings? settings) {
+    final Map<String, dynamic> json =
+        settings?.toJson() ?? const <String, dynamic>{};
+    final Object? activity = json['activityType'];
+    _b.startUpdates(
+      (settings?.accuracy ?? LocationAccuracy.best).index,
+      (settings?.distanceFilter ?? 0).toDouble(),
+      activityType:
+          activity is int && activity >= 0 && activity < _clActivityTypes.length
+              ? _clActivityTypes[activity]
+              : 0,
+      allowBackground: json['allowBackgroundLocationUpdates'] == true,
+    );
+  }
+
+  @override
+  Future<LocationAccuracyStatus> getLocationAccuracy() async =>
+      LocationAccuracyStatus.values[_b.accuracyAuthorization()];
+
+  /// Asks for full accuracy for this session.
+  ///
+  /// [purposeKey] names an entry of the `Info.plist`'s
+  /// `NSLocationTemporaryUsageDescriptionDictionary`, whose text the prompt
+  /// shows. Throws [PermissionDefinitionsNotFoundException] when the
+  /// `Info.plist` has no such dictionary, as geolocator does on iOS.
+  @override
+  Future<LocationAccuracyStatus> requestTemporaryFullAccuracy({
+    required String purposeKey,
+  }) async {
+    final int before = _b.accuracyRequestsDone();
+    final Completer<void> completer = Completer<void>();
+
+    void check() {
+      if (_b.accuracyRequestsDone() > before && !completer.isCompleted) {
+        completer.complete();
+      }
+    }
+
+    // Registered before the prompt, which the wearer may answer at once.
+    final void Function() stopListening = _Notifier.listen(_b, check);
+    try {
+      if (!_b.requestTemporaryFullAccuracy(purposeKey)) {
+        throw const PermissionDefinitionsNotFoundException(
+          'The temporary accuracy dictionary key is not set in the Info.plist',
+        );
+      }
+      check();
+      await completer.future.timeout(permissionTimeout, onTimeout: () {});
+      return LocationAccuracyStatus.values[_b.accuracyAuthorization()];
+    } finally {
+      stopListening();
+    }
+  }
+
+  /// Whether location services are on, starting with the current answer,
+  /// then each change.
+  ///
+  /// CoreLocation reports a change of the system switch as an authorization
+  /// change, which is when this re-reads it.
+  @override
+  Stream<ServiceStatus> getServiceStatusStream() =>
+      Stream<ServiceStatus>.multi((MultiStreamController<ServiceStatus> c) {
+        ServiceStatus? last;
+        void emit() {
+          final ServiceStatus now = _b.isServiceEnabled()
+              ? ServiceStatus.enabled
+              : ServiceStatus.disabled;
+          if (now != last) {
+            last = now;
+            c.add(now);
+          }
+        }
+
+        final void Function() stopListening = _Notifier.listen(_b, emit);
+        // Creates the location manager, whose delegate reports the changes.
+        _b.checkPermission();
+        emit();
+        c.onCancel = stopListening;
+      }, isBroadcast: true);
 }
 
 /// Signature of the native→Dart new-fix signal.
@@ -290,8 +396,10 @@ typedef _IntNative = Int32 Function();
 typedef _IntDart = int Function();
 typedef _VoidNative = Void Function();
 typedef _VoidDart = void Function();
-typedef _StartNative = Void Function(Int32, Double);
-typedef _StartDart = void Function(int, double);
+typedef _StartNative = Void Function(Int32, Double, Int32, Int32);
+typedef _StartDart = void Function(int, double, int, int);
+typedef _Int64Native = Int64 Function();
+typedef _Int64Dart = int Function();
 typedef _ReadNative = Int32 Function(Pointer<Double>);
 typedef _ReadDart = int Function(Pointer<Double>);
 
@@ -339,8 +447,14 @@ class _FfiBackend implements GeolocatorWatchosBackend {
   void requestPermission() => _requestPermission();
 
   @override
-  void startUpdates(int accuracyIndex, double distanceFilter) =>
-      _startUpdates(accuracyIndex, distanceFilter);
+  void startUpdates(
+    int accuracyIndex,
+    double distanceFilter, {
+    int activityType = 0,
+    bool allowBackground = false,
+  }) =>
+      _startUpdates(
+          accuracyIndex, distanceFilter, activityType, allowBackground ? 1 : 0);
 
   @override
   void requestLocation() => _requestLocation();
@@ -357,6 +471,31 @@ class _FfiBackend implements GeolocatorWatchosBackend {
 
   @override
   void stopUpdates() => _stopUpdates();
+
+  late final _IntDart _accuracyAuthorization =
+      _lib.lookupFunction<_IntNative, _IntDart>(
+          'geolocator_watchos_accuracy_authorization');
+  late final int Function(Pointer<Utf8>) _requestTemporaryFullAccuracy =
+      _lib.lookupFunction<Int32 Function(Pointer<Utf8>),
+              int Function(Pointer<Utf8>)>(
+          'geolocator_watchos_request_temporary_full_accuracy');
+  late final _Int64Dart _accuracyRequestsDone =
+      _lib.lookupFunction<_Int64Native, _Int64Dart>(
+          'geolocator_watchos_accuracy_requests_done');
+
+  @override
+  int accuracyAuthorization() => _accuracyAuthorization();
+
+  @override
+  bool requestTemporaryFullAccuracy(String purposeKey) => using(
+        (Arena arena) =>
+            _requestTemporaryFullAccuracy(
+                purposeKey.toNativeUtf8(allocator: arena)) ==
+            1,
+      );
+
+  @override
+  int accuracyRequestsDone() => _accuracyRequestsDone();
 
   @override
   void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> callback) =>

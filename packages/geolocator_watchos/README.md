@@ -18,7 +18,7 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   geolocator: ^14.1.1
-  geolocator_watchos: ^0.1.1
+  geolocator_watchos: ^0.1.2
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -39,9 +39,38 @@ Add a location usage description to the watch app's `Info.plist`:
 | `isLocationServiceEnabled` | supported |
 | `getCurrentPosition` / `getPositionStream` | supported |
 | `getLastKnownPosition` | supported (last cached fix) |
+| `getLocationAccuracy` | supported (precise or reduced) |
+| `requestTemporaryFullAccuracy` | supported; needs `NSLocationTemporaryUsageDescriptionDictionary` |
+| `getServiceStatusStream` | supported; starts with the current status |
 
 The watch has no *Always* background-location entitlement flow that iOS has;
 authorization is when-in-use.
+
+### Workouts and background updates
+
+`AppleSettings` from `geolocator` reaches CoreLocation here too:
+`activityType` sets `CLLocationManager.activityType`, and
+`allowBackgroundLocationUpdates` sets `allowsBackgroundLocationUpdates`. A
+running or cycling app passes `ActivityType.fitness`:
+
+```dart
+Geolocator.getPositionStream(
+  locationSettings: AppleSettings(
+    accuracy: LocationAccuracy.bestForNavigation,
+    activityType: ActivityType.fitness,
+    allowBackgroundLocationUpdates: true,
+  ),
+);
+```
+
+Background updates turn on only when the `Info.plist`'s `UIBackgroundModes`
+(or `WKBackgroundModes`) has `location`; without it the setting is ignored,
+because CoreLocation treats turning it on without that as a fatal error.
+`pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do
+not exist on watchOS and are ignored. An app recording a workout keeps
+running with the wrist down through its `HKWorkoutSession`
+([`flutter_watch_workout`](../flutter_watch_workout)), not through this
+setting.
 
 ## Status
 
@@ -62,9 +91,6 @@ These members of `geolocator_platform_interface` 4.4.0 throw or fail on watchOS.
 
 | Member | On watchOS | Why |
 |---|---|---|
-| `getServiceStatusStream` | throws `UnimplementedError` when called | not implemented yet |
-| `getLocationAccuracy` | fails with `UnimplementedError` | not implemented yet |
-| `requestTemporaryFullAccuracy` | fails with `UnimplementedError` | not implemented |
 | `openAppSettings` / `openLocationSettings` | fail with `UnimplementedError` | watchOS has no settings page an app can open |
 
 ## License

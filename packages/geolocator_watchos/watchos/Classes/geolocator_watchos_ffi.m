@@ -3,9 +3,9 @@
 // found in the LICENSE file.
 //
 // CoreLocation-backed geolocation for watchOS. A shared CLLocationManager with
-// a delegate caches the most recent fix; the FFI `read_position` copies it out
-// for the Dart poller. Accuracy indices and the Position field order match
-// geolocator.
+// a delegate caches the most recent fix and wakes Dart; the FFI
+// `read_position` copies it out. Accuracy indices and the Position field order
+// match geolocator.
 
 #import "geolocator_watchos_ffi.h"
 
@@ -22,6 +22,7 @@ typedef struct {
 static os_unfair_lock _lock = OS_UNFAIR_LOCK_INIT;
 static Fix _fix;
 static geolocator_watchos_cb _callback = NULL;
+static int64_t _accuracyRequestsDone = 0;
 
 void geolocator_watchos_set_callback(geolocator_watchos_cb callback) {
     os_unfair_lock_lock(&_lock);
@@ -133,12 +134,43 @@ void geolocator_watchos_request_permission(void) {
     });
 }
 
-void geolocator_watchos_start_updates(int accuracy, double distance_filter) {
+// Whether the Info.plist allows background location updates. CoreLocation
+// treats allowsBackgroundLocationUpdates = YES without it as a fatal error.
+static BOOL _hasBackgroundLocationMode(void) {
+    for (NSString* key in @[ @"UIBackgroundModes", @"WKBackgroundModes" ]) {
+        id modes = [[NSBundle mainBundle] objectForInfoDictionaryKey:key];
+        if ([modes isKindOfClass:[NSArray class]] &&
+            [modes containsObject:@"location"]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static CLActivityType _activityTypeFor(int raw) {
+    if (raw == 6) {
+        if (@available(watchOS 27.0, *)) {
+            return CLActivityTypeMaritime;
+        }
+        return CLActivityTypeOther;
+    }
+    return raw >= CLActivityTypeOther && raw <= CLActivityTypeAirborne
+               ? (CLActivityType)raw
+               : CLActivityTypeOther;
+}
+
+void geolocator_watchos_start_updates(int accuracy, double distance_filter,
+                                      int activity_type, int allow_background) {
     CLLocationManager* m = _manager();
+    BOOL background = allow_background != 0 && _hasBackgroundLocationMode();
     dispatch_async(dispatch_get_main_queue(), ^{
         m.desiredAccuracy = _accuracyFor(accuracy);
         m.distanceFilter =
             distance_filter > 0 ? distance_filter : kCLDistanceFilterNone;
+        if (activity_type != 0) {
+            m.activityType = _activityTypeFor(activity_type);
+        }
+        m.allowsBackgroundLocationUpdates = background;
         [m startUpdatingLocation];
     });
 }
@@ -174,4 +206,37 @@ void geolocator_watchos_stop_updates(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         [m stopUpdatingLocation];
     });
+}
+
+int geolocator_watchos_accuracy_authorization(void) {
+    return _manager().accuracyAuthorization == CLAccuracyAuthorizationFullAccuracy
+               ? 1
+               : 0;
+}
+
+int geolocator_watchos_request_temporary_full_accuracy(const char* purpose_key) {
+    if ([[NSBundle mainBundle] objectForInfoDictionaryKey:
+                                   @"NSLocationTemporaryUsageDescriptionDictionary"] == nil) {
+        return 0;
+    }
+    // Copied now: Dart releases the string as soon as this returns.
+    NSString* key = purpose_key == NULL ? @"" : [NSString stringWithUTF8String:purpose_key];
+    CLLocationManager* m = _manager();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [m requestTemporaryFullAccuracyAuthorizationWithPurposeKey:key
+                                                        completion:^(NSError* error) {
+            os_unfair_lock_lock(&_lock);
+            _accuracyRequestsDone++;
+            os_unfair_lock_unlock(&_lock);
+            _signal();
+        }];
+    });
+    return 1;
+}
+
+int64_t geolocator_watchos_accuracy_requests_done(void) {
+    os_unfair_lock_lock(&_lock);
+    int64_t done = _accuracyRequestsDone;
+    os_unfair_lock_unlock(&_lock);
+    return done;
 }

@@ -1,3 +1,31 @@
+## 0.1.2
+
+**Added**
+
+* `getLocationAccuracy` reports `accuracyAuthorization`: precise or reduced.
+* `requestTemporaryFullAccuracy` asks for full accuracy with a purpose key and
+  waits for the answer. Without `NSLocationTemporaryUsageDescriptionDictionary`
+  in the `Info.plist` it throws `PermissionDefinitionsNotFoundException`, as
+  geolocator does on iOS.
+* `getServiceStatusStream` starts with the current status, then reports each
+  change CoreLocation signals.
+* `AppleSettings` passed to `getPositionStream` or `getCurrentPosition` now
+  reach CoreLocation, read through `toJson()`: `activityType` (for example
+  `ActivityType.fitness` for a run) and `allowBackgroundLocationUpdates`. The
+  latter turns on only when the `Info.plist` has the `location` background
+  mode, because CoreLocation treats it as a fatal error otherwise.
+* Three FFI exports: `geolocator_watchos_accuracy_authorization`,
+  `_request_temporary_full_accuracy` and `_accuracy_requests_done`.
+  `geolocator_watchos_start_updates` takes the activity type and the
+  background flag.
+
+**Docs**
+
+* README and PORTING_REPORT: the three members move out of "Not supported on
+  watchOS"; a section on workouts and background updates.
+* Comments no longer say that Dart polls the cached fix: the delegate wakes
+  Dart.
+
 ## 0.1.1
 
 * README: the install snippet names `geolocator: ^14.1.1` and this version.

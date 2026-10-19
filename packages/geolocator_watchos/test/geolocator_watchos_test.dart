@@ -28,14 +28,45 @@ class _FakeBackend implements GeolocatorWatchosBackend {
   int checkPermission() => status;
   @override
   void requestPermission() => requestPermissionCount++;
+  int lastAccuracyIndex = -1;
+  int lastActivityType = -1;
+  bool? lastAllowBackground;
+
   @override
-  void startUpdates(int accuracyIndex, double distanceFilter) => startCount++;
+  void startUpdates(
+    int accuracyIndex,
+    double distanceFilter, {
+    int activityType = 0,
+    bool allowBackground = false,
+  }) {
+    startCount++;
+    lastAccuracyIndex = accuracyIndex;
+    lastActivityType = activityType;
+    lastAllowBackground = allowBackground;
+  }
+
   @override
   void requestLocation() {}
   @override
   List<double>? readPosition() => fix;
   @override
   void stopUpdates() => stopCount++;
+
+  int accuracy = 1; // precise
+  bool hasTemporaryUsageDictionary = true;
+  int accuracyDone = 0;
+  final List<String> purposeKeys = <String>[];
+
+  @override
+  int accuracyAuthorization() => accuracy;
+  @override
+  bool requestTemporaryFullAccuracy(String purposeKey) {
+    purposeKeys.add(purposeKey);
+    return hasTemporaryUsageDictionary;
+  }
+
+  @override
+  int accuracyRequestsDone() => accuracyDone;
 
   Pointer<NativeFunction<GeolocatorFixNative>>? _callback;
 
@@ -54,6 +85,27 @@ class _FakeBackend implements GeolocatorWatchosBackend {
     fix = next;
     signal();
   }
+}
+
+/// What geolocator_apple's `AppleSettings.toJson()` adds to the base class,
+/// without depending on geolocator_apple here.
+class _AppleLikeSettings extends LocationSettings {
+  const _AppleLikeSettings({
+    required this.activityTypeIndex,
+    required this.allowBackground,
+  }) : super(accuracy: LocationAccuracy.bestForNavigation);
+
+  final int activityTypeIndex;
+  final bool allowBackground;
+
+  @override
+  Map<String, dynamic> toJson() => super.toJson()
+    ..addAll(<String, dynamic>{
+      'pauseLocationUpdatesAutomatically': false,
+      'activityType': activityTypeIndex,
+      'showBackgroundLocationIndicator': false,
+      'allowBackgroundLocationUpdates': allowBackground,
+    });
 }
 
 /// A representative fix: San Francisco, with distinct field values.
@@ -192,5 +244,139 @@ void main() {
     await sub.cancel();
     expect(fake.isRegistered, isFalse);
     expect(fake.stopCount, greaterThanOrEqualTo(1));
+  });
+
+  group('accuracy', () {
+    test('getLocationAccuracy maps the authorization', () async {
+      fake.accuracy = 1;
+      expect(await geo.getLocationAccuracy(), LocationAccuracyStatus.precise);
+      fake.accuracy = 0;
+      expect(await geo.getLocationAccuracy(), LocationAccuracyStatus.reduced);
+    });
+
+    test('requestTemporaryFullAccuracy waits for the answer', () async {
+      fake.accuracy = 0;
+      bool done = false;
+      final Future<LocationAccuracyStatus> pending = geo
+          .requestTemporaryFullAccuracy(purposeKey: 'Route')
+          .then((LocationAccuracyStatus s) {
+        done = true;
+        return s;
+      });
+      await pumpEventQueue();
+      expect(fake.purposeKeys, <String>['Route']);
+      expect(done, isFalse, reason: 'the wearer has not answered yet');
+
+      fake.accuracy = 1;
+      fake.accuracyDone++;
+      fake.signal();
+      expect(await pending, LocationAccuracyStatus.precise);
+      expect(fake.isRegistered, isFalse);
+    });
+
+    test(
+        'requestTemporaryFullAccuracy throws without the Info.plist '
+        'dictionary', () async {
+      fake.hasTemporaryUsageDictionary = false;
+      await expectLater(
+        geo.requestTemporaryFullAccuracy(purposeKey: 'Route'),
+        throwsA(isA<PermissionDefinitionsNotFoundException>()),
+      );
+      expect(fake.isRegistered, isFalse);
+    });
+
+    test('requestTemporaryFullAccuracy returns the accuracy on timeout',
+        () async {
+      GeolocatorWatchos.permissionTimeout = const Duration(milliseconds: 20);
+      fake.accuracy = 0;
+      expect(await geo.requestTemporaryFullAccuracy(purposeKey: 'Route'),
+          LocationAccuracyStatus.reduced);
+      GeolocatorWatchos.permissionTimeout = const Duration(minutes: 2);
+    });
+  });
+
+  group('service status', () {
+    test('starts with the current status, then each change', () async {
+      final List<ServiceStatus> seen = <ServiceStatus>[];
+      final StreamSubscription<ServiceStatus> sub =
+          geo.getServiceStatusStream().listen(seen.add);
+      await pumpEventQueue();
+
+      // The trampoline runs asynchronously and re-reads the status, so each
+      // change is let through before the next.
+      fake.serviceEnabled = false;
+      fake.signal();
+      await pumpEventQueue();
+      fake.signal(); // no change: not repeated
+      await pumpEventQueue();
+      fake.serviceEnabled = true;
+      fake.signal();
+      await pumpEventQueue();
+
+      expect(seen, <ServiceStatus>[
+        ServiceStatus.enabled,
+        ServiceStatus.disabled,
+        ServiceStatus.enabled,
+      ]);
+      await sub.cancel();
+      expect(fake.isRegistered, isFalse);
+    });
+
+    test('a second listener starts with the status now', () async {
+      final StreamSubscription<ServiceStatus> first =
+          geo.getServiceStatusStream().listen((_) {});
+      fake.serviceEnabled = false;
+      expect(await geo.getServiceStatusStream().first, ServiceStatus.disabled);
+      await first.cancel();
+    });
+  });
+
+  group('settings', () {
+    test('plain settings leave the activity type and background off', () async {
+      final StreamSubscription<Position> sub = geo
+          .getPositionStream(
+              locationSettings:
+                  const LocationSettings(accuracy: LocationAccuracy.medium))
+          .listen((_) {});
+      await pumpEventQueue();
+      expect(fake.lastAccuracyIndex, LocationAccuracy.medium.index);
+      expect(fake.lastActivityType, 0);
+      expect(fake.lastAllowBackground, isFalse);
+      await sub.cancel();
+    });
+
+    test('AppleSettings fitness and background reach CoreLocation', () async {
+      final StreamSubscription<Position> sub = geo
+          .getPositionStream(
+              locationSettings: const _AppleLikeSettings(
+                  activityTypeIndex: 1, allowBackground: true))
+          .listen((_) {});
+      await pumpEventQueue();
+      expect(fake.lastActivityType, 3, reason: 'CLActivityTypeFitness');
+      expect(fake.lastAllowBackground, isTrue);
+      expect(fake.lastAccuracyIndex, LocationAccuracy.bestForNavigation.index);
+      await sub.cancel();
+    });
+
+    test('every geolocator activity type maps to its CLActivityType', () async {
+      // automotiveNavigation, fitness, otherNavigation, airborne, other,
+      // maritime.
+      const List<int> expected = <int>[2, 3, 4, 5, 1, 6];
+      for (int i = 0; i < expected.length; i++) {
+        fake.fix = _fix();
+        await geo.getCurrentPosition(
+            locationSettings: _AppleLikeSettings(
+                activityTypeIndex: i, allowBackground: false));
+        expect(fake.lastActivityType, expected[i]);
+      }
+    });
+
+    test('an unknown activity index leaves the default', () async {
+      fake.fix = _fix();
+      await geo.getCurrentPosition(
+          locationSettings: const _AppleLikeSettings(
+              activityTypeIndex: 42, allowBackground: false));
+      expect(fake.lastActivityType, 0);
+    });
   });
 }

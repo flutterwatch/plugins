@@ -5,7 +5,7 @@
 | Aspect | Result |
 |---|---|
 | Implementation | ✅ Working (CoreLocation FFI) |
-| watchOS capability | Full — query, permission, and position stream |
+| watchOS capability | Full — query, permission, accuracy, service status, and position stream. Accuracy, service status and the `AppleSettings` fields are checked by host tests; the temporary full-accuracy prompt and background updates are not yet checked on a physical watch |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
 | Upstream integration test | ○ none upstream (Baseflow manual demo) — verified by building + running the example on-sim |
 | Internal unified demo | ✅ included |
@@ -72,9 +72,10 @@ watchOS" table lists the ✗ rows.
 | `getLastKnownPosition` | ✅ the last cached fix |
 | `getCurrentPosition` / `getPositionStream` | ✅ pushed by the `CLLocationManager` delegate |
 | `distanceBetween` / `bearingBetween` | ✅ the interface's own Dart code |
-| `getServiceStatusStream` | ✗ throws `UnimplementedError` when called: not implemented yet |
-| `getLocationAccuracy` | ✗ fails with `UnimplementedError`: not implemented yet |
-| `requestTemporaryFullAccuracy` | ✗ fails with `UnimplementedError`: not implemented |
+| `getServiceStatusStream` | ✅ starts with the current status, then each change CoreLocation reports |
+| `getLocationAccuracy` | ✅ `accuracyAuthorization`: precise or reduced |
+| `requestTemporaryFullAccuracy` | ◐ `requestTemporaryFullAccuracyAuthorizationWithPurposeKey`; throws `PermissionDefinitionsNotFoundException` without `NSLocationTemporaryUsageDescriptionDictionary`, as on iOS |
+| `AppleSettings` (via `toJson()`) | ◐ `activityType` and `allowBackgroundLocationUpdates` (only with the `location` background mode); `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do not exist on watchOS |
 | `openAppSettings` / `openLocationSettings` | ✗ fail with `UnimplementedError`: watchOS has no settings page an app can open |
 
 ---
