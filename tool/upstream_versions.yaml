@@ -27,6 +27,7 @@ upstreams:
   shared_preferences: 2.5.5
   url_launcher: 6.3.2
   video_player: 2.14.0
+  wakelock_plus: 1.8.1
 
 # A README may name an older major only when it is listed under
 # `exceptions:`, with the exact constraint and the reason. None is listed:
