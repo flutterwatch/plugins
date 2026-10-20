@@ -72,6 +72,7 @@ at the time; the last full run on the Simulator is under
 | [`sensors_plus_watchos`](packages/sensors_plus_watchos) [![pub](https://img.shields.io/pub/v/sensors_plus_watchos.svg)](https://pub.dev/packages/sensors_plus_watchos) | [`sensors_plus`](https://pub.dev/packages/sensors_plus) | CoreMotion (`CMMotionManager`) |
 | [`local_auth_watchos`](packages/local_auth_watchos) [![pub](https://img.shields.io/pub/v/local_auth_watchos.svg)](https://pub.dev/packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | LocalAuthentication (passcode) |
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
+| [`sqflite_watchos`](packages/sqflite_watchos) | [`sqflite`](https://pub.dev/packages/sqflite) | The system SQLite (`libsqlite3`), its C API called from Dart |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
 | [`in_app_purchase_watchos`](packages/in_app_purchase_watchos) [![pub](https://img.shields.io/pub/v/in_app_purchase_watchos.svg)](https://pub.dev/packages/in_app_purchase_watchos) | [`in_app_purchase`](https://pub.dev/packages/in_app_purchase) | StoreKit (`SKProductsRequest`, `SKPaymentQueue`) |
@@ -115,7 +116,7 @@ watch** — plugins built on those are portable, not excluded.
 
 These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
-`sqflite` (SQLite), `flutter_tts` (AVFoundation),
+`flutter_tts` (AVFoundation),
 `wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
 general idle-timer disable), and `cloud_firestore` (the Firebase Apple SDK
 ships Firestore's core as a prebuilt binary with no watchOS slice, so a
