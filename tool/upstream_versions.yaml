@@ -15,6 +15,7 @@ upstreams:
   firebase_core: 4.15.0
   firebase_messaging: 16.7.0
   firebase_storage: 13.6.0
+  flutter_local_notifications: 22.3.2
   flutter_secure_storage: 11.2.0
   games_services: 5.3.0
   geolocator: 14.1.1
