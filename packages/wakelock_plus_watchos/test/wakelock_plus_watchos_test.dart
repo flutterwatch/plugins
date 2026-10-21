@@ -35,6 +35,10 @@ class _FakeBackend implements WakelockPlusWatchosBackend {
   @override
   void start() {
     starts++;
+    if (nativeState != 0) {
+      // As native: a session is already starting or running.
+      return;
+    }
     nativeState = 1;
     final int? into = startsInto;
     if (into != null) {
@@ -99,6 +103,18 @@ void main() {
     await wakelock.toggle(enable: true);
     await wakelock.toggle(enable: true);
     expect(fake.starts, 1);
+  });
+
+  test('two ons in a row both complete when the session runs', () async {
+    WakelockPlusWatchos.startTimeout = const Duration(seconds: 30);
+    final Future<void> first = wakelock.toggle(enable: true);
+    final Future<void> second = wakelock.toggle(enable: true);
+    // Well before the timeout: neither waits for it.
+    await Future.wait(<Future<void>>[first, second])
+        .timeout(const Duration(seconds: 2));
+    expect(fake.starts, 2, reason: 'the second start is a no-op natively');
+    expect(await wakelock.enabled, isTrue);
+    expect(fake.isRegistered, isFalse, reason: 'nothing waits any more');
   });
 
   test('without a session type in the Info.plist, on does nothing', () async {

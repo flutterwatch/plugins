@@ -58,7 +58,11 @@ class WakelockPlusWatchos extends WakelockPlusPlatformInterface {
   /// One trampoline for the life of the app, registered only while a
   /// [toggle] waits; a `NativeCallable` is reclaimed only by `close()`.
   static NativeCallable<Void Function(Int64)>? _callable;
-  static void Function()? _waiter;
+
+  /// What each waiting [toggle] checks when the session changes. Every one
+  /// is woken, so a second `enable()` before the first completes does not
+  /// leave the first waiting out the timeout.
+  static final Set<void Function()> _waiters = <void Function()>{};
 
   /// Registers this implementation as the default `wakelock_plus` platform
   /// implementation on watchOS.
@@ -93,11 +97,14 @@ class WakelockPlusWatchos extends WakelockPlusPlatformInterface {
       }
     }
 
-    _waiter = check;
+    _waiters.add(check);
     final NativeCallable<Void Function(Int64)> callable = _callable ??= () {
       final NativeCallable<Void Function(Int64)> created =
-          NativeCallable<Void Function(Int64)>.listener(
-              (int _) => _waiter?.call());
+          NativeCallable<Void Function(Int64)>.listener((int _) {
+        for (final void Function() waiter in _waiters.toList()) {
+          waiter();
+        }
+      });
       created.keepIsolateAlive = false;
       return created;
     }();
@@ -108,8 +115,10 @@ class WakelockPlusWatchos extends WakelockPlusPlatformInterface {
       check();
       await settled.future.timeout(startTimeout, onTimeout: () {});
     } finally {
-      b.setCallback(nullptr);
-      _waiter = null;
+      _waiters.remove(check);
+      if (_waiters.isEmpty) {
+        b.setCallback(nullptr);
+      }
     }
     if (b.state() == 0 && b.lastError() != 0) {
       throw PlatformException(
