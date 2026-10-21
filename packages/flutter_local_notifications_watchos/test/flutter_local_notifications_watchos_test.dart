@@ -190,6 +190,26 @@ void main() {
         NotificationResponseType.selectedNotificationAction);
   });
 
+  test('a tap queued before initialize reaches the callback once it runs',
+      () async {
+    // What native does with a launch tap watchOS hands over after Dart has
+    // already asked for the launch details.
+    fake.tap(<String, Object?>{
+      'id': 8,
+      'actionId': null,
+      'payload': 'late',
+      'type': 0,
+    });
+    final List<NotificationResponse> taps = <NotificationResponse>[];
+    await plugin.initialize(
+      settings:
+          const InitializationSettings(iOS: DarwinInitializationSettings()),
+      onDidReceiveNotificationResponse: taps.add,
+    );
+    expect(taps.single.id, 8);
+    expect(taps.single.payload, 'late');
+  });
+
   test('the launch tap is reported by getNotificationAppLaunchDetails',
       () async {
     fake.launch = jsonEncode(<String, Object?>{

@@ -39,8 +39,8 @@ flutter-watchos host is (`FlutterWatchOSAppDelegate`), and it rebroadcasts
 "will present" and "did receive response" as NSNotifications. The native
 file observes them from a load-time constructor, so the tap that launched
 the app, which the host does not keep, is caught before Dart runs; a tap
-that arrives before `initialize` is the launch tap, later ones queue for
-Dart. Each notification carries its id, payload and presentation flags in
+that arrives before `initialize` and before Dart reads the launch details
+is the launch tap, later ones queue for the response callback. Each notification carries its id, payload and presentation flags in
 `userInfo` under keys of this package's own, and callbacks for
 notifications without them (pushes, other plugins) are left alone.
 
@@ -53,7 +53,10 @@ flutter_local_notifications' own example app is a phone demo that needs
 `flutter_timezone`, which has no watchOS implementation, so
 `example/lib/main.dart` is a small watch demo instead.
 `example/integration_test/flutter_local_notifications_test.dart` is
-upstream's test, unchanged.
+upstream's test, unchanged. `watchos_notifications_test.dart` next to it
+checks what upstream's does not reach on the watch: the permission flags,
+the launch details, and scheduling, listing and cancelling against the real
+notification center.
 
 ## Interface coverage
 

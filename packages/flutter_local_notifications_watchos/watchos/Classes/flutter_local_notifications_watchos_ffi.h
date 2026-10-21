@@ -82,11 +82,13 @@ FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_active(void);
 
 // {"launched": <bool>, "response": {"id", "actionId", "payload", "type"} or
-// null}: the tap that launched the app, if one did.
+// null}: the tap that launched the app, if it arrived before this was first
+// asked and before `initialize`. A tap after that queues for the response
+// callback instead, so it is never lost.
 FLNW_EXPORT
 char* flutter_local_notifications_watchos_launch_details(void);
 
-// Drains the taps queued since `initialize`, as a JSON array of {"id",
+// Drains the queued taps (all but the launch tap), as a JSON array of {"id",
 // "actionId", "payload", "type"}; NULL when none are queued.
 FLNW_EXPORT
 char* flutter_local_notifications_watchos_poll_responses(void);

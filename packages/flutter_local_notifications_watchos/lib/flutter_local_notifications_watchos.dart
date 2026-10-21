@@ -427,7 +427,11 @@ class FlutterLocalNotificationsWatchos
       ];
 
   /// The tap that launched the app, if one did: a tap that arrived before
-  /// [initialize] ran.
+  /// this was first asked and before [initialize] ran.
+  ///
+  /// The host hands the tap over on the main thread while Dart runs on its
+  /// own, so it can come in after this was asked. It is not lost then: it
+  /// reaches `onDidReceiveNotificationResponse` once [initialize] has run.
   @override
   Future<NotificationAppLaunchDetails?>
       getNotificationAppLaunchDetails() async {

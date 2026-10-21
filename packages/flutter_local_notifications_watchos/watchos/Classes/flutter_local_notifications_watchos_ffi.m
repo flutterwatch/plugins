@@ -32,6 +32,9 @@ static const NSUInteger kResponseBuffer = 64;
 static os_unfair_lock _lock = OS_UNFAIR_LOCK_INIT;
 static flnw_signal_callback _callback = NULL;
 static BOOL _initialized = NO;
+// Set once Dart has asked for the launch tap: a tap after that is no longer
+// the answer it got, so it queues for the response callback instead.
+static BOOL _launchRead = NO;
 static NSDictionary* _launch = nil;
 static NSMutableArray<NSDictionary*>* _responses = nil;
 static NSDictionary* _defaults = nil;
@@ -202,11 +205,14 @@ static void _onResponse(NSNotification* note) {
     };
     os_unfair_lock_lock(&_lock);
     BOOL initialized = _initialized;
-    if (!initialized) {
-        if (_launch == nil) {
-            _launch = response;
-        }
+    if (!initialized && !_launchRead && _launch == nil) {
+        // The tap that launched the app, for getNotificationAppLaunchDetails.
+        _launch = response;
     } else {
+        // For the response callback: at once when `initialize` has run,
+        // otherwise when it does. The host posts the tap from the main thread
+        // while Dart runs on its own, so the launch tap can also come in after
+        // Dart has read the launch details; it must not be lost then.
         if (_responses == nil) {
             _responses = [NSMutableArray array];
         }
@@ -456,15 +462,18 @@ int64_t flutter_local_notifications_watchos_check_permissions(void) {
         getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* s) {
         BOOL enabled = s.authorizationStatus == UNAuthorizationStatusAuthorized ||
                        s.authorizationStatus == UNAuthorizationStatusProvisional;
+        // A comparison is an int in C, so it is cast to BOOL to reach JSON
+        // as true or false, not 1 or 0, which Dart would read as false.
         _finish(request, @{
             @"isEnabled" : @(enabled),
-            @"isAlertEnabled" : @(s.alertSetting == UNNotificationSettingEnabled),
-            @"isSoundEnabled" : @(s.soundSetting == UNNotificationSettingEnabled),
+            @"isAlertEnabled" : @((BOOL)(s.alertSetting == UNNotificationSettingEnabled)),
+            @"isSoundEnabled" : @((BOOL)(s.soundSetting == UNNotificationSettingEnabled)),
             // watchOS shows no badges and has no badge setting.
             @"isBadgeEnabled" : @NO,
             @"isProvisionalEnabled" :
-                @(s.authorizationStatus == UNAuthorizationStatusProvisional),
-            @"isCriticalEnabled" : @(s.criticalAlertSetting == UNNotificationSettingEnabled),
+                @((BOOL)(s.authorizationStatus == UNAuthorizationStatusProvisional)),
+            @"isCriticalEnabled" :
+                @((BOOL)(s.criticalAlertSetting == UNNotificationSettingEnabled)),
         });
     }];
     return request;
@@ -548,9 +557,10 @@ int64_t flutter_local_notifications_watchos_active(void) {
 char* flutter_local_notifications_watchos_launch_details(void) {
     os_unfair_lock_lock(&_lock);
     NSDictionary* launch = _launch;
+    _launchRead = YES;
     os_unfair_lock_unlock(&_lock);
     return _json(@{
-        @"launched" : @(launch != nil),
+        @"launched" : @((BOOL)(launch != nil)),
         @"response" : launch ?: [NSNull null],
     });
 }

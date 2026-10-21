@@ -65,11 +65,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
       },
     );
     setState(() {
-      _status = launch?.didNotificationLaunchApp == true
-          ? 'launched by #${launch!.notificationResponse?.id}'
-          : granted == true
-              ? 'allowed'
-              : 'not allowed';
+      if (launch?.didNotificationLaunchApp == true) {
+        _status = 'launched by #${launch!.notificationResponse?.id}';
+      } else if (!_status.startsWith('tapped')) {
+        // A launch tap that came in after the launch details were read
+        // arrived as a response; keep it on screen.
+        _status = granted == true ? 'allowed' : 'not allowed';
+      }
     });
   }
 
