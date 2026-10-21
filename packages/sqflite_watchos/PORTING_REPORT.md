@@ -56,7 +56,8 @@ replaced by `Platform.operatingSystemVersion`.
 
 sqflite's own example app is built on `sqflite_example_common`, which is
 not published, so `example/lib/main.dart` is a small watch demo instead.
-`example/integration_test/sqflite_test.dart` is upstream's test, unchanged.
+`example/integration_test/sqflite_test.dart` is upstream's test, unchanged but for
+the formatting this repo's CI checks.
 
 ## Protocol coverage
 

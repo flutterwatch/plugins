@@ -189,9 +189,10 @@ void main() {
       for (var i = 0; i < count; i++) {
         final db = dbs[i]!;
         try {
-          final name =
-              (await db.query('Test', columns: ['name'])).first.values.first
-                  as String?;
+          final name = (await db.query('Test', columns: ['name']))
+              .first
+              .values
+              .first as String?;
           expect(name, 'test_$i');
         } finally {
           await db.close();
@@ -325,7 +326,9 @@ void main() {
           return (await db.query(
             'Test',
             orderBy: 'name COLLATE LOCALIZED ASC',
-          )).map((e) => e.values.first!.toString()).toList();
+          ))
+              .map((e) => e.values.first!.toString())
+              .toList();
         }
 
         try {
