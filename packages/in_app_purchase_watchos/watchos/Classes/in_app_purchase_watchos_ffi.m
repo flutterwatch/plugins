@@ -241,7 +241,9 @@ static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
     update[@"error"] = @{
       @"code" : [@(txn.error.code) stringValue],
       @"message" : txn.error.localizedDescription ?: @"",
-      @"canceled" : @(txn.error.code == SKErrorPaymentCancelled),
+      // A comparison is an int in C: cast to BOOL so it reaches JSON as
+      // true or false, which Dart reads `as bool?`, not as 1 or 0.
+      @"canceled" : @((BOOL)(txn.error.code == SKErrorPaymentCancelled)),
     };
   }
   return update;
@@ -297,7 +299,8 @@ static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
     @"error" : @{
       @"code" : [@(error.code) stringValue],
       @"message" : error.localizedDescription ?: @"",
-      @"canceled" : @(error.code == SKErrorPaymentCancelled),
+      // BOOL, not int: see FWIAPBuildUpdate.
+      @"canceled" : @((BOOL)(error.code == SKErrorPaymentCancelled)),
     },
   };
   os_unfair_lock_lock(&s_lock);

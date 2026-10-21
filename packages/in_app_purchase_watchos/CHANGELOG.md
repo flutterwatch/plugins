@@ -1,3 +1,15 @@
+## 0.1.2
+
+* **A failed or cancelled purchase reaches `purchaseStream`.** Native wrote
+  the error's `canceled` flag as a boxed C comparison, which is an `int`, so
+  it reached Dart as `1` or `0` rather than `true` or `false`, and Dart's
+  `as bool?` threw a `TypeError` in the drain timer. Every failed
+  transaction and every failed restore, cancelled or not, was lost that
+  way, together with the rest of the updates drained with it, so the app
+  never heard that the purchase had ended. The flag is cast to `BOOL` now,
+  in both places. Not yet checked against a real failure on the Simulator,
+  which needs StoreKit testing launched from Xcode.
+
 ## 0.1.1
 
 * **The watchOS implementation stays in place under `flutter-watchos test -d`.**
