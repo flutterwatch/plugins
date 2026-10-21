@@ -14,9 +14,9 @@ void main() {
       DarwinInitializationSettings();
   final LinuxInitializationSettings initializationSettingsLinux =
       LinuxInitializationSettings(
-        defaultActionName: 'Open notification',
-        defaultIcon: AssetsLinuxIcon('icons/app_icon.png'),
-      );
+    defaultActionName: 'Open notification',
+    defaultIcon: AssetsLinuxIcon('icons/app_icon.png'),
+  );
   final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
     iOS: initializationSettingsIOS,
@@ -86,10 +86,8 @@ void main() {
         WidgetTester tester,
       ) async {
         expect(
-          flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin
-              >(),
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>(),
           isA<IOSFlutterLocalNotificationsPlugin>(),
         );
       });
@@ -102,8 +100,7 @@ void main() {
           expect(
             flutterLocalNotificationsPlugin
                 .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin
-                >(),
+                    AndroidFlutterLocalNotificationsPlugin>(),
             isA<AndroidFlutterLocalNotificationsPlugin>(),
           );
         },
@@ -118,8 +115,7 @@ void main() {
           expect(
             flutterLocalNotificationsPlugin
                 .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin
-                >(),
+                    AndroidFlutterLocalNotificationsPlugin>(),
             isNull,
           );
         },
@@ -133,8 +129,7 @@ void main() {
           expect(
             flutterLocalNotificationsPlugin
                 .resolvePlatformSpecificImplementation<
-                  IOSFlutterLocalNotificationsPlugin
-                >(),
+                    IOSFlutterLocalNotificationsPlugin>(),
             isNull,
           );
         },

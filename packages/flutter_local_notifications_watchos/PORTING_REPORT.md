@@ -53,7 +53,8 @@ flutter_local_notifications' own example app is a phone demo that needs
 `flutter_timezone`, which has no watchOS implementation, so
 `example/lib/main.dart` is a small watch demo instead.
 `example/integration_test/flutter_local_notifications_test.dart` is
-upstream's test, unchanged. `watchos_notifications_test.dart` next to it
+upstream's test, unchanged but for the formatting this repo's CI checks.
+`watchos_notifications_test.dart` next to it
 checks what upstream's does not reach on the watch: the permission flags,
 the launch details, and scheduling, listing and cancelling against the real
 notification center.
