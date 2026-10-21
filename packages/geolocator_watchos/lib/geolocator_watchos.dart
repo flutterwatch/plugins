@@ -38,7 +38,7 @@ abstract class GeolocatorWatchosBackend {
   ///
   /// [activityType] is a `CLActivityType` raw value, or 0 for CoreLocation's
   /// default. [allowBackground] turns on background updates when the
-  /// `Info.plist` has the `location` background mode, and is ignored
+  /// `Info.plist`'s `UIBackgroundModes` has `location`, and is ignored
   /// otherwise.
   void startUpdates(
     int accuracyIndex,
@@ -85,6 +85,25 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   static Duration permissionTimeout = const Duration(minutes: 2);
 
   static GeolocatorWatchosBackend? _backend;
+
+  /// A cached fix older than this, from before a request, is not an answer
+  /// to it: CoreLocation hands over its last fix first, however old.
+  static const Duration _freshness = Duration(seconds: 5);
+
+  /// Position streams and pending `getCurrentPosition` calls. They share the
+  /// one CLLocationManager, which stops only when the last of them ends.
+  static int _users = 0;
+
+  static void _release() {
+    _users--;
+    if (_users == 0) {
+      _b.stopUpdates();
+    }
+  }
+
+  static double _notBefore() =>
+      (DateTime.now().millisecondsSinceEpoch - _freshness.inMilliseconds)
+          .toDouble();
 
   static GeolocatorWatchosBackend get _b =>
       backendOverride ?? (_backend ??= _FfiBackend());
@@ -184,19 +203,25 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
         locationSettings?.timeLimit ?? const Duration(seconds: 30);
 
     final Completer<Position> completer = Completer<Position>();
+    final double notBefore = _notBefore();
 
     void check() {
       final List<double>? fix = _b.readPosition();
-      if (fix != null && !completer.isCompleted) {
+      if (fix != null && fix[9] >= notBefore && !completer.isCompleted) {
         completer.complete(_toPosition(fix));
       }
     }
 
     final void Function() stopListening = _Notifier.listen(_b, check);
-    _b.requestLocation();
-    _start(locationSettings);
-    // A cached fix may already satisfy this, in which case no delegate callback
-    // is coming and waiting for one would burn the whole time limit.
+    // A position stream already running keeps its own settings; this only
+    // waits for its next fix.
+    if (_users == 0) {
+      _b.requestLocation();
+      _start(locationSettings);
+    }
+    _users++;
+    // A recent cached fix may already satisfy this, in which case no delegate
+    // callback is coming and waiting for one would burn the whole time limit.
     check();
 
     try {
@@ -207,7 +232,7 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
       );
     } finally {
       stopListening();
-      _b.stopUpdates();
+      _release();
     }
   }
 
@@ -217,11 +242,12 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   }) {
     late StreamController<Position> controller;
     List<double>? last;
+    double notBefore = 0;
     void Function()? stopListening;
 
     void emitIfNew() {
       final List<double>? fix = _b.readPosition();
-      if (fix != null && !_sameFix(fix, last)) {
+      if (fix != null && fix[9] >= notBefore && !_sameFix(fix, last)) {
         last = fix;
         controller.add(_toPosition(fix));
       }
@@ -229,8 +255,10 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
     controller = StreamController<Position>.broadcast(
       onListen: () {
+        notBefore = _notBefore();
         stopListening = _Notifier.listen(_b, emitIfNew);
         _start(locationSettings);
+        _users++;
         // CLLocationManager delivers the last known fix immediately on start,
         // which can land before the callback is in place.
         emitIfNew();
@@ -238,7 +266,7 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
       onCancel: () {
         stopListening?.call();
         stopListening = null;
-        _b.stopUpdates();
+        _release();
       },
     );
     return controller.stream;

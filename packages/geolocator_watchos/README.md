@@ -64,8 +64,17 @@ Geolocator.getPositionStream(
 ```
 
 Background updates turn on only when the `Info.plist`'s `UIBackgroundModes`
-(or `WKBackgroundModes`) has `location`; without it the setting is ignored,
-because CoreLocation treats turning it on without that as a fatal error.
+has `location`; without it the setting is ignored, because CoreLocation
+asserts and the app ends otherwise. It has to be `UIBackgroundModes`, also on
+the watch: `location` under `WKBackgroundModes` does not count and still
+trips the assertion.
+
+```xml
+<key>UIBackgroundModes</key>
+<array>
+	<string>location</string>
+</array>
+```
 `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do
 not exist on watchOS and are ignored. An app recording a workout keeps
 running with the wrist down through its `HKWorkoutSession`

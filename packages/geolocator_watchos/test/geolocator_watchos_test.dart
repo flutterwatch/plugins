@@ -119,7 +119,7 @@ List<double> _fix() => <double>[
       1.0, // headingAccuracy
       0.0, // speed
       0.5, // speedAccuracy
-      1700000000000.0, // timestamp millis
+      DateTime.now().millisecondsSinceEpoch.toDouble(), // timestamp millis
     ];
 
 void main() {
@@ -193,7 +193,7 @@ void main() {
 
   test('getCurrentPosition throws when permission is denied', () async {
     fake.status = 2; // denied -> deniedForever
-    expect(
+    await expectLater(
       geo.getCurrentPosition(),
       throwsA(isA<PermissionDeniedException>()),
     );
@@ -201,7 +201,7 @@ void main() {
 
   test('getCurrentPosition times out when no fix arrives', () async {
     fake.fix = null;
-    expect(
+    await expectLater(
       geo.getCurrentPosition(
           locationSettings:
               const LocationSettings(timeLimit: Duration(milliseconds: 10))),
@@ -377,6 +377,58 @@ void main() {
           locationSettings: const _AppleLikeSettings(
               activityTypeIndex: 42, allowBackground: false));
       expect(fake.lastActivityType, 0);
+    });
+  });
+
+  group('sharing the location manager', () {
+    test('a one-shot during a stream leaves the stream running', () async {
+      final StreamSubscription<Position> sub =
+          geo.getPositionStream().listen((_) {});
+      await pumpEventQueue();
+      expect(fake.startCount, 1);
+
+      fake.fix = _fix();
+      await geo.getCurrentPosition();
+      expect(fake.stopCount, 0, reason: 'the stream still needs updates');
+      expect(fake.startCount, 1, reason: 'the stream keeps its settings');
+
+      await sub.cancel();
+      expect(fake.stopCount, 1);
+    });
+
+    test('two streams: the first cancel does not stop the second', () async {
+      final StreamSubscription<Position> a =
+          geo.getPositionStream().listen((_) {});
+      final StreamSubscription<Position> b =
+          geo.getPositionStream().listen((_) {});
+      await pumpEventQueue();
+      await a.cancel();
+      expect(fake.stopCount, 0);
+      await b.cancel();
+      expect(fake.stopCount, 1);
+    });
+
+    test('a stale cached fix is not the current position', () async {
+      fake.fix = _fix()..[9] = 1700000000000.0;
+      final Future<Position> pending = geo.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(timeLimit: Duration(seconds: 2)));
+      await pumpEventQueue();
+      fake.deliver(_fix()..[0] = 10.0);
+      expect((await pending).latitude, 10.0);
+    });
+
+    test('a stream does not start with a stale cached fix', () async {
+      fake.fix = _fix()..[9] = 1700000000000.0;
+      final List<Position> seen = <Position>[];
+      final StreamSubscription<Position> sub =
+          geo.getPositionStream().listen(seen.add);
+      await pumpEventQueue();
+      expect(seen, isEmpty);
+      fake.deliver(_fix()..[0] = 11.0);
+      await pumpEventQueue();
+      expect(seen.single.latitude, 11.0);
+      await sub.cancel();
     });
   });
 }

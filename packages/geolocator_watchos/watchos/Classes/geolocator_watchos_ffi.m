@@ -135,16 +135,13 @@ void geolocator_watchos_request_permission(void) {
 }
 
 // Whether the Info.plist allows background location updates. CoreLocation
-// treats allowsBackgroundLocationUpdates = YES without it as a fatal error.
+// asserts when allowsBackgroundLocationUpdates turns on without "location" in
+// UIBackgroundModes, and on watchOS too it reads only that key: "location"
+// under WKBackgroundModes still trips the assertion (checked on the watchOS
+// 27.0 Simulator).
 static BOOL _hasBackgroundLocationMode(void) {
-    for (NSString* key in @[ @"UIBackgroundModes", @"WKBackgroundModes" ]) {
-        id modes = [[NSBundle mainBundle] objectForInfoDictionaryKey:key];
-        if ([modes isKindOfClass:[NSArray class]] &&
-            [modes containsObject:@"location"]) {
-            return YES;
-        }
-    }
-    return NO;
+    id modes = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIBackgroundModes"];
+    return [modes isKindOfClass:[NSArray class]] && [modes containsObject:@"location"];
 }
 
 static CLActivityType _activityTypeFor(int raw) {

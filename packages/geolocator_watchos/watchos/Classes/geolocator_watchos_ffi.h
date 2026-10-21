@@ -40,8 +40,8 @@ void geolocator_watchos_request_permission(void);
 // metres (<= 0 means none). `activity_type` is a CLActivityType raw value, or
 // 0 to leave CoreLocation's default. A nonzero `allow_background` turns on
 // allowsBackgroundLocationUpdates, but only when the Info.plist's
-// UIBackgroundModes or WKBackgroundModes has "location": CoreLocation treats
-// turning it on without that as a fatal error.
+// UIBackgroundModes has "location": CoreLocation asserts otherwise, and does
+// so even when WKBackgroundModes has it.
 GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_start_updates(int accuracy, double distance_filter,
                                       int activity_type, int allow_background);

@@ -75,7 +75,7 @@ watchOS" table lists the ✗ rows.
 | `getServiceStatusStream` | ✅ starts with the current status, then each change CoreLocation reports |
 | `getLocationAccuracy` | ✅ `accuracyAuthorization`: precise or reduced |
 | `requestTemporaryFullAccuracy` | ◐ `requestTemporaryFullAccuracyAuthorizationWithPurposeKey`; throws `PermissionDefinitionsNotFoundException` without `NSLocationTemporaryUsageDescriptionDictionary`, as on iOS |
-| `AppleSettings` (via `toJson()`) | ◐ `activityType` and `allowBackgroundLocationUpdates` (only with the `location` background mode); `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do not exist on watchOS |
+| `AppleSettings` (via `toJson()`) | ◐ `activityType` and `allowBackgroundLocationUpdates` (only with `location` in `UIBackgroundModes`); `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do not exist on watchOS |
 | `openAppSettings` / `openLocationSettings` | ✗ fail with `UnimplementedError`: watchOS has no settings page an app can open |
 
 ---

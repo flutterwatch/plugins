@@ -12,12 +12,25 @@
 * `AppleSettings` passed to `getPositionStream` or `getCurrentPosition` now
   reach CoreLocation, read through `toJson()`: `activityType` (for example
   `ActivityType.fitness` for a run) and `allowBackgroundLocationUpdates`. The
-  latter turns on only when the `Info.plist` has the `location` background
-  mode, because CoreLocation treats it as a fatal error otherwise.
+  latter turns on only when the `Info.plist`'s `UIBackgroundModes` has
+  `location`, because CoreLocation asserts otherwise; `location` under
+  `WKBackgroundModes` does not count (checked on the watchOS 27.0
+  Simulator).
 * Three FFI exports: `geolocator_watchos_accuracy_authorization`,
   `_request_temporary_full_accuracy` and `_accuracy_requests_done`.
   `geolocator_watchos_start_updates` takes the activity type and the
   background flag.
+
+**Fixed**
+
+* `getCurrentPosition` no longer stops a position stream that is running:
+  streams and pending calls share the one `CLLocationManager`, which stops
+  only when the last of them ends, and a call during a stream waits for the
+  stream's next fix without changing its settings. Cancelling one of two
+  streams no longer stops the other.
+* A cached fix more than 5 seconds older than the request is no longer
+  returned by `getCurrentPosition`, nor emitted first by a new stream:
+  CoreLocation hands over its last fix first, however old.
 
 **Docs**
 
