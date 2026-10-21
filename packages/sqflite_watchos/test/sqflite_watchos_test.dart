@@ -428,6 +428,18 @@ void main() {
       expect(await factory.databaseExists('exists.db'), isFalse);
     });
 
+    test('deleteDatabase deletes the files SQLite keeps beside it', () async {
+      final String path = p.join(dir.path, 'sidecars.db');
+      final List<File> files = <File>[
+        for (final String suffix in <String>['', '-wal', '-shm', '-journal'])
+          File('$path$suffix')..writeAsStringSync('x'),
+      ];
+      await factory.deleteDatabase('sidecars.db');
+      for (final File file in files) {
+        expect(file.existsSync(), isFalse, reason: file.path);
+      }
+    });
+
     test('deleting an open single-instance database closes it first', () async {
       Database db = await openFresh('delete_open.db');
       await db.setVersion(1);

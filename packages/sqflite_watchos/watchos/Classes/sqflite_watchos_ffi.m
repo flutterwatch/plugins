@@ -9,20 +9,24 @@
 
 #import <Foundation/Foundation.h>
 #import <sqlite3.h>
+#import <string.h>
 
 const char* sqflite_watchos_databases_path(void) {
-    static NSString* path;
+    static char* path;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
-                                                   NSUserDomainMask, YES)
-                   .firstObject;
-        if (path == nil) {
-            path = NSTemporaryDirectory();
+        NSString* directory =
+            NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
+                                                NSUserDomainMask, YES)
+                .firstObject;
+        if (directory == nil) {
+            directory = NSTemporaryDirectory();
         }
+        // A copy of its own: fileSystemRepresentation's buffer is only
+        // autoreleased, whatever keeps the string alive.
+        path = strdup(directory.fileSystemRepresentation);
     });
-    // `path` is never released, so its UTF-8 buffer stays valid.
-    return path.fileSystemRepresentation;
+    return path;
 }
 
 const char* sqflite_watchos_sqlite_version(void) {

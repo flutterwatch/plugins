@@ -270,13 +270,27 @@ class SqfliteWatchosHandler {
     if (open != null) {
       _forget(open);
     }
-    try {
-      final File file = File(path);
-      if (file.existsSync()) {
-        file.deleteSync();
+    if (path == _inMemory) {
+      return;
+    }
+    // With the files SQLite keeps beside it, as sqflite_darwin deletes them:
+    // a write-ahead log left behind would be replayed into a new database
+    // created at the same path.
+    for (final String suffix in const <String>[
+      '',
+      '-wal',
+      '-shm',
+      '-journal'
+    ]) {
+      try {
+        final File file = File('$path$suffix');
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      } catch (_) {
+        // As on every platform: deleting what cannot be deleted is not an
+        // error.
       }
-    } catch (_) {
-      // As on every platform: deleting what cannot be deleted is not an error.
     }
   }
 

@@ -45,7 +45,7 @@ await db.insert('lap', <String, Object?>{'at': DateTime.now().millisecondsSinceE
 | `queryCursor` | supported, page by page |
 | `batch` | supported, with `noResult` and `continueOnError` |
 | `transaction` | supported; calls from outside an open transaction wait until it ends |
-| `databaseExists` / `deleteDatabase` / `getDatabasesPath` | supported; deleting an open single-instance database closes it first |
+| `databaseExists` / `deleteDatabase` / `getDatabasesPath` | supported; deleting an open single-instance database closes it first, and the `-wal`, `-shm` and `-journal` files beside it go too, as on iOS |
 | `readDatabaseBytes` / `writeDatabaseBytes` | supported |
 | `DatabaseException` helpers | `isUniqueConstraintError`, `isNoSuchTableError`, `isSyntaxError`, `isOpenFailedError`, `isReadOnlyError`, `isDatabaseClosedError`; `getResultCode()` is SQLite's extended result code |
 
