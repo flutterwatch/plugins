@@ -183,6 +183,29 @@ Future<void> _expectInstallCallLeftOut(
   expect(seen, <String?>['uid-1', null]);
 }
 
+// A signed-in start and a sign-out before the SDK's install call runs: that
+// call reports the signed-out state, and for authStateChanges it is the only
+// report, so it is emitted. The sign-out's own report that follows is not.
+Future<void> _expectSignOutInInstallCallReported(
+  _FakeBindings fake,
+  Stream<UserPlatform?> Function() changes,
+) async {
+  fake.snapshot = <String, Object?>{
+    'authGeneration': 0,
+    'idTokenGeneration': 0,
+    'user': _userMap(),
+  };
+  final List<String?> seen = _listenUids(changes);
+  await Future<void>.delayed(const Duration(milliseconds: 20));
+  expect(seen, <String?>['uid-1']);
+
+  await _report(fake, 1, null);
+  expect(seen, <String?>['uid-1', null]);
+
+  await _report(fake, 2, null);
+  expect(seen, <String?>['uid-1', null]);
+}
+
 void main() {
   late _FakeBindings fake;
   late FirebaseAuthWatchos auth;
@@ -412,6 +435,19 @@ void main() {
 
   test('userChanges leaves out the listener install call', () async {
     await _expectInstallCallLeftOut(fake, auth.userChanges);
+  });
+
+  test('authStateChanges reports a sign-out the install call carries',
+      () async {
+    await _expectSignOutInInstallCallReported(fake, auth.authStateChanges);
+  });
+
+  test('idTokenChanges reports a sign-out the install call carries', () async {
+    await _expectSignOutInInstallCallReported(fake, auth.idTokenChanges);
+  });
+
+  test('userChanges reports a sign-out the install call carries', () async {
+    await _expectSignOutInInstallCallReported(fake, auth.userChanges);
   });
 
   test('delegateFor returns one instance per app', () {
