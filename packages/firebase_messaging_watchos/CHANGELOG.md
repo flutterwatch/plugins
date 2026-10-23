@@ -8,8 +8,16 @@
 * The watch still links the Firebase Apple SDK 11.x through
   `watchos/Package.swift`. The move to SDK 13 in `firebase_messaging` 17.0.0
   is for its iOS and macOS code.
+* `register`, `unregister`, `onRegistered` and `onUnregistered`, the Firebase
+  Installation ID registration that `firebase_messaging` 17.0.0 adds, are not
+  implemented on watchOS yet and throw `UnimplementedError`. They need
+  `FIRMessaging`'s `registerWithCompletion:` and `unregisterWithCompletion:`,
+  which the Firebase Apple SDK has from 12.16.0, and this package links 11.x.
+  `getToken`, `onTokenRefresh` and `deleteToken`, which 17.0.0 deprecates in
+  their favour, keep working. A new test checks the four new members.
 * README: the install snippet names `firebase_core: ^5.1.0`,
-  `firebase_messaging: ^17.0.1` and this version.
+  `firebase_messaging: ^17.0.1` and this version, and the implemented surface
+  lists the members that are not implemented yet.
 * Example: `pubspec.yaml` names `firebase_messaging: ^17.0.1` and
   `firebase_core: ^5.1.0`. Its code is unchanged and still calls `getToken`
   and `onTokenRefresh`. No native code changed, and the example was not

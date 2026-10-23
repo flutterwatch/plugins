@@ -60,6 +60,14 @@ specified before fetching FCM Token").
 isolate to run a handler in — and `setDeliveryMetricsExportToBigQuery` is
 Android/web only.
 
+**Not implemented yet** (they throw `UnimplementedError`): `register`,
+`unregister`, `onRegistered` and `onUnregistered`, the Firebase Installation
+ID registration that `firebase_messaging` 17 adds. They need `FIRMessaging`'s
+`registerWithCompletion:` and `unregisterWithCompletion:`, which the Firebase
+Apple SDK has from 12.16.0, and this package links 11.x. On the watch, use
+`getToken` and `onTokenRefresh`, which `firebase_messaging` 17 deprecates but
+which keep working here.
+
 ## Usage
 
 This is a federated plugin implementation. Apps that already depend on
