@@ -12,6 +12,9 @@
   method-channel task that keeps the metadata of the snapshot before it, is
   in code this package does not use. A watchOS task snapshot carries metadata
   only when an upload succeeds, as before.
+* `firebase_storage` 14.0.1 keeps the custom metadata of a data URL upload.
+  `putString` passes the metadata it is given to the native upload, and a new
+  test checks that the custom metadata arrives.
 * README: the install snippet names `firebase_core: ^5.1.0`,
   `firebase_storage: ^14.0.1` and this version.
 * Example: `pubspec.yaml` names `firebase_storage: ^14.0.1` and
