@@ -20,6 +20,11 @@
 static NSString* const kIdKey = @"dev.flutterwatch.flnw.id";
 static NSString* const kPayloadKey = @"dev.flutterwatch.flnw.payload";
 static NSString* const kPresentKey = @"dev.flutterwatch.flnw.present";
+// DarwinNotificationDetails.dismissIsolate's index, when the notification
+// asked for its dismissal to be reported.
+static NSString* const kDismissKey = @"dev.flutterwatch.flnw.dismiss";
+// The notification's category's actions that open the app.
+static NSString* const kForegroundKey = @"dev.flutterwatch.flnw.foreground";
 
 // Posted by the flutter-watchos host's application delegate.
 static NSString* const kWillPresent = @"FlutterWatchOSNotificationWillPresent";
@@ -38,6 +43,9 @@ static BOOL _launchRead = NO;
 static NSDictionary* _launch = nil;
 static NSMutableArray<NSDictionary*>* _responses = nil;
 static NSDictionary* _defaults = nil;
+// Category identifier -> the identifiers of its actions that open the app, as
+// the last `initialize` set them.
+static NSDictionary<NSString*, NSArray<NSString*>*>* _foregroundActions = nil;
 static NSMutableDictionary<NSNumber*, id>* _results = nil;
 static int64_t _nextRequest = 1;
 
@@ -137,10 +145,23 @@ static UNAuthorizationOptions _authorizationOptions(NSDictionary* request) {
     if (_flag(request, @"critical")) {
         options |= UNAuthorizationOptionCriticalAlert;
     }
+    if (_flag(request, @"providesAppNotificationSettings")) {
+        options |= UNAuthorizationOptionProvidesAppNotificationSettings;
+    }
     return options;
 }
 
 static void _requestAuthorization(int64_t request, UNAuthorizationOptions options) {
+    // As upstream: with none of alert, sound, badge, critical and app
+    // notification settings asked for, nothing is asked and the answer is no.
+    UNAuthorizationOptions asked = UNAuthorizationOptionAlert | UNAuthorizationOptionSound |
+                                   UNAuthorizationOptionBadge |
+                                   UNAuthorizationOptionCriticalAlert |
+                                   UNAuthorizationOptionProvidesAppNotificationSettings;
+    if ((options & asked) == 0) {
+        _finish(request, @{@"granted" : @NO});
+        return;
+    }
     [[UNUserNotificationCenter currentNotificationCenter]
         requestAuthorizationWithOptions:options
                       completionHandler:^(BOOL granted, NSError* error) {
@@ -163,18 +184,13 @@ static void _onWillPresent(NSNotification* note) {
     }
     id own = payload[kPresentKey];
     NSDictionary* flags = [own isKindOfClass:[NSDictionary class]] ? own : @{};
-    BOOL alert = _present(flags, @"presentAlert");
-    BOOL banner = [flags[@"presentBanner"] isKindOfClass:[NSNumber class]]
-                      ? [flags[@"presentBanner"] boolValue]
-                      : alert && _present(flags, @"presentBanner");
-    BOOL list = [flags[@"presentList"] isKindOfClass:[NSNumber class]]
-                    ? [flags[@"presentList"] boolValue]
-                    : alert && _present(flags, @"presentList");
+    // As upstream from iOS 14 on: the banner and the list have flags of their
+    // own, and presentAlert, which the watch has no option for, is not read.
     UNNotificationPresentationOptions presentation = 0;
-    if (banner) {
+    if (_present(flags, @"presentBanner")) {
         presentation |= UNNotificationPresentationOptionBanner;
     }
-    if (list) {
+    if (_present(flags, @"presentList")) {
         presentation |= UNNotificationPresentationOptionList;
     }
     if (_present(flags, @"presentSound")) {
@@ -195,6 +211,17 @@ static void _onResponse(NSNotification* note) {
     BOOL tapped = action == nil ||
                   [action isEqualToString:UNNotificationDefaultActionIdentifier];
     BOOL dismissed = [action isEqualToString:UNNotificationDismissActionIdentifier];
+    id dismissIsolate = payload[kDismissKey];
+    if (dismissed && ![dismissIsolate isKindOfClass:[NSNumber class]]) {
+        // As upstream: a dismissal is reported only for a notification whose
+        // details set dismissIsolate.
+        return;
+    }
+    id foreground = payload[kForegroundKey];
+    // What upstream takes as the launch: a tap on the notification, or an
+    // action that opens the app. Background actions and dismissals never are.
+    BOOL opensApp = tapped || (!dismissed && [foreground isKindOfClass:[NSArray class]] &&
+                               [foreground containsObject:action]);
     NSDictionary* response = @{
         @"id" : payload[kIdKey],
         @"actionId" : tapped || dismissed ? [NSNull null] : action,
@@ -205,14 +232,19 @@ static void _onResponse(NSNotification* note) {
     };
     os_unfair_lock_lock(&_lock);
     BOOL initialized = _initialized;
-    if (!initialized && !_launchRead && _launch == nil) {
+    if (!initialized && opensApp && !_launchRead && _launch == nil) {
         // The tap that launched the app, for getNotificationAppLaunchDetails.
         _launch = response;
+    } else if (!initialized && dismissed && [dismissIsolate integerValue] == 0) {
+        // As upstream: a dismissal for the main isolate that comes in before
+        // `initialize` is not kept.
     } else {
         // For the response callback: at once when `initialize` has run,
-        // otherwise when it does. The host posts the tap from the main thread
-        // while Dart runs on its own, so the launch tap can also come in after
-        // Dart has read the launch details; it must not be lost then.
+        // otherwise when it does. Background actions and dismissals go there
+        // too, since the watch app has no background isolate. The host posts
+        // the tap from the main thread while Dart runs on its own, so the
+        // launch tap can also come in after Dart has read the launch details;
+        // it must not be lost then.
         if (_responses == nil) {
             _responses = [NSMutableArray array];
         }
@@ -346,9 +378,15 @@ static UNMutableNotificationContent* _content(NSDictionary* json, NSError** erro
             present[key] = details[key];
         }
     }
-    // watchOS plays only the default sound: there is no soundNamed: here.
+    // watchOS plays only the default sound: there is no soundNamed: here, nor
+    // criticalSoundNamed:. A critical alert's volume is kept, as upstream
+    // keeps it, on the default critical sound.
     if (_present(present, @"presentSound")) {
         content.sound = [UNNotificationSound defaultSound];
+    }
+    if ([details[@"criticalSoundVolume"] isKindOfClass:[NSNumber class]]) {
+        content.sound = [UNNotificationSound
+            defaultCriticalSoundWithAudioVolume:[details[@"criticalSoundVolume"] floatValue]];
     }
     if (@available(watchOS 8.0, *)) {
         id level = details[@"interruptionLevel"];
@@ -392,11 +430,24 @@ static UNMutableNotificationContent* _content(NSDictionary* json, NSError** erro
         [attachments addObject:attachment];
     }
     content.attachments = attachments;
-    content.userInfo = @{
+    NSMutableDictionary* info = [@{
         kIdKey : json[@"id"] ?: @0,
         kPayloadKey : [json[@"payload"] isKindOfClass:[NSString class]] ? json[@"payload"] : @"",
         kPresentKey : present,
-    };
+    } mutableCopy];
+    if ([details[@"dismissIsolate"] isKindOfClass:[NSNumber class]]) {
+        info[kDismissKey] = details[@"dismissIsolate"];
+    }
+    // Kept with the notification, since a response can arrive in a launch
+    // that has not run `initialize` yet.
+    os_unfair_lock_lock(&_lock);
+    NSArray<NSString*>* foreground =
+        content.categoryIdentifier.length > 0 ? _foregroundActions[content.categoryIdentifier] : nil;
+    os_unfair_lock_unlock(&_lock);
+    if (foreground.count > 0) {
+        info[kForegroundKey] = foreground;
+    }
+    content.userInfo = info;
     return content;
 }
 
@@ -423,10 +474,20 @@ int64_t flutter_local_notifications_watchos_initialize(const char* json) {
     int64_t request = _newRequest();
     NSDictionary* settings = _parse(json);
     NSMutableSet<UNNotificationCategory*>* categories = [NSMutableSet set];
+    NSMutableDictionary<NSString*, NSArray<NSString*>*>* foreground =
+        [NSMutableDictionary dictionary];
     for (NSDictionary* category in settings[@"categories"]) {
         if ([category isKindOfClass:[NSDictionary class]] &&
             [category[@"identifier"] isKindOfClass:[NSString class]]) {
-            [categories addObject:_category(category)];
+            UNNotificationCategory* built = _category(category);
+            [categories addObject:built];
+            NSMutableArray<NSString*>* opening = [NSMutableArray array];
+            for (UNNotificationAction* action in built.actions) {
+                if ((action.options & UNNotificationActionOptionForeground) != 0) {
+                    [opening addObject:action.identifier];
+                }
+            }
+            foreground[built.identifier] = opening;
         }
     }
     if (categories.count > 0) {
@@ -436,17 +497,13 @@ int64_t flutter_local_notifications_watchos_initialize(const char* json) {
     os_unfair_lock_lock(&_lock);
     id defaults = settings[@"defaults"];
     _defaults = [defaults isKindOfClass:[NSDictionary class]] ? defaults : nil;
+    _foregroundActions = foreground;
     _initialized = YES;
     os_unfair_lock_unlock(&_lock);
 
     id asked = settings[@"request"];
-    UNAuthorizationOptions options =
-        _authorizationOptions([asked isKindOfClass:[NSDictionary class]] ? asked : @{});
-    if (options == 0) {
-        _finish(request, @{@"granted" : @YES});
-    } else {
-        _requestAuthorization(request, options);
-    }
+    _requestAuthorization(
+        request, _authorizationOptions([asked isKindOfClass:[NSDictionary class]] ? asked : @{}));
     return request;
 }
 
@@ -460,8 +517,8 @@ int64_t flutter_local_notifications_watchos_check_permissions(void) {
     int64_t request = _newRequest();
     [[UNUserNotificationCenter currentNotificationCenter]
         getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* s) {
-        BOOL enabled = s.authorizationStatus == UNAuthorizationStatusAuthorized ||
-                       s.authorizationStatus == UNAuthorizationStatusProvisional;
+        // As upstream: provisional is reported apart, not as enabled.
+        BOOL enabled = s.authorizationStatus == UNAuthorizationStatusAuthorized;
         // A comparison is an int in C, so it is cast to BOOL to reach JSON
         // as true or false, not 1 or 0, which Dart would read as false.
         _finish(request, @{
@@ -474,6 +531,7 @@ int64_t flutter_local_notifications_watchos_check_permissions(void) {
                 @((BOOL)(s.authorizationStatus == UNAuthorizationStatusProvisional)),
             @"isCriticalEnabled" :
                 @((BOOL)(s.criticalAlertSetting == UNNotificationSettingEnabled)),
+            @"isProvidesAppNotificationSettingsEnabled" : @(s.providesAppNotificationSettings),
         });
     }];
     return request;
@@ -498,7 +556,10 @@ int64_t flutter_local_notifications_watchos_add(const char* json) {
     [[UNUserNotificationCenter currentNotificationCenter]
         addNotificationRequest:unRequest
          withCompletionHandler:^(NSError* addError) {
-        if (addError != nil) {
+        // As upstream 22.3.2: watchOS 27, like iOS 27, reports in
+        // UNErrorDomain what earlier versions let pass silently, such as
+        // notifications not being allowed, so those errors are ignored.
+        if (addError != nil && ![addError.domain isEqualToString:UNErrorDomain]) {
             _fail(request, @"add", addError);
             return;
         }

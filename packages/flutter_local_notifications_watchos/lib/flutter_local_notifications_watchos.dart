@@ -151,6 +151,8 @@ class FlutterLocalNotificationsWatchos
               'threadIdentifier': d.threadIdentifier,
               'categoryIdentifier': d.categoryIdentifier,
               'interruptionLevel': d.interruptionLevel?.index,
+              'criticalSoundVolume': d.criticalSoundVolume,
+              'dismissIsolate': d.dismissIsolate?.index,
               'attachments': d.attachments
                   ?.map((DarwinNotificationAttachment a) => <String, Object?>{
                         'filePath': a.filePath,
@@ -187,7 +189,12 @@ class FlutterLocalNotificationsWatchos
   ///
   /// [onDidReceiveBackgroundNotificationResponse] is not used: on the watch
   /// every tap reaches the app's own isolate, through
-  /// [onDidReceiveNotificationResponse].
+  /// [onDidReceiveNotificationResponse]. That includes background actions,
+  /// and dismissals of notifications whose details set `dismissIsolate`,
+  /// whichever isolate it names.
+  ///
+  /// As on iOS, the result is false when [settings] ask for none of the
+  /// alert, sound, badge, critical and app-settings permissions.
   @override
   Future<bool?> initialize({
     required DarwinInitializationSettings settings,
@@ -233,6 +240,8 @@ class FlutterLocalNotificationsWatchos
           'badge': settings.requestBadgePermission,
           'provisional': settings.requestProvisionalPermission,
           'critical': settings.requestCriticalPermission,
+          'providesAppNotificationSettings':
+              settings.requestProvidesAppNotificationSettings,
         },
       },
     )));
@@ -258,6 +267,7 @@ class FlutterLocalNotificationsWatchos
         'badge': badge,
         'provisional': provisional,
         'critical': critical,
+        'providesAppNotificationSettings': providesAppNotificationSettings,
       },
     )));
     return (result as Map<Object?, Object?>?)?['granted'] == true;
@@ -275,7 +285,8 @@ class FlutterLocalNotificationsWatchos
       isBadgeEnabled: flag('isBadgeEnabled'),
       isProvisionalEnabled: flag('isProvisionalEnabled'),
       isCriticalEnabled: flag('isCriticalEnabled'),
-      isProvidesAppNotificationSettingsEnabled: false,
+      isProvidesAppNotificationSettingsEnabled:
+          flag('isProvidesAppNotificationSettingsEnabled'),
     );
   }
 
@@ -426,8 +437,10 @@ class FlutterLocalNotificationsWatchos
             ),
       ];
 
-  /// The tap that launched the app, if one did: a tap that arrived before
-  /// this was first asked and before [initialize] ran.
+  /// The tap that launched the app, if one did: a tap on a notification, or
+  /// on an action that opens the app, that arrived before this was first
+  /// asked and before [initialize] ran. A background action or a dismissal
+  /// is never the launch.
   ///
   /// The host hands the tap over on the main thread while Dart runs on its
   /// own, so it can come in after this was asked. It is not lost then: it

@@ -3,9 +3,13 @@
 // found in the LICENSE file.
 //
 // Supplementary watchOS test, next to upstream's
-// flutter_local_notifications_test.dart (which it does not replace). A run
-// that installs the app afresh asks for permission to notify: allow it, as
-// the permission test expects.
+// flutter_local_notifications_test.dart (which it does not replace).
+//
+// The cases that need permission to notify ask for it, which shows a system
+// prompt with no one to answer it on an unattended run, so they run only with
+// --dart-define=FLNW_PROMPT=true, where someone allows the prompt (a run
+// installs the app afresh, so it comes back each time). Without it the suite
+// asks for nothing and those cases are skipped.
 //
 // Native hands every answer to Dart as JSON, and a flag that reaches JSON as
 // 1 instead of true reads as false in Dart. These tests read the flags from
@@ -17,6 +21,11 @@ import 'package:integration_test/integration_test.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+/// Whether someone answers the permission prompt on this run
+/// (`--dart-define=FLNW_PROMPT=true`). The cases that need permission to
+/// notify are skipped without it.
+const bool _prompt = bool.fromEnvironment('FLNW_PROMPT');
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final FlutterLocalNotificationsPlugin plugin =
@@ -25,8 +34,13 @@ void main() {
   setUpAll(() async {
     tzdata.initializeTimeZones();
     await plugin.initialize(
-      settings:
-          const InitializationSettings(iOS: DarwinInitializationSettings()),
+      settings: const InitializationSettings(
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: _prompt,
+          requestSoundPermission: _prompt,
+          requestBadgePermission: _prompt,
+        ),
+      ),
     );
   });
 
@@ -49,7 +63,7 @@ void main() {
     expect(options!.isEnabled, isTrue);
     expect(options.isAlertEnabled, isTrue);
     expect(options.isBadgeEnabled, isFalse);
-  });
+  }, skip: !_prompt);
 
   testWidgets('a scheduled notification is pending until it is cancelled',
       (WidgetTester _) async {
@@ -74,7 +88,7 @@ void main() {
           .where((PendingNotificationRequest p) => p.id == 1001),
       isEmpty,
     );
-  });
+  }, skip: !_prompt);
 
   testWidgets('a shown notification is listed as delivered',
       (WidgetTester _) async {
@@ -90,5 +104,5 @@ void main() {
     }
     expect(active.singleWhere((ActiveNotification n) => n.id == 1002).title,
         'Lap 1');
-  });
+  }, skip: !_prompt);
 }

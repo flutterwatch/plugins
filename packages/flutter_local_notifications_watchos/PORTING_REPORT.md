@@ -57,7 +57,9 @@ upstream's test, unchanged but for the formatting this repo's CI checks.
 `watchos_notifications_test.dart` next to it
 checks what upstream's does not reach on the watch: the permission flags,
 the launch details, and scheduling, listing and cancelling against the real
-notification center.
+notification center. The cases that need permission ask for it only with
+`--dart-define=FLNW_PROMPT=true`, when someone answers the prompt; without it
+they are skipped and the suite asks for nothing, so it cannot hang.
 
 ## Interface coverage
 
@@ -67,10 +69,10 @@ Every member of `IOSFlutterLocalNotificationsPlugin` and the
 
 | Member | watchOS |
 |---|---|
-| `initialize` | ◐ `onDidReceiveBackgroundNotificationResponse` is not called |
-| `requestPermissions` | ✅ `carPlay` and `providesAppNotificationSettings` have nothing to ask for |
-| `checkPermissions` | ◐ `isBadgeEnabled` is always false |
-| `show` / `zonedSchedule` / `periodicallyShow` / `periodicallyShowWithDuration` | ◐ the default sound only |
+| `initialize` | ◐ `onDidReceiveBackgroundNotificationResponse` is not called: background actions, and dismissals of notifications with `dismissIsolate` set, reach `onDidReceiveNotificationResponse` |
+| `requestPermissions` | ✅ `providesAppNotificationSettings` (watchOS 5+) is asked for; `carPlay` has nothing to ask for. False when none of alert, sound, badge, critical and app settings is asked, as on iOS |
+| `checkPermissions` | ◐ `isBadgeEnabled` is always false; `isEnabled` is for full authorization only, provisional is `isProvisionalEnabled`, as on iOS |
+| `show` / `zonedSchedule` / `periodicallyShow` / `periodicallyShowWithDuration` | ◐ the default sound only; `criticalSoundVolume` plays the default critical sound at that volume, since watchOS has no named critical sound. A missing permission is ignored, as upstream 22.3.2 ignores `UNErrorDomain` errors |
 | `cancel` / `cancelAll` / `cancelAllPendingNotifications` | ✅ |
 | `pendingNotificationRequests` / `getActiveNotifications` | ✅ |
 | `getNotificationAppLaunchDetails` | ✅ |

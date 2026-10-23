@@ -50,12 +50,25 @@ missing.
 | `cancel` / `cancelAll` / `cancelAllPendingNotifications` | supported |
 | `pendingNotificationRequests` / `getActiveNotifications` | supported, for this package's notifications |
 | `getNotificationAppLaunchDetails` | supported: the tap that launched the app. A launch tap that comes in only after this was asked is not lost: it reaches `onDidReceiveNotificationResponse` once `initialize` has run |
-| `onDidReceiveNotificationResponse` | taps and action taps, with the notification's id and payload. A banner shown while the app is in front closes when tapped and sends no response: watchOS does not report that tap |
+| `onDidReceiveNotificationResponse` | taps and action taps, with the notification's id and payload; background actions too, since the watch app has no background isolate, and dismissals of notifications whose details set `dismissIsolate`. A banner shown while the app is in front closes when tapped and sends no response: watchOS does not report that tap |
 
-Of `DarwinNotificationDetails`, these reach the notification: the five
-`present…` flags (for a notification arriving while the app is in front),
-`subtitle`, `threadIdentifier`, `categoryIdentifier`, `badgeNumber`,
-`interruptionLevel` and `attachments`.
+Of `DarwinNotificationDetails`, these reach the notification: the
+`present…` flags (for a notification arriving while the app is in front;
+`presentBanner` and `presentList` decide, and `presentAlert` is not read, as
+on iOS 14 and later), `subtitle`, `threadIdentifier`, `categoryIdentifier`,
+`badgeNumber`, `interruptionLevel`, `criticalSoundVolume`, `dismissIsolate`
+and `attachments`.
+
+`InterruptionLevel.timeSensitive` needs the Time Sensitive Notifications
+capability (`com.apple.developer.usernotifications.time-sensitive`) in the
+watch app's entitlements, and critical alerts, `requestCriticalPermission`
+and `criticalSoundVolume` need the Critical Alerts entitlement
+(`com.apple.developer.usernotifications.critical-alerts`), which Apple grants
+on request.
+
+`flutter_timezone` has no watchOS implementation, so `tz.local` stays UTC on
+the watch unless the app sets it: pass `zonedSchedule` a `TZDateTime` in the
+zone you mean, for example from `tz.getLocation('Europe/Istanbul')`.
 
 ## Not supported on watchOS
 
@@ -66,6 +79,16 @@ Of `DarwinNotificationDetails`, these reach the notification: the five
 | `onDidReceiveBackgroundNotificationResponse` | not called; every tap reaches `onDidReceiveNotificationResponse` | the watch app handles taps in its own isolate |
 | `openAppNotificationSettings` | returns false | watchOS has no settings page an app can open |
 
+## Following upstream
+
+This class extends upstream's concrete `IOSFlutterLocalNotificationsPlugin`,
+as flutter_local_notifications requires on iOS-reporting platforms. A method
+an upstream release adds to that class, a minor release included, reaches
+its method channel here and throws `MissingPluginException` until this
+package overrides it too. 23.0.0 is in development.
+
 ## License
 
-The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.
+BSD-3-Clause, as upstream flutter_local_notifications: `LICENSE` carries
+Michael Bui's notice and The FlutterWatch Authors'. See `LICENSE` for the
+full text.

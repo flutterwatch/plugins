@@ -167,6 +167,25 @@ void main() {
         (sent['defaults']! as Map<Object?, Object?>)['presentBanner'], false);
     expect((sent['request']! as Map<Object?, Object?>)['sound'], false);
     expect((sent['request']! as Map<Object?, Object?>)['alert'], true);
+    expect(
+        (sent['request']!
+            as Map<Object?, Object?>)['providesAppNotificationSettings'],
+        false);
+  });
+
+  test('requestPermissions asks for app notification settings too', () async {
+    fake.defaultAnswer = <String, Object?>{'granted': true};
+    await plugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()!
+        .requestPermissions(alert: true, providesAppNotificationSettings: true);
+    final String call = fake.calls
+        .singleWhere((String c) => c.startsWith('requestPermissions '));
+    final Map<Object?, Object?> options =
+        jsonDecode(call.substring('requestPermissions '.length))
+            as Map<Object?, Object?>;
+    expect(options['alert'], true);
+    expect(options['providesAppNotificationSettings'], true);
   });
 
   test('a tap after initialize reaches the callback', () async {
@@ -241,6 +260,8 @@ void main() {
           threadIdentifier: 'run',
           categoryIdentifier: 'lap',
           interruptionLevel: InterruptionLevel.timeSensitive,
+          criticalSoundVolume: 0.5,
+          dismissIsolate: NotificationDismissedIsolate.main,
         ),
       ),
       payload: 'lap-3',
@@ -257,6 +278,8 @@ void main() {
     expect(d['threadIdentifier'], 'run');
     expect(d['categoryIdentifier'], 'lap');
     expect(d['interruptionLevel'], InterruptionLevel.timeSensitive.index);
+    expect(d['criticalSoundVolume'], 0.5);
+    expect(d['dismissIsolate'], NotificationDismissedIsolate.main.index);
   });
 
   test('zonedSchedule sends the instant, its zone and the repeat', () async {
@@ -377,6 +400,7 @@ void main() {
       'isBadgeEnabled': false,
       'isProvisionalEnabled': false,
       'isCriticalEnabled': false,
+      'isProvidesAppNotificationSettingsEnabled': true,
     };
     final NotificationsEnabledOptions? options = await plugin
         .resolvePlatformSpecificImplementation<
@@ -384,5 +408,6 @@ void main() {
         .checkPermissions();
     expect(options!.isEnabled, isTrue);
     expect(options.isSoundEnabled, isFalse);
+    expect(options.isProvidesAppNotificationSettingsEnabled, isTrue);
   });
 }
