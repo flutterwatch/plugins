@@ -275,4 +275,15 @@ void main() {
   test('isSupported is true on watchOS', () async {
     expect(await messaging.isSupported(), isTrue);
   });
+
+  test('the FID registration API of firebase_messaging 17 is not implemented',
+      () {
+    // It needs the Firebase Apple SDK 12.16 or later; the watch links 11.x.
+    expect(() => messaging.register(), throwsUnimplementedError);
+    expect(() => messaging.unregister(), throwsUnimplementedError);
+    expect(() => messaging.onRegistered, throwsUnimplementedError);
+    expect(() => messaging.onUnregistered, throwsUnimplementedError);
+    expect(fake.beginRequests, isEmpty);
+    expect(fake.configureRequests, isEmpty);
+  });
 }
