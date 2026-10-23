@@ -416,20 +416,65 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
   // A fresh stream per call, matching FlutterFire semantics: emits the
   // current user immediately, then again whenever the watched generation
   // moves. The generation is bumped natively by the SDK's listeners.
+  //
+  // The native side installs the listeners on the first native call for an
+  // app, and the SDK then calls each one once, asynchronously, with the user
+  // it has when the call runs. A counter that is still 0 at this stream's
+  // first snapshot is waiting for that call. When a move of the generation
+  // is that call alone, it is left out if it reports the user the stream
+  // last emitted, and emitted if the user changed before the call ran: the
+  // auth-state listener reports a uid only once, so that call may be the
+  // only report of a sign-out. firebase_auth drops a first callback that
+  // carries a user and forwards one that carries none.
+  //
+  // As in firebase_auth 7.x, a signed-out state is reported once: a null is
+  // skipped when the last value emitted, the first one included, was null
+  // too.
   Stream<UserPlatform?> _watch(int Function(_AuthSnapshot) generationOf) {
     late StreamController<UserPlatform?> controller;
     int? lastGeneration;
+    int? lastSettledGeneration;
+    bool emitted = false;
+    String? lastUid;
+    bool? authInstallCallPending;
+    bool? idTokenInstallCallPending;
     void onPoll(
         _AuthSnapshot? snapshot, Object? error, StackTrace? stackTrace) {
       if (error != null) {
         controller.addError(error, stackTrace!);
         return;
       }
-      final int generation = generationOf(snapshot!);
-      if (generation != lastGeneration) {
-        lastGeneration = generation;
-        controller.add(snapshot.user);
+      final _AuthSnapshot current = snapshot!;
+      final bool authPending =
+          authInstallCallPending ??= current.authGeneration == 0;
+      final bool idTokenPending =
+          idTokenInstallCallPending ??= current.idTokenGeneration == 0;
+      final int generation = generationOf(current);
+      if (generation == lastGeneration) {
+        return;
       }
+      // The generation without the install calls: when it did not move, the
+      // install calls are all that happened.
+      final int settledGeneration = generationOf(_AuthSnapshot(
+        authGeneration:
+            _withoutInstallCall(current.authGeneration, authPending),
+        idTokenGeneration:
+            _withoutInstallCall(current.idTokenGeneration, idTokenPending),
+        userMutations: current.userMutations,
+        user: current.user,
+      ));
+      final bool installCallsOnly = settledGeneration == lastSettledGeneration;
+      lastGeneration = generation;
+      lastSettledGeneration = settledGeneration;
+      final UserPlatform? user = current.user;
+      if (emitted &&
+          user?.uid == lastUid &&
+          (user == null || installCallsOnly)) {
+        return;
+      }
+      emitted = true;
+      lastUid = user?.uid;
+      controller.add(user);
     }
 
     controller = StreamController<UserPlatform?>(
@@ -449,6 +494,11 @@ class FirebaseAuthWatchos extends FirebaseAuthPlatform {
     );
     return controller.stream;
   }
+
+  // A native listener counter without the bump of the listener's install
+  // call, when that call was still to come at a stream's first snapshot.
+  static int _withoutInstallCall(int generation, bool installCallPending) =>
+      installCallPending && generation > 0 ? generation - 1 : generation;
 
   /// Starts a native operation and polls until its result arrives.
   /// Throws [FirebaseAuthException] on an in-band error.

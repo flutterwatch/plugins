@@ -9,10 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_messaging: ^16.7.0
+  firebase_messaging: ^17.0.1
   firebase_messaging_watchos:
     path: ../
-  firebase_core: "^4.12.1"
+  firebase_core: "^5.1.0"
   firebase_core_watchos:
     path: ../../firebase_core_watchos
   flutter_local_notifications: "^21.0.0"

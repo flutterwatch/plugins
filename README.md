@@ -107,6 +107,7 @@ published package would be misleading:
 | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | No GoogleSignIn watchOS SDK; sign-in is delegated to the paired iPhone |
 | [`image_picker`](https://pub.dev/packages/image_picker) | No camera and no photo-picker UI on the watch |
 | [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | No Google Maps SDK for watchOS (an Apple MapKit backend would not honestly implement the interface) |
+| [`wakelock_plus`](https://pub.dev/packages/wakelock_plus) | No public watchOS API keeps the display lit. `WKExtendedRuntimeSession` keeps the app running, not the screen, and needs a session type that matches the app's use, so giving every app one is an App Review risk (guideline 2.5.4); see [#10](https://github.com/flutterwatch/plugins/pull/10) |
 
 Note the difference from tvOS: **CoreLocation, HealthKit, CoreMotion,
 StoreKit purchasing, and (watchOS 9+) LocalAuthentication all exist on the
@@ -116,13 +117,11 @@ watch** — plugins built on those are portable, not excluded.
 
 These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
-`sqflite` (SQLite), `flutter_tts` (AVFoundation),
-`wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
-general idle-timer disable), and `cloud_firestore` (the Firebase Apple SDK
-ships Firestore's core as a prebuilt binary with no watchOS slice, so a
-port needs Firebase's from-source Firestore build; the rest of the
-network-viable Firebase family — core, auth, storage, messaging — is
-ported above).
+`sqflite` (SQLite), `flutter_tts` (AVFoundation) and `cloud_firestore`
+(the Firebase Apple SDK ships Firestore's core as a prebuilt binary with no
+watchOS slice, so a port needs Firebase's from-source Firestore build; the
+rest of the network-viable Firebase family — core, auth, storage,
+messaging — is ported above).
 
 ## Usage
 

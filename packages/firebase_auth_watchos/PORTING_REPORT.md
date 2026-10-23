@@ -3,7 +3,11 @@
 Scaffolded by `flutter-watchos plugin port --from-pub firebase_auth
 --include-example` on 2026-07-17, then hand-finished.
 
-Source: `firebase_auth` 6.5.6
+Source: `firebase_auth` 6.5.6. Since 0.2.0 it implements
+`firebase_auth_platform_interface` 9.1.1 and later, for `firebase_auth` 7.x;
+read against 7.0.1 and platform interface 9.1.2. The watch still links the
+Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0); the newer
+SDK that `firebase_auth` 7.x uses on iOS and macOS does not apply to it.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseAuth`)
 
@@ -13,8 +17,8 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseAuth`)
 |---|---|
 | Implementation (Dart + FFI + native) | ◐ the watch-viable flows, except the methods the README lists under "Not implemented yet" (reauthentication and linking among them) |
 | watchOS capability | ◐ email, anonymous and token sign-in are implemented; provider/OAuth, phone, and MFA flows need UI the watch cannot present |
-| Host unit tests | ✅ 13/13 pass (native FirebaseAuth faked) |
-| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator. The smoke test was not run for this version |
+| Host unit tests | ✅ 23/23 pass (native FirebaseAuth faked) |
+| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator (checked with 0.1.1; 0.2.0 changes no native code and was not rebuilt). The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_auth pub example (smoke test added) |
 
@@ -30,7 +34,19 @@ poll-a-generation pattern: the native layer registers the SDK's
 auth-state/ID-token listeners once per app and bumps counters that
 `firebase_auth_watchos_current_user` reports alongside the user snapshot;
 `authStateChanges`/`idTokenChanges`/`userChanges` poll the counters and emit
-on change (the poll timer stops when the subscription is cancelled).
+on change (the poll timer stops when the subscription is cancelled). The SDK
+calls each listener once when it is installed, with the user it has when the
+call runs. A counter that is still 0 at a stream's first snapshot is waiting
+for that call, and a move that is only that call is left out when it reports
+the value the stream last emitted; when the user changed before the call ran,
+it is emitted. As in `firebase_auth` 7.x, each stream also reports a
+signed-out state once: a null is not emitted after a null. A known
+difference: `idTokenChanges` and `userChanges` can still emit a signed-in
+user twice when the SDK restores or signs in that user while the listeners
+are being installed, because its own change notification then bumps the
+ID-token counter as well. Installing the listeners from a later main-queue
+block, after reading `currentUser`, would remove it; that is a native change
+still to make and check on the Simulator.
 
 Errors carry FlutterFire's string codes: the native layer reads the SDK's
 `FIRAuthErrorUserInfoNameKey` (`ERROR_WRONG_PASSWORD`) and converts it to the
@@ -63,7 +79,7 @@ watchOS).
   FirebaseAuthPlatform`, `UserWatchos extends UserPlatform`,
   `UserCredentialWatchos`, `MultiFactorWatchos`, over the FFI bindings.
 - `test/firebase_auth_watchos_test.dart` — host tests with the native backend
-  faked (13/13).
+  faked (23/23).
 - `example/` — the upstream firebase_auth example, ported for watchOS, plus
   an added `integration_test/firebase_auth_smoke_test.dart` (the pub example
   ships no upstream integration_test).

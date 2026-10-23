@@ -18,7 +18,14 @@ import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show
+        DiagnosticsNode,
+        ErrorDescription,
+        FlutterError,
+        FlutterErrorDetails,
+        debugPrint,
+        visibleForTesting;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'
@@ -329,12 +336,61 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
         _drainTimer = null;
         return;
       }
-      final List<PurchaseDetails> updates =
-          parsePurchaseUpdates(b.purchasesDrain());
-      if (updates.isNotEmpty) {
-        controller.add(updates);
-      }
+      _drainOnce(b, controller);
     });
+  }
+
+  /// Moves the updates that native code holds into [controller].
+  ///
+  /// No failure of the drain may escape from here. An app usually listens
+  /// from the root zone, where a throw out of a periodic timer's callback
+  /// stops the timer for good, though [Timer.isActive] still says true: no
+  /// later update would reach [purchaseStream] while it is listened to.
+  /// [parsePurchaseUpdates] leaves out and reports an update it cannot read;
+  /// any other failure is reported here, and the next tick drains again.
+  static void _drainOnce(
+    InAppPurchaseWatchosBindings b,
+    StreamController<List<PurchaseDetails>> controller,
+  ) {
+    final List<PurchaseDetails> updates;
+    try {
+      updates = parsePurchaseUpdates(b.purchasesDrain());
+    } on Object catch (error, stack) {
+      _reportDrainError(
+        error,
+        stack,
+        'while draining StoreKit transaction updates',
+        outcome: _lostDrainOutcome,
+      );
+      return;
+    }
+    if (updates.isNotEmpty) {
+      controller.add(updates);
+    }
+  }
+
+  /// What a failed drain or an unreadable drain costs, for its report.
+  static const String _lostDrainOutcome =
+      'The updates of this drain, if any, do not reach purchaseStream. '
+      'StoreKit delivers unfinished transactions again at the next launch.';
+
+  /// Reports, through [FlutterError.reportError], an [error] that kept one or
+  /// more transaction updates from [purchaseStream], so the loss is seen.
+  static void _reportDrainError(
+    Object error,
+    StackTrace stack,
+    String context, {
+    String? outcome,
+  }) {
+    FlutterError.reportError(FlutterErrorDetails(
+      exception: error,
+      stack: stack,
+      library: 'in_app_purchase_watchos',
+      context: ErrorDescription(context),
+      informationCollector: outcome == null
+          ? null
+          : () => <DiagnosticsNode>[ErrorDescription(outcome)],
+    ));
   }
 
   static void _stopDraining() {
@@ -385,6 +441,11 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
 
   /// Parses a native transaction-update JSON array (see the C header) into
   /// [PurchaseDetails]. Exposed for unit tests.
+  ///
+  /// Does not throw, unless [FlutterError.onError] does. An update that
+  /// cannot be read is left out and reported through
+  /// [FlutterError.reportError], and the rest of the batch is still returned.
+  /// A drain that is not a JSON array is reported too, and yields no updates.
   @visibleForTesting
   static List<PurchaseDetails> parsePurchaseUpdates(String? rawJson) {
     if (rawJson == null || rawJson.isEmpty) {
@@ -393,49 +454,92 @@ class InAppPurchaseWatchos extends InAppPurchasePlatform {
     final Object? decoded;
     try {
       decoded = jsonDecode(rawJson);
-    } on FormatException {
+    } on FormatException catch (error, stack) {
+      _reportDrainError(
+        error,
+        stack,
+        'while decoding StoreKit transaction updates',
+        outcome: _lostDrainOutcome,
+      );
       return const <PurchaseDetails>[];
     }
     if (decoded is! List<dynamic>) {
+      _reportDrainError(
+        FormatException(
+            'Expected a JSON array of updates, got ${decoded.runtimeType}.'),
+        StackTrace.current,
+        'while decoding StoreKit transaction updates',
+        outcome: _lostDrainOutcome,
+      );
       return const <PurchaseDetails>[];
     }
     final out = <PurchaseDetails>[];
-    for (final Object? item in decoded) {
-      if (item is! Map<String, dynamic>) {
-        continue;
-      }
-      final Map<String, dynamic>? err = item['error'] as Map<String, dynamic>?;
-      final bool canceled = err != null && (err['canceled'] as bool? ?? false);
-      final PurchaseStatus status =
-          _statusFrom(item['status'] as String? ?? '', canceled: canceled);
-      final String receipt = item['receipt'] as String? ?? '';
-      final String? purchaseID = item['purchaseID'] as String?;
-      final details = PurchaseDetails(
-        purchaseID: purchaseID,
-        productID: item['productID'] as String? ?? '',
-        transactionDate: item['transactionDate'] as String?,
-        status: status,
-        verificationData: PurchaseVerificationData(
-          localVerificationData: receipt,
-          serverVerificationData: receipt,
-          source: _errorSource,
-        ),
-        // Only a real transaction can be finished; a restore-failure update
-        // carries no purchaseID, so there is nothing to complete.
-      )..pendingCompletePurchase = status != PurchaseStatus.pending &&
-          purchaseID != null &&
-          purchaseID.isNotEmpty;
-      if (err != null) {
-        details.error = IAPError(
-          source: _errorSource,
-          code: err['code'] as String? ?? '',
-          message: err['message'] as String? ?? '',
+    for (int i = 0; i < decoded.length; i++) {
+      try {
+        out.add(_parsePurchaseUpdate(decoded[i]));
+      } on Object catch (error, stack) {
+        // One bad update must not cost the others, nor stop the drain.
+        _reportDrainError(
+          error,
+          stack,
+          'while reading StoreKit transaction update '
+          '${i + 1} of ${decoded.length}',
+          outcome: 'purchaseStream leaves this update out and delivers the '
+              'rest of the batch.',
         );
       }
-      out.add(details);
     }
     return out;
   }
+
+  /// Reads one update of the native JSON array. Throws if [item] is not one.
+  static PurchaseDetails _parsePurchaseUpdate(Object? item) {
+    if (item is! Map<String, dynamic>) {
+      throw FormatException(
+          'Expected a JSON object for an update, got ${item.runtimeType}.');
+    }
+    final Map<String, dynamic>? err = item['error'] as Map<String, dynamic>?;
+    final bool canceled = err != null && _readCanceled(err['canceled']);
+    final PurchaseStatus status =
+        _statusFrom(item['status'] as String? ?? '', canceled: canceled);
+    final String receipt = item['receipt'] as String? ?? '';
+    final String? purchaseID = item['purchaseID'] as String?;
+    final details = PurchaseDetails(
+      purchaseID: purchaseID,
+      productID: item['productID'] as String? ?? '',
+      transactionDate: item['transactionDate'] as String?,
+      status: status,
+      verificationData: PurchaseVerificationData(
+        localVerificationData: receipt,
+        serverVerificationData: receipt,
+        source: _errorSource,
+      ),
+      // Only a real transaction can be finished; a restore-failure update
+      // carries no purchaseID, so there is nothing to complete.
+    )..pendingCompletePurchase = status != PurchaseStatus.pending &&
+        purchaseID != null &&
+        purchaseID.isNotEmpty;
+    if (err != null) {
+      details.error = IAPError(
+        source: _errorSource,
+        code: err['code'] as String? ?? '',
+        message: err['message'] as String? ?? '',
+      );
+    }
+    return details;
+  }
+
+  /// Reads the `canceled` flag of a native error, a JSON boolean.
+  ///
+  /// Native code before 0.1.2 boxed the flag as a C comparison, an `int`, so
+  /// it arrived as 1 or 0. A number is read as C reads it, nonzero as true,
+  /// so a native build from those sources still reports a cancel as one.
+  /// Anything else is not a cancel.
+  static bool _readCanceled(Object? flag) => switch (flag) {
+        final bool canceled => canceled,
+        final num canceled => canceled != 0,
+        _ => false,
+      };
 
   static PurchaseStatus _statusFrom(String name, {required bool canceled}) {
     switch (name) {

@@ -82,7 +82,9 @@ IN_APP_PURCHASE_WATCHOS_EXPORT bool in_app_purchase_watchos_buy(
 // buffer. Plugin-owned; valid until the next drain call. Each element:
 //   {"productID","purchaseID","transactionDate","status","receipt","error"?}
 // where status is: purchasing | purchased | failed | restored | deferred, and
-// error (only on failed) is {"code","message","canceled"}.
+// error (only on failed) is {"code","message","canceled"}. "canceled" is a
+// JSON boolean, true or false, never the number 1 or 0: true when the error
+// code is SKErrorPaymentCancelled (2) or SKErrorOverlayCancelled (15).
 IN_APP_PURCHASE_WATCHOS_EXPORT const char* in_app_purchase_watchos_purchases_drain(void);
 
 // Finishes the transaction with [purchase_id] (the update's "purchaseID").
