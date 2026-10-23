@@ -40,7 +40,13 @@ call runs. A counter that is still 0 at a stream's first snapshot is waiting
 for that call, and a move that is only that call is left out when it reports
 the value the stream last emitted; when the user changed before the call ran,
 it is emitted. As in `firebase_auth` 7.x, each stream also reports a
-signed-out state once: a null is not emitted after a null.
+signed-out state once: a null is not emitted after a null. A known
+difference: `idTokenChanges` and `userChanges` can still emit a signed-in
+user twice when the SDK restores or signs in that user while the listeners
+are being installed, because its own change notification then bumps the
+ID-token counter as well. Installing the listeners from a later main-queue
+block, after reading `currentUser`, would remove it; that is a native change
+still to make and check on the Simulator.
 
 Errors carry FlutterFire's string codes: the native layer reads the SDK's
 `FIRAuthErrorUserInfoNameKey` (`ERROR_WRONG_PASSWORD`) and converts it to the

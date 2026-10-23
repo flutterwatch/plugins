@@ -9,12 +9,15 @@
   `watchos/Package.swift`. The newer SDK that `firebase_auth` 7.x uses on iOS
   and macOS does not apply to it.
 * `authStateChanges`, `idTokenChanges` and `userChanges` no longer repeat
-  their first value. The SDK calls each of its listeners once when the plugin
-  installs them, on the first native call for an app, so with 0.1.1 a stream
-  subscribed before any other auth call could emit the current user, or null,
-  a second time. The streams now leave that call out when it reports the
-  value they last emitted, and emit it when the user changed before it ran:
-  for `authStateChanges` it can be the only report of such a sign-out.
+  their first value for the call the SDK makes to each listener when the
+  plugin installs it, on the first native call for an app. With 0.1.1 a
+  stream subscribed before any other auth call could emit the current user,
+  or null, a second time. The streams now leave that call out when it reports
+  the value they last emitted, and emit it when the user changed before it
+  ran: for `authStateChanges` it can be the only report of such a sign-out.
+  `idTokenChanges` and `userChanges` can still emit a signed-in user twice
+  when the SDK restores or signs in that user while the plugin installs its
+  listeners; `firebase_auth` usually emits it once there.
 * The same streams report a signed-out state once, as `firebase_auth` 7.0.1
   does: a null is not emitted when the last value emitted was null too.
 * `User.updateProfile`: `firebase_auth` 7.0.1 passes only the fields it is

@@ -185,7 +185,9 @@ Future<void> _expectInstallCallLeftOut(
 
 // A signed-in start and a sign-out before the SDK's install call runs: that
 // call reports the signed-out state, and for authStateChanges it is the only
-// report, so it is emitted. The sign-out's own report that follows is not.
+// report, so it is emitted. The sign-out's own report that follows bumps
+// only the ID-token counter, as the auth-state listener reports a uid once,
+// and is not emitted again.
 Future<void> _expectSignOutInInstallCallReported(
   _FakeBindings fake,
   Stream<UserPlatform?> Function() changes,
@@ -202,7 +204,12 @@ Future<void> _expectSignOutInInstallCallReported(
   await _report(fake, 1, null);
   expect(seen, <String?>['uid-1', null]);
 
-  await _report(fake, 2, null);
+  fake.snapshot = <String, Object?>{
+    'authGeneration': 1,
+    'idTokenGeneration': 2,
+    'user': null,
+  };
+  await Future<void>.delayed(const Duration(milliseconds: 30));
   expect(seen, <String?>['uid-1', null]);
 }
 
