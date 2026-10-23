@@ -6,8 +6,8 @@
   version of the platform interface for `firebase_core` 5.x. An app that
   stays on `firebase_auth` 6.x keeps 0.1.1.
 * The watch still links the Firebase Apple SDK 11.x through
-  `watchos/Package.swift`. The move to SDK 13 in `firebase_auth` 7.0.0 is
-  for its iOS and macOS code.
+  `watchos/Package.swift`. The newer SDK that `firebase_auth` 7.x uses on iOS
+  and macOS does not apply to it.
 * `authStateChanges`, `idTokenChanges` and `userChanges` no longer repeat
   their first value. The SDK calls each of its listeners once when the plugin
   installs them, on the first native call for an app, so with 0.1.1 a stream
@@ -24,9 +24,9 @@
   SDK then clears it on the local user and does not send it to the server, as
   on iOS. A new test checks that the `null` reaches the native layer.
 * README: the install snippet names `firebase_core: ^5.1.0`,
-  `firebase_auth: ^7.0.1` and this version. "Not implemented yet" now lists
-  the `ActionCodeSettings` that `sendPasswordResetEmail`,
-  `sendEmailVerification` and `verifyBeforeUpdateEmail` do not pass on.
+  `firebase_auth: ^7.0.1` and this version, and says that
+  `sendPasswordResetEmail`, `sendEmailVerification` and
+  `verifyBeforeUpdateEmail` do not pass on their `ActionCodeSettings` yet.
 * Example: `pubspec.yaml` names `firebase_auth: ^7.0.1`,
   `firebase_core: ^5.1.0` and `firebase_messaging: ^17.0.1`. No native code
   changed, and the example was not rebuilt on the Simulator for this version.

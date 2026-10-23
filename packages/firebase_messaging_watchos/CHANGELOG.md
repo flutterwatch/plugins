@@ -6,8 +6,8 @@
   version of the platform interface for `firebase_core` 5.x. An app that
   stays on `firebase_messaging` 16.x keeps 0.1.1.
 * The watch still links the Firebase Apple SDK 11.x through
-  `watchos/Package.swift`. The move to SDK 13 in `firebase_messaging` 17.0.0
-  is for its iOS and macOS code.
+  `watchos/Package.swift`. The newer SDK that `firebase_messaging` 17.x uses
+  on iOS and macOS does not apply to it.
 * `register`, `unregister`, `onRegistered` and `onUnregistered`, the Firebase
   Installation ID registration that `firebase_messaging` 17.0.0 adds, are not
   implemented on watchOS yet and throw `UnimplementedError`. They need

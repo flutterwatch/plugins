@@ -6,8 +6,8 @@
   version of the platform interface for `firebase_core` 5.x. An app that stays
   on `firebase_storage` 13.x keeps 0.1.1.
 * The watch still links the Firebase Apple SDK 11.x through
-  `watchos/Package.swift`. The move to SDK 13 in `firebase_storage` 14.0.0 is
-  for its iOS and macOS code.
+  `watchos/Package.swift`. The newer SDK that `firebase_storage` 14.x uses on
+  iOS and macOS does not apply to it.
 * The platform interface's one change in 6.0.9, an error snapshot of a
   method-channel task that keeps the metadata of the snapshot before it, is
   in code this package does not use. A watchOS task snapshot carries metadata

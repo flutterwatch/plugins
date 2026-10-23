@@ -3,8 +3,8 @@
 * Works with `firebase_core` 5.x as well as 4.12.1 and later. They all use
   `firebase_core_platform_interface` 8.x, which this package implements, so
   its dependencies do not change. The watch still links the Firebase Apple SDK
-  11.x through `watchos/Package.swift`; the move to SDK 13 in `firebase_core`
-  5.0.0 is for its iOS and macOS code.
+  11.x through `watchos/Package.swift`; the newer SDK that `firebase_core` 5.x
+  uses on iOS and macOS does not apply to it.
 * README: the install snippet names `firebase_core: ^5.1.0` and this version,
   and says which `firebase_core` versions the package works with.
 * Example: `pubspec.yaml` names `firebase_core: ^5.1.0`. No native code

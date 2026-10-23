@@ -6,8 +6,9 @@ Scaffolded by `flutter-watchos plugin port --from-pub firebase_storage
 Source: `firebase_storage` 13.4.5. Since 0.2.0 it implements
 `firebase_storage_platform_interface` 6.0.8 and later, for `firebase_storage`
 14.x; read against 14.0.1 and platform interface 6.0.9. The watch still links
-the Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0), while
-`firebase_storage` 14.x builds its iOS code against 13.x.
+the Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0); the
+newer SDK that `firebase_storage` 14.x uses on iOS and macOS does not apply to
+it.
 Base platform: ios (Swift)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseStorage`)
 

@@ -7,8 +7,8 @@ Source: `firebase_messaging` 16.4.3. Since 0.2.0 it implements
 `firebase_messaging_platform_interface` 4.11.0 and later, for
 `firebase_messaging` 17.x; read against 17.0.1 and platform interface 4.11.1.
 The watch still links the Firebase Apple SDK 11.x (`watchos/Package.resolved`
-pins 11.15.0), while `firebase_messaging` 17.x builds its iOS code against
-13.x.
+pins 11.15.0); the newer SDK that `firebase_messaging` 17.x uses on iOS and
+macOS does not apply to it.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 

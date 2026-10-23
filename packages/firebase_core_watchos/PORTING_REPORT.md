@@ -3,11 +3,11 @@
 Scaffolded by `flutter-watchos plugin port --from-pub firebase_core
 --include-example` on 2026-07-17, then hand-finished.
 
-Source: `firebase_core` 4.12.1. Since 0.1.2 also read against
-`firebase_core` 5.1.0, which uses the same `firebase_core_platform_interface`
-8.x. The watch still links the Firebase Apple SDK 11.x
-(`watchos/Package.resolved` pins 11.15.0), while `firebase_core` 5.x builds
-its iOS code against 13.x.
+Source: `firebase_core` 4.12.1. Since 0.1.2 also read against `firebase_core`
+5.1.0, which uses the same `firebase_core_platform_interface` 8.x. The watch
+still links the Firebase Apple SDK 11.x (`watchos/Package.resolved` pins
+11.15.0); the newer SDK that `firebase_core` 5.x uses on iOS and macOS does
+not apply to it.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseCore`)
 

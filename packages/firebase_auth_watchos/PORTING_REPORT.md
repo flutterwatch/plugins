@@ -6,8 +6,8 @@ Scaffolded by `flutter-watchos plugin port --from-pub firebase_auth
 Source: `firebase_auth` 6.5.6. Since 0.2.0 it implements
 `firebase_auth_platform_interface` 9.1.1 and later, for `firebase_auth` 7.x;
 read against 7.0.1 and platform interface 9.1.2. The watch still links the
-Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0), while
-`firebase_auth` 7.x builds its iOS code against 13.x.
+Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0); the newer
+SDK that `firebase_auth` 7.x uses on iOS and macOS does not apply to it.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseAuth`)
 
