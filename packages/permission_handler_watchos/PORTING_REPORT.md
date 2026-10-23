@@ -5,11 +5,13 @@
 | Aspect | Result |
 |---|---|
 | Implementation | ✅ Working (FFI; one strategy per permission group, as in the iOS implementation) |
-| watchOS capability | ◐ The permissions watchOS has: location (when in use and always), notifications, sensors, microphone, contacts, calendar (full access and write only), reminders, Bluetooth. The others answer as iOS answers for a permission it does not know |
-| Host unit tests (`flutter test`) | ✅ 6 pass |
+| watchOS capability | ◐ The permissions watchOS has: location (when in use and always), notifications, critical alerts, sensors, microphone, contacts, calendar (full access and write only), reminders, Bluetooth, Siri; storage is granted as on iOS. The others answer as iOS answers for a permission it does not know |
+| Host unit tests (`flutter test`) | ✅ 8 pass |
 | Upstream integration test | ○ none upstream (Baseflow's example is a manual demo) |
-| watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ 4 pass on the watchOS 27.0 Simulator |
-| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth |
+| watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ 5 pass on the watchOS 27.0 Simulator |
+| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → denied, then allowed → granted; always kept at "while using" → permanentlyDenied |
+| Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
+| App Store Connect upload | not yet done: whether ITMS-90683 reads the class names of groups an app does not use is unchecked (see "Design") |
 | Physical watch | not yet checked |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -22,14 +24,25 @@ Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable
 The iOS implementation compiles each permission group in or out with a
 preprocessor macro (`PERMISSION_CONTACTS=1` and so on, all off by default), so
 that an app does not reference an API it never asks for: App Store Connect
-warns about a missing usage description for every privacy API a binary
-references. A watch app has no Podfile to set those macros, so this package
-gets the same result at runtime instead: each framework is loaded with
-`dlopen` and its classes looked up by name the first time a permission of
-its group is asked about, and only messaged. Of the frameworks, only
-UserNotifications, which needs no usage description, is linked. `nm -u` on
-the compiled objects shows no class of CoreLocation, CoreMotion, AVFAudio,
-Contacts, EventKit or CoreBluetooth.
+warns about a missing usage description (ITMS-90683) for the privacy APIs a
+binary references. A watch app has no Podfile to set those macros, and the
+flutter-watchos CLI compiles plugin sources with fixed flags, so every group
+is compiled into every app. Each framework is loaded with `dlopen` and its
+classes looked up by name the first time a permission of its group is asked
+about, and only messaged; of the frameworks, only UserNotifications, which
+needs no usage description, is linked. `nm -u` on the compiled objects shows
+no class symbol of CoreLocation, CoreMotion, AVFAudio, Contacts, EventKit,
+CoreBluetooth or Intents. That is not the iOS result: the class names,
+selectors and delegate protocol metadata are still in the binary, and Apple
+does not document whether its check reads those. Until an App Store Connect
+upload of an app that uses only notifications shows no ITMS-90683, the README
+tells apps to expect to need every group's usage description. Leaving groups
+out at compile time needs a CLI feature.
+
+The location strategy keeps one flag in `NSUserDefaults` (whether "always"
+was asked for), a required-reason API; the iOS implementation ships a
+privacy manifest for the same reason. The README shows the entry an app's
+manifest needs.
 
 watchOS terminates an app that asks for a permission without its usage
 description. Before each prompt this package checks the Info.plist key the
@@ -42,6 +55,12 @@ queue, native keeps the answer as JSON, and wakes Dart through one
 `NativeCallable.listener` that carries a kind, never a payload. Dart asks for
 the permissions of `requestPermissions` one at a time, as the watch shows one
 prompt at a time.
+
+A location prompt closed without an answer, with the crown, sends no
+delegate call on watchOS, not even the second "not determined" report the
+iOS implementation takes as that (seen on the watchOS 27.0 Simulator). The
+app becoming active again answers then: with the status at that moment, or,
+if it is still "not determined" a second later, denied.
 
 An "always" location request kept at "while using" changes nothing, so
 CoreLocation sends no delegate call. As in the iOS implementation, the app
@@ -57,11 +76,13 @@ watchOS would not show again.
 | `location`, `locationWhenInUse`, `locationAlways` | ✅ CLLocationManager; service status is `locationServicesEnabled` |
 | `sensors` | ✅ CMMotionActivityManager, asked for with an activity query as on iOS; service status is `isActivityAvailable` |
 | `microphone` | ✅ AVAudioApplication's record permission (watchOS 10 and later) |
-| `contacts` | ✅ CNContactStore; `limited` from watchOS 11 |
-| `calendarFullAccess`, `calendarWriteOnly`, `calendar`, `reminders` | ✅ EKEventStore, with the full-access and write-only requests from watchOS 10 |
+| `contacts` | ✅ CNContactStore; the watchOS SDK has no limited access |
+| `calendarFullAccess`, `calendarWriteOnly`, `calendar`, `reminders` | ✅ EKEventStore, with the full-access and write-only requests |
 | `bluetooth` | ✅ CBCentralManager: creating it asks, its first state update answers; service status is whether it is powered on |
+| `criticalAlerts` | ✅ UNUserNotificationCenter's critical alert setting and request; needs the Critical Alerts entitlement |
+| `assistant` | ✅ INPreferences (watchOS 6+), Siri; needs the Siri capability. INPreferences throws in an app without it (seen on the Simulator), so `NSSiriUsageDescription` is the opt-in, in place of the iOS implementation's `PERMISSION_ASSISTANT` macro: without the key the status is `denied` and a request fails with `MISSING_USAGE_DESCRIPTION` |
+| `storage` | ✅ granted, service not applicable, as on iOS |
 | `camera`, `photos`, `photosAddOnly`, `mediaLibrary`, `speech`, `appTrackingTransparency`, `backgroundRefresh`, `phone` | ✗ not on watchOS: `denied`, a request `permanentlyDenied`, service `disabled`, as iOS answers for an unknown permission |
-| `criticalAlerts`, `assistant` | ✗ not implemented yet: they need an entitlement each (critical alerts, Siri); answered as an unknown permission |
 | The Android-only permissions | answered as an unknown permission, as on iOS |
 
 ## Interface coverage
@@ -70,7 +91,7 @@ watchOS would not show again.
 |---|---|
 | `checkPermissionStatus` | ✅ |
 | `checkServiceStatus` | ✅ |
-| `requestPermissions` | ✅ one at a time |
+| `requestPermissions` | ✅ one at a time; another call while one waits fails with `ERROR_ALREADY_REQUESTING_PERMISSIONS`, as on iOS |
 | `shouldShowRequestPermissionRationale` | ✅ false, as on iOS |
 | `openAppSettings` | ✗ false: watchOS has no settings page an app can open |
 

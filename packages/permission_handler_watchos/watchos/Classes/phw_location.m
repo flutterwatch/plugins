@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Location, when in use and always, through a CLLocationManager the
 // strategy keeps, answered as the iOS implementation answers them.
@@ -17,6 +17,10 @@
 // Set once "always" was asked for: watchOS shows that prompt once, and a
 // second request must answer without waiting for a prompt that never comes.
 static NSString* const kAskedAlwaysKey = @"dev.flutterwatch.permission_handler.askedAlways";
+
+// How long after the app becomes active a status still "not determined"
+// waits for the delegate before it counts as a prompt closed unanswered.
+static const NSTimeInterval kUnansweredDelay = 1.0;
 
 static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus status) {
     switch (status) {
@@ -100,6 +104,11 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     }
     _asked = permission;
     [_waiting addObject:done];
+    // A prompt closed without an answer (the crown pressed) sends no
+    // delegate call on watchOS, not even the second "not determined" the
+    // iOS implementation waits for (seen on the watchOS 27.0 Simulator), so
+    // the app becoming active again is the answer then.
+    [self observeActive];
     [manager requestWhenInUseAuthorization];
 }
 
@@ -128,20 +137,40 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     [_waiting addObject:done];
     // Keeping "while using" changes nothing, so no delegate call comes; the
     // app becoming active again after the prompt is the answer then.
-    if (_activeObserver == nil) {
-        __weak PHWLocationStrategy* weakSelf = self;
-        _activeObserver = [[NSNotificationCenter defaultCenter]
-            addObserverForName:WKApplicationDidBecomeActiveNotification
-                        object:nil
-                         queue:[NSOperationQueue mainQueue]
-                    usingBlock:^(NSNotification* note) {
-            PHWLocationStrategy* strongSelf = weakSelf;
-            if (strongSelf != nil) {
-                [strongSelf answer:strongSelf->_manager.authorizationStatus];
-            }
-        }];
-    }
+    [self observeActive];
     [_manager requestAlwaysAuthorization];
+}
+
+// Answers the waiting requests when the app becomes active again after the
+// prompt, with what the status is then. An answer the wearer gave reaches
+// the delegate too, maybe just after: a status still "not determined" is
+// read again a moment later before it counts as a prompt closed unanswered.
+- (void)observeActive {
+    if (_activeObserver != nil) {
+        return;
+    }
+    __weak PHWLocationStrategy* weakSelf = self;
+    _activeObserver = [[NSNotificationCenter defaultCenter]
+        addObserverForName:WKApplicationDidBecomeActiveNotification
+                    object:nil
+                     queue:[NSOperationQueue mainQueue]
+                usingBlock:^(NSNotification* note) {
+        PHWLocationStrategy* strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            return;
+        }
+        if (strongSelf->_manager.authorizationStatus != kCLAuthorizationStatusNotDetermined) {
+            [strongSelf answer:strongSelf->_manager.authorizationStatus];
+            return;
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kUnansweredDelay * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            PHWLocationStrategy* later = weakSelf;
+            if (later != nil) {
+                [later answer:later->_manager.authorizationStatus];
+            }
+        });
+    }];
 }
 
 - (void)answer:(CLAuthorizationStatus)status {
@@ -161,8 +190,9 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
 
 - (void)locationManagerDidChangeAuthorization:(CLLocationManager*)manager {
     CLAuthorizationStatus status = manager.authorizationStatus;
-    // The manager reports its status once on creation, before any answer;
-    // and "always" still at "when in use" is no answer yet either.
+    // The manager reports its status once on creation, before any answer, and
+    // a prompt closed unanswered is caught by observeActive; "always" still
+    // at "when in use" is no answer yet either.
     if (status == kCLAuthorizationStatusNotDetermined ||
         (_asked == PHWPermissionLocationAlways &&
          status == kCLAuthorizationStatusAuthorizedWhenInUse)) {

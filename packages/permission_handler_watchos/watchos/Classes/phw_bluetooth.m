@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Bluetooth, through a CBCentralManager the strategy keeps: creating it is
 // what asks the wearer, and its first state update is the answer, as in the

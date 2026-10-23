@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Host-side unit tests. The native side is replaced with a fake that answers
 // as the header documents, asynchronously as the system does, so the
@@ -36,10 +36,18 @@ class _FakeBackend implements PermissionHandlerWatchosBackend {
   int inFlight = 0;
   int mostInFlight = 0;
 
+  /// Whether answers land before the call returns, without a signal, as one
+  /// can before Dart has registered its handler.
+  bool answerAtOnce = false;
+
   bool get isRegistered => _handler != null;
 
   int _answerLater(Object? answer) {
     final int id = _next++;
+    if (answerAtOnce) {
+      _results[id] = answer;
+      return id;
+    }
     inFlight++;
     mostInFlight = inFlight > mostInFlight ? inFlight : mostInFlight;
     scheduleMicrotask(() {
@@ -161,5 +169,31 @@ void main() {
         isFalse);
     expect(await handler.openAppSettings(), isFalse);
     expect(fake.calls, isEmpty);
+  });
+
+  test('a second request while one waits fails as on iOS', () async {
+    final Future<Map<Permission, PermissionStatus>> first =
+        handler.requestPermissions(<Permission>[Permission.contacts]);
+    await expectLater(
+      handler.requestPermissions(<Permission>[Permission.microphone]),
+      throwsA(isA<PlatformException>().having((PlatformException e) => e.code,
+          'code', 'ERROR_ALREADY_REQUESTING_PERMISSIONS')),
+    );
+    expect(
+        (await first)[Permission.contacts], PermissionStatus.permanentlyDenied);
+    expect(
+        await handler.requestPermissions(<Permission>[Permission.microphone]),
+        <Permission, PermissionStatus>{
+          Permission.microphone: PermissionStatus.permanentlyDenied,
+        });
+  });
+
+  test('an answer that lands before the handler is registered is kept',
+      () async {
+    fake.answerAtOnce = true;
+    fake.statuses[Permission.notification.value] = 1;
+    expect(await handler.checkPermissionStatus(Permission.notification),
+        PermissionStatus.granted);
+    expect(fake.isRegistered, isFalse);
   });
 }

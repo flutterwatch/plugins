@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // The FFI surface, the answers kept for Dart, and the table of strategies.
 // See the header for the contract.
@@ -141,6 +141,15 @@ static id<PHWStrategy> _strategy(int32_t permission) {
         case PHWPermissionBluetooth:
             kind = [PHWBluetoothStrategy class];
             break;
+        case PHWPermissionStorage:
+            kind = [PHWStorageStrategy class];
+            break;
+        case PHWPermissionCriticalAlerts:
+            kind = [PHWCriticalAlertsStrategy class];
+            break;
+        case PHWPermissionAssistant:
+            kind = [PHWAssistantStrategy class];
+            break;
         default:
             kind = [PHWUnknownStrategy class];
             break;
@@ -170,6 +179,26 @@ static id<PHWStrategy> _strategy(int32_t permission) {
                      done:(PHWStatusHandler)done
                    failed:(PHWErrorHandler)failed {
     done(PHWStatusPermanentlyDenied);
+}
+
+@end
+
+@implementation PHWStorageStrategy
+
+- (void)checkPermission:(PHWPermission)permission done:(PHWStatusHandler)done {
+    done(PHWStatusGranted);
+}
+
+- (void)checkService:(PHWPermission)permission
+                done:(PHWServiceHandler)done
+              failed:(PHWErrorHandler)failed {
+    done(PHWServiceNotApplicable);
+}
+
+- (void)requestPermission:(PHWPermission)permission
+                     done:(PHWStatusHandler)done
+                   failed:(PHWErrorHandler)failed {
+    done(PHWStatusGranted);
 }
 
 @end

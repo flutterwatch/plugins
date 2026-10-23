@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Against the real watch, through permission_handler's own API: every
 // symbol resolves, every permission answers, and the answers that need no
@@ -30,6 +30,18 @@ void main() {
     expect(
         await Permission.camera.request(), PermissionStatus.permanentlyDenied);
     expect(await Permission.phone.serviceStatus, ServiceStatus.disabled);
+  });
+
+  testWidgets('storage, critical alerts and Siri answer as on iOS',
+      (WidgetTester _) async {
+    expect(await Permission.storage.status, PermissionStatus.granted);
+    expect(await Permission.storage.request(), PermissionStatus.granted);
+    // The example has neither the Critical Alerts entitlement nor Siri, so
+    // neither has been asked for. Its Info.plist has no
+    // NSSiriUsageDescription, so Siri is not even asked about: INPreferences
+    // ends an app without the Siri entitlement.
+    expect(await Permission.criticalAlerts.status, PermissionStatus.denied);
+    expect(await Permission.assistant.status, PermissionStatus.denied);
   });
 
   testWidgets('location services answer', (WidgetTester _) async {

@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Contacts, through CNContactStore. Contacts is loaded at runtime and only
 // messaged.
@@ -20,8 +20,9 @@ static PHWStatus _contactsStatus(NSInteger status) {
         case CNAuthorizationStatusAuthorized:
             return PHWStatusGranted;
         default:
-            // CNAuthorizationStatusLimited, from watchOS 11.
-            return PHWStatusLimited;
+            // The watchOS SDK has no CNAuthorizationStatusLimited (iOS 18
+            // only); any status it adds later is not a grant.
+            return PHWStatusDenied;
     }
 }
 

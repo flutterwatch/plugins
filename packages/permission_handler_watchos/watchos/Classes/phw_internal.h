@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // What the strategy files share. Nothing here is exported to Dart.
 
@@ -22,10 +22,13 @@ typedef NS_ENUM(int, PHWPermission) {
     PHWPermissionMicrophone = 7,
     PHWPermissionReminders = 11,
     PHWPermissionSensors = 12,
+    PHWPermissionStorage = 15,
     PHWPermissionNotification = 17,
     PHWPermissionBluetooth = 21,
+    PHWPermissionCriticalAlerts = 26,
     PHWPermissionCalendarWriteOnly = 36,
     PHWPermissionCalendarFullAccess = 37,
+    PHWPermissionAssistant = 38,
 };
 
 // PermissionStatus.
@@ -62,9 +65,11 @@ typedef void (^PHWErrorHandler)(NSString* code, NSString* message);
 @end
 
 // The class `className` of the system framework `framework`, loaded on first
-// use, or nil when this watchOS has neither. Nothing links the frameworks,
-// so an app that never asks for a permission carries no reference to the
-// API behind it, as the iOS implementation's opt-in macros arrange.
+// use, or nil when this watchOS has neither. No framework but
+// UserNotifications is linked, so an app does not load the frameworks of the
+// permissions it never asks about. The class names and selectors are still
+// in the binary: unlike the iOS implementation's opt-in macros, this does
+// not take a group's code out of the app.
 PHW_HIDDEN Class phw_class(NSString* framework, NSString* className);
 
 // Whether the app's Info.plist has `key`.
@@ -106,6 +111,16 @@ PHW_HIDDEN BOOL phw_class_bool(Class cls, SEL selector);
 @end
 
 @interface PHWBluetoothStrategy : NSObject <PHWStrategy>
+@end
+
+// Storage, granted as on iOS: the app's own container needs no permission.
+@interface PHWStorageStrategy : NSObject <PHWStrategy>
+@end
+
+@interface PHWCriticalAlertsStrategy : NSObject <PHWStrategy>
+@end
+
+@interface PHWAssistantStrategy : NSObject <PHWStrategy>
 @end
 
 #endif  // PHW_INTERNAL_H

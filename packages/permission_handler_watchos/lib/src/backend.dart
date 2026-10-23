@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 
 /// The native half of [PermissionHandlerWatchos], behind an interface so
 /// host tests can substitute a fake. Every member maps to one exported C

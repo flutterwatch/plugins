@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // Calendar (full access and write only) and reminders, through
 // EKEventStore, answered as the iOS 17 implementation answers them. EventKit
@@ -35,18 +35,14 @@ static PHWStatus _eventsStatus(PHWPermission permission, NSInteger status) {
 
 // The usage description the prompt for `permission` needs.
 static NSString* _usageKey(PHWPermission permission) {
-    if (@available(watchOS 10.0, *)) {
-        switch (permission) {
-            case PHWPermissionReminders:
-                return @"NSRemindersFullAccessUsageDescription";
-            case PHWPermissionCalendarWriteOnly:
-                return @"NSCalendarsWriteOnlyAccessUsageDescription";
-            default:
-                return @"NSCalendarsFullAccessUsageDescription";
-        }
+    switch (permission) {
+        case PHWPermissionReminders:
+            return @"NSRemindersFullAccessUsageDescription";
+        case PHWPermissionCalendarWriteOnly:
+            return @"NSCalendarsWriteOnlyAccessUsageDescription";
+        default:
+            return @"NSCalendarsFullAccessUsageDescription";
     }
-    return permission == PHWPermissionReminders ? @"NSRemindersUsageDescription"
-                                                : @"NSCalendarsUsageDescription";
 }
 
 @implementation PHWEventsStrategy {
@@ -101,20 +97,16 @@ static NSString* _usageKey(PHWPermission permission) {
             done(granted ? PHWStatusGranted : PHWStatusPermanentlyDenied);
         });
     };
-    if (@available(watchOS 10.0, *)) {
-        switch (permission) {
-            case PHWPermissionReminders:
-                [_store requestFullAccessToRemindersWithCompletion:answer];
-                break;
-            case PHWPermissionCalendarWriteOnly:
-                [_store requestWriteOnlyAccessToEventsWithCompletion:answer];
-                break;
-            default:
-                [_store requestFullAccessToEventsWithCompletion:answer];
-                break;
-        }
-    } else {
-        [_store requestAccessToEntityType:_entityType(permission) completion:answer];
+    switch (permission) {
+        case PHWPermissionReminders:
+            [_store requestFullAccessToRemindersWithCompletion:answer];
+            break;
+        case PHWPermissionCalendarWriteOnly:
+            [_store requestWriteOnlyAccessToEventsWithCompletion:answer];
+            break;
+        default:
+            [_store requestFullAccessToEventsWithCompletion:answer];
+            break;
     }
 }
 

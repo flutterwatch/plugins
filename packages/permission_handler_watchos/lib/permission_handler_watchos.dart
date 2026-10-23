@@ -1,6 +1,6 @@
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the MIT license that can be found
+// in the LICENSE file.
 //
 // watchOS implementation of `permission_handler`, over dart:ffi.
 //
@@ -30,12 +30,14 @@ abstract final class PermissionHandlerWatchosSignal {
 
 /// watchOS implementation of [PermissionHandlerPlatform].
 ///
-/// Answers for location (when in use and always), notifications, sensors
-/// (Motion & Fitness), the microphone, contacts, the calendar (full access
-/// and write only), reminders and Bluetooth. The permissions watchOS does not
-/// have answer as the iOS implementation answers for one it does not know:
-/// [PermissionStatus.denied], a request [PermissionStatus.permanentlyDenied],
-/// their service [ServiceStatus.disabled].
+/// Answers for location (when in use and always), notifications, critical
+/// alerts, sensors (Motion & Fitness), the microphone, contacts, the calendar
+/// (full access and write only), reminders, Bluetooth, Siri
+/// ([Permission.assistant]) and storage, which is granted as on iOS. The
+/// permissions watchOS does not have answer as the iOS implementation
+/// answers for one it does not know: [PermissionStatus.denied], a request
+/// [PermissionStatus.permanentlyDenied], their service
+/// [ServiceStatus.disabled].
 class PermissionHandlerWatchos extends PermissionHandlerPlatform {
   /// Test hook: set before first use to replace the native backend.
   static PermissionHandlerWatchosBackend? backendOverride;
@@ -54,6 +56,7 @@ class PermissionHandlerWatchos extends PermissionHandlerPlatform {
   final Map<int, Completer<Map<String, Object?>>> _pending =
       <int, Completer<Map<String, Object?>>>{};
   bool _registered = false;
+  bool _requesting = false;
 
   @override
   Future<PermissionStatus> checkPermissionStatus(Permission permission) async =>
@@ -76,21 +79,36 @@ class PermissionHandlerWatchos extends PermissionHandlerPlatform {
   ///
   /// Fails with a [PlatformException] whose code is
   /// `MISSING_USAGE_DESCRIPTION` when the app's Info.plist lacks the key a
-  /// prompt needs, where watchOS would terminate the app, and
+  /// prompt needs, where watchOS would terminate the app,
   /// `MISSING_WHENINUSE_PERMISSION` for [Permission.locationAlways] asked
-  /// for before "when in use" was granted.
+  /// for before "when in use" was granted, and, as on iOS,
+  /// `ERROR_ALREADY_REQUESTING_PERMISSIONS` while an earlier request is
+  /// still waiting for its answers.
   @override
   Future<Map<Permission, PermissionStatus>> requestPermissions(
     List<Permission> permissions,
   ) async {
-    final Map<Permission, PermissionStatus> statuses =
-        <Permission, PermissionStatus>{};
-    for (final Permission permission in permissions) {
-      statuses[permission] = PermissionStatusValue.statusByValue(
-        _number(await _await(_b.request(permission.value)), 'status'),
+    if (_requesting) {
+      throw PlatformException(
+        code: 'ERROR_ALREADY_REQUESTING_PERMISSIONS',
+        message: 'A request for permissions is already running, please wait '
+            'for it to finish before doing another request (note that you '
+            'can request multiple permissions at the same time).',
       );
     }
-    return statuses;
+    _requesting = true;
+    try {
+      final Map<Permission, PermissionStatus> statuses =
+          <Permission, PermissionStatus>{};
+      for (final Permission permission in permissions) {
+        statuses[permission] = PermissionStatusValue.statusByValue(
+          _number(await _await(_b.request(permission.value)), 'status'),
+        );
+      }
+      return statuses;
+    } finally {
+      _requesting = false;
+    }
   }
 
   /// Always false: watchOS, like iOS, has no rationale to show.
