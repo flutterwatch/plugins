@@ -215,6 +215,20 @@ static NSString *FWIAPReceiptBase64(void) {
   return data ? [data base64EncodedStringWithOptions:0] : @"";
 }
 
+// Whether [error] is a cancel: its code is SKErrorPaymentCancelled (2) or
+// SKErrorOverlayCancelled (15). in_app_purchase_storekit maps the same two
+// codes to PurchaseStatus.canceled, and like it this reads the code alone.
+// SKErrorOverlayCancelled exists from watchOS 6.2, below this package's
+// deployment target, so it needs no availability check.
+//
+// It returns BOOL on purpose: @() boxes a BOOL with numberWithBool:, which
+// NSJSONSerialization writes as true or false. A bare comparison is an int in
+// C, boxed with numberWithInt: and written as 1 or 0, which 0.1.1 sent and
+// Dart could not read as a bool.
+static BOOL FWIAPIsCancel(NSError *error) {
+  return error.code == SKErrorPaymentCancelled || error.code == SKErrorOverlayCancelled;
+}
+
 // Builds one transaction-update dict. Pure (no shared-state access) so it can
 // run outside the lock — the receipt read is file I/O we don't want to hold it
 // across.
@@ -241,9 +255,7 @@ static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
     update[@"error"] = @{
       @"code" : [@(txn.error.code) stringValue],
       @"message" : txn.error.localizedDescription ?: @"",
-      // A comparison is an int in C: cast to BOOL so it reaches JSON as
-      // true or false, which Dart reads `as bool?`, not as 1 or 0.
-      @"canceled" : @((BOOL)(txn.error.code == SKErrorPaymentCancelled)),
+      @"canceled" : @(FWIAPIsCancel(txn.error)),
     };
   }
   return update;
@@ -299,8 +311,7 @@ static NSDictionary *FWIAPBuildUpdate(SKPaymentTransaction *txn) {
     @"error" : @{
       @"code" : [@(error.code) stringValue],
       @"message" : error.localizedDescription ?: @"",
-      // BOOL, not int: see FWIAPBuildUpdate.
-      @"canceled" : @((BOOL)(error.code == SKErrorPaymentCancelled)),
+      @"canceled" : @(FWIAPIsCancel(error)),
     },
   };
   os_unfair_lock_lock(&s_lock);
