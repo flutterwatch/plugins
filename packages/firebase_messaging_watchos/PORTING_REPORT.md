@@ -3,7 +3,12 @@
 Scaffolded by `flutter-watchos plugin port --from-pub firebase_messaging
 --include-example` on 2026-07-18, then hand-finished.
 
-Source: `firebase_messaging` 16.4.3
+Source: `firebase_messaging` 16.4.3. Since 0.2.0 it implements
+`firebase_messaging_platform_interface` 4.11.0 and later, for
+`firebase_messaging` 17.x; read against 17.0.1 and platform interface 4.11.1.
+The watch still links the Firebase Apple SDK 11.x (`watchos/Package.resolved`
+pins 11.15.0), while `firebase_messaging` 17.x builds its iOS code against
+13.x.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 
@@ -14,7 +19,7 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 | Implementation (Dart + FFI + native) | ✅ complete (background handler is a no-op — see below) |
 | watchOS capability | ✅ FirebaseMessaging is source-built and watch-capable |
 | Host unit tests | ✅ 15/15 pass (native FirebaseMessaging faked) |
-| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator, where `getToken` fails because the Simulator has no APNs. The smoke test was not run for this version |
+| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator, where `getToken` fails because the Simulator has no APNs (checked with 0.1.1; 0.2.0 changes no native code and was not rebuilt). The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_messaging pub example (smoke test added) |
 

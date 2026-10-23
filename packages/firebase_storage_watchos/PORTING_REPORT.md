@@ -3,7 +3,11 @@
 Scaffolded by `flutter-watchos plugin port --from-pub firebase_storage
 --include-example` on 2026-07-17, then hand-finished.
 
-Source: `firebase_storage` 13.4.5
+Source: `firebase_storage` 13.4.5. Since 0.2.0 it implements
+`firebase_storage_platform_interface` 6.0.8 and later, for `firebase_storage`
+14.x; read against 14.0.1 and platform interface 6.0.9. The watch still links
+the Firebase Apple SDK 11.x (`watchos/Package.resolved` pins 11.15.0), while
+`firebase_storage` 14.x builds its iOS code against 13.x.
 Base platform: ios (Swift)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseStorage`)
 
@@ -14,7 +18,7 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseStorage`)
 | Implementation (Dart + FFI + native) | ✅ complete (putBlob is web-only) |
 | watchOS capability | ✅ FirebaseStorage is source-built and watch-capable |
 | Host unit tests | ✅ 14/14 pass (native FirebaseStorage faked) |
-| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator. The smoke test was not run for this version |
+| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator (checked with 0.1.1; 0.2.0 changes no native code and was not rebuilt). The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_storage pub example (smoke test added) |
 

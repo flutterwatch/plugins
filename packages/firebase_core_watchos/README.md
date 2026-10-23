@@ -16,8 +16,9 @@ dependency on [`firebase-ios-sdk`](https://github.com/firebase/firebase-ios-sdk)
 >
 > **What has been checked:** the example app builds and starts on the
 > watchOS 27.0 Simulator, the host unit tests pass, and a smoke test that
-> initializes the default app and a named app passes there. It has not yet
-> been run on a physical Apple Watch.
+> initializes the default app and a named app passes there. That was with
+> `firebase_core` 4.x; the example has not been rebuilt with 5.x yet. It has
+> not yet been run on a physical Apple Watch.
 >
 > Requires `flutter-watchos` with external-SwiftPM-dependency linking (the CLI
 > builds the plugin's SwiftPM package — pulling in `FirebaseCore` — and
@@ -51,9 +52,13 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.1.0
+  firebase_core: ^5.1.0
+  firebase_core_watchos: ^0.1.2
 ```
+
+`firebase_core` 5.x, and 4.x from 4.12.1, use
+`firebase_core_platform_interface` 8.x, which this package implements, so the
+package works with either.
 
 Then use `firebase_core`'s API exactly as on iOS — the watchOS implementation
 registers automatically via Flutter's federated plugin runner.

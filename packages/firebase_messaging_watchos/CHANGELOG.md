@@ -1,3 +1,20 @@
+## 0.2.0
+
+* **Breaking:** works with `firebase_messaging` 17.x, and needs it. The
+  package now depends on `firebase_core: ^5.0.0` (was `^4.0.0`) and
+  `firebase_messaging_platform_interface: ^4.11.0` (was `^4.9.0`), the first
+  version of the platform interface for `firebase_core` 5.x. An app that
+  stays on `firebase_messaging` 16.x keeps 0.1.1.
+* The watch still links the Firebase Apple SDK 11.x through
+  `watchos/Package.swift`. The move to SDK 13 in `firebase_messaging` 17.0.0
+  is for its iOS and macOS code.
+* README: the install snippet names `firebase_core: ^5.1.0`,
+  `firebase_messaging: ^17.0.1` and this version.
+* Example: `pubspec.yaml` names `firebase_messaging: ^17.0.1` and
+  `firebase_core: ^5.1.0`. Its code is unchanged and still calls `getToken`
+  and `onTokenRefresh`. No native code changed, and the example was not
+  rebuilt on the Simulator for this version.
+
 ## 0.1.1
 
 * API docs and comments say "release" for handing native memory back.
