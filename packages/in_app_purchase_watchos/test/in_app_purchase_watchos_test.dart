@@ -5,6 +5,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart'
+    show FlutterError, FlutterErrorDetails, FlutterExceptionHandler;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
@@ -66,9 +68,17 @@ class _FakeBindings extends InAppPurchaseWatchosBindings {
 
   int drainCalls = 0;
 
+  /// When set, the next [purchasesDrain] throws it instead of returning.
+  Object? drainThrows;
+
   @override
   String purchasesDrain() {
     drainCalls++;
+    final Object? error = drainThrows;
+    if (error != null) {
+      drainThrows = null;
+      throw error;
+    }
     return drainScript.isNotEmpty ? drainScript.removeAt(0) : '[]';
   }
 
@@ -91,6 +101,81 @@ ProductDetails _product(String id) => ProductDetails(
       rawPrice: 0.99,
       currencyCode: 'USD',
     );
+
+// The error object of a failed update, as native code writes it. 0.1.1 boxed
+// `canceled` as a C comparison, an int, which NSJSONSerialization writes as 1
+// or 0; native code now writes a JSON boolean.
+
+/// A cancel, as 0.1.1's native code wrote it.
+const String _cancelAsNumber =
+    '{"code":"2","message":"Cancelled","canceled":1}';
+
+/// Another failure, as 0.1.1's native code wrote it.
+const String _failureAsNumber = '{"code":"0","message":"Failed","canceled":0}';
+
+/// A cancel, as native code writes it now.
+const String _cancelAsBoolean =
+    '{"code":"2","message":"Cancelled","canceled":true}';
+
+/// Another failure, as native code writes it now.
+const String _failureAsBoolean =
+    '{"code":"0","message":"Failed","canceled":false}';
+
+/// A failed update as the native drain writes it; [error] is the JSON of its
+/// error object, verbatim.
+String _failedUpdate(String purchaseID, String error) =>
+    '{"productID":"coins_100","purchaseID":"$purchaseID","status":"failed",'
+    '"receipt":"","error":$error}';
+
+/// A purchased update as the native drain writes it.
+String _purchasedUpdate(String purchaseID) =>
+    '{"productID":"coins_100","purchaseID":"$purchaseID",'
+    '"status":"purchased","receipt":"RECEIPTB64"}';
+
+/// Listens to [stream] from the root zone until the test ends, as a Flutter
+/// app does, adding each batch to [batches].
+///
+/// The drain timer then runs in the root zone too, where a throw out of a
+/// periodic timer's callback stops the timer for good. A test's own zone
+/// would hide that: it catches the throw, and the timer keeps running. So a
+/// throw that escapes the drain fails the whole test file, which is how the
+/// test runner reports an error that reached the root zone.
+void _listenFromRootZone(
+  Stream<List<PurchaseDetails>> stream,
+  List<List<PurchaseDetails>> batches,
+) {
+  final StreamSubscription<List<PurchaseDetails>> subscription =
+      Zone.root.run(() => stream.listen(batches.add));
+  addTearDown(subscription.cancel);
+}
+
+/// Waits until [batches] holds [count] batches, or two seconds have passed.
+Future<void> _waitForBatches(
+  List<List<PurchaseDetails>> batches,
+  int count,
+) async {
+  const Duration timeout = Duration(seconds: 2);
+  final Stopwatch waited = Stopwatch()..start();
+  while (batches.length < count && waited.elapsed < timeout) {
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+  }
+}
+
+/// The purchase IDs of each batch in [batches].
+List<List<String?>> _ids(List<List<PurchaseDetails>> batches) =>
+    <List<String?>>[
+      for (final List<PurchaseDetails> batch in batches)
+        <String?>[for (final PurchaseDetails p in batch) p.purchaseID],
+    ];
+
+/// Collects what [FlutterError.reportError] receives until the test ends.
+List<FlutterErrorDetails> _collectReports() {
+  final List<FlutterErrorDetails> reports = <FlutterErrorDetails>[];
+  final FlutterExceptionHandler? previous = FlutterError.onError;
+  FlutterError.onError = reports.add;
+  addTearDown(() => FlutterError.onError = previous);
+  return reports;
+}
 
 void main() {
   setUp(() {
@@ -636,11 +721,80 @@ void main() {
       expect(d.pendingCompletePurchase, isFalse);
     });
 
-    test('null / empty / malformed yield no updates', () {
+    test('null / empty / malformed yield no updates, and malformed is reported',
+        () {
+      final List<FlutterErrorDetails> reports = _collectReports();
+
       expect(InAppPurchaseWatchos.parsePurchaseUpdates(null), isEmpty);
       expect(InAppPurchaseWatchos.parsePurchaseUpdates(''), isEmpty);
+      expect(reports, isEmpty, reason: 'no updates is not an error');
+
       expect(InAppPurchaseWatchos.parsePurchaseUpdates('{not json'), isEmpty);
       expect(InAppPurchaseWatchos.parsePurchaseUpdates('{}'), isEmpty);
+      expect(reports, hasLength(2),
+          reason: 'a drain that is not a JSON array must not vanish silently');
+      for (final FlutterErrorDetails report in reports) {
+        expect(report.library, 'in_app_purchase_watchos');
+      }
+    });
+
+    test('reads canceled as a JSON boolean, and as the 1 or 0 that 0.1.1 sent',
+        () {
+      final List<FlutterErrorDetails> reports = _collectReports();
+      final String json = '[${_failedUpdate('f1', _cancelAsBoolean)},'
+          '${_failedUpdate('f2', _failureAsBoolean)},'
+          '${_failedUpdate('f3', _cancelAsNumber)},'
+          '${_failedUpdate('f4', _failureAsNumber)},'
+          // Neither a missing flag nor one of another type is a cancel.
+          '${_failedUpdate('f5', '{"code":"2","message":"Cancelled"}')},'
+          '${_failedUpdate('f6', '{"code":"2","canceled":"true"}')}]';
+
+      final List<PurchaseDetails> d =
+          InAppPurchaseWatchos.parsePurchaseUpdates(json);
+
+      expect(d.map((PurchaseDetails p) => p.purchaseID).toList(),
+          <String>['f1', 'f2', 'f3', 'f4', 'f5', 'f6']);
+      expect(d.map((PurchaseDetails p) => p.status).toList(), <PurchaseStatus>[
+        PurchaseStatus.canceled,
+        PurchaseStatus.error,
+        PurchaseStatus.canceled,
+        PurchaseStatus.error,
+        PurchaseStatus.error,
+        PurchaseStatus.error,
+      ]);
+      for (final PurchaseDetails p in d) {
+        expect(p.error?.code, isNotEmpty, reason: p.purchaseID);
+        // StoreKit keeps a failed transaction until it is finished.
+        expect(p.pendingCompletePurchase, isTrue, reason: p.purchaseID);
+      }
+      expect(reports, isEmpty, reason: 'every update here is readable');
+    });
+
+    test('leaves out and reports an update it cannot read, keeps the rest', () {
+      final List<FlutterErrorDetails> reports = _collectReports();
+      final String json = '[${_purchasedUpdate('p1')},'
+          '{"productID":"a","purchaseID":"x1","status":7},'
+          '"not an update",'
+          '${_failedUpdate('x2', '"not an error object"')},'
+          '${_purchasedUpdate('p2')}]';
+
+      final List<PurchaseDetails> d =
+          InAppPurchaseWatchos.parsePurchaseUpdates(json);
+
+      expect(d.map((PurchaseDetails p) => p.purchaseID).toList(),
+          <String>['p1', 'p2']);
+      expect(reports, hasLength(3));
+      for (final FlutterErrorDetails report in reports) {
+        expect(report.library, 'in_app_purchase_watchos');
+      }
+      // Each report says which update of the batch it left out.
+      expect(
+          reports.map((FlutterErrorDetails r) => r.context.toString()),
+          <Matcher>[
+            contains('2 of 5'),
+            contains('3 of 5'),
+            contains('4 of 5')
+          ]);
     });
   });
 
@@ -733,6 +887,86 @@ void main() {
       expect(events, isNotEmpty);
       expect(events.first.single.productID, 'coins_100');
       expect(events.first.single.status, PurchaseStatus.purchased);
+    });
+
+    // 0.1.1 lost every failed update this way, and the stream with it: the
+    // `as bool?` cast threw in the drain timer, which then never ran again.
+    test(
+        'a failed update with canceled as 1 or true reaches an app, and later '
+        'batches still arrive', () async {
+      final List<FlutterErrorDetails> reports = _collectReports();
+      final fake = _FakeBindings(result: null);
+      fake.drainScript.addAll(<String>[
+        '[${_failedUpdate('f1', _cancelAsNumber)}]',
+        '[${_failedUpdate('f2', _cancelAsBoolean)}]',
+        '[${_purchasedUpdate('p1')}]',
+      ]);
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 1);
+
+      final List<List<PurchaseDetails>> batches = <List<PurchaseDetails>>[];
+      _listenFromRootZone(InAppPurchaseWatchos().purchaseStream, batches);
+      await _waitForBatches(batches, 3);
+
+      expect(reports, isEmpty, reason: 'every update here is readable');
+      expect(_ids(batches), <List<String>>[
+        <String>['f1'],
+        <String>['f2'],
+        <String>['p1'],
+      ]);
+      expect(
+          batches.map((List<PurchaseDetails> b) => b.single.status).toList(),
+          <PurchaseStatus>[
+            PurchaseStatus.canceled,
+            PurchaseStatus.canceled,
+            PurchaseStatus.purchased,
+          ]);
+    });
+
+    test(
+        'an update it cannot read is reported, and the rest of its batch and '
+        'later batches still arrive', () async {
+      final List<FlutterErrorDetails> reports = _collectReports();
+      final fake = _FakeBindings(result: null);
+      fake.drainScript.addAll(<String>[
+        '[{"productID":"a","purchaseID":"x1","status":7},'
+            '${_purchasedUpdate('p1')}]',
+        '[${_purchasedUpdate('p2')}]',
+      ]);
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 1);
+
+      final List<List<PurchaseDetails>> batches = <List<PurchaseDetails>>[];
+      _listenFromRootZone(InAppPurchaseWatchos().purchaseStream, batches);
+      await _waitForBatches(batches, 2);
+
+      expect(_ids(batches), <List<String>>[
+        <String>['p1'],
+        <String>['p2'],
+      ]);
+      expect(reports, hasLength(1));
+      expect(reports.single.library, 'in_app_purchase_watchos');
+    });
+
+    test('a drain that throws is reported, and the next drain still runs',
+        () async {
+      final List<FlutterErrorDetails> reports = _collectReports();
+      final fake = _FakeBindings(result: null)
+        ..drainThrows = StateError('the native drain failed');
+      fake.drainScript.add('[${_purchasedUpdate('p1')}]');
+      InAppPurchaseWatchos.bindingsOverride = fake;
+      InAppPurchaseWatchos.drainInterval = const Duration(milliseconds: 1);
+
+      final List<List<PurchaseDetails>> batches = <List<PurchaseDetails>>[];
+      _listenFromRootZone(InAppPurchaseWatchos().purchaseStream, batches);
+      await _waitForBatches(batches, 1);
+
+      expect(_ids(batches), <List<String>>[
+        <String>['p1'],
+      ]);
+      expect(reports, hasLength(1));
+      expect(reports.single.exception, isA<StateError>());
+      expect(reports.single.library, 'in_app_purchase_watchos');
     });
   });
 }
