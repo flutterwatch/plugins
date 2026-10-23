@@ -70,12 +70,13 @@ watchOS" table lists the ✗ rows.
 | `checkPermission` / `requestPermission` | ✅ when-in-use authorization |
 | `isLocationServiceEnabled` | ✅ |
 | `getLastKnownPosition` | ✅ the last cached fix |
-| `getCurrentPosition` / `getPositionStream` | ✅ pushed by the `CLLocationManager` delegate |
+| `getCurrentPosition` | ✅ a `CLLocationManager` of its own, as in geolocator_apple; skips cached fixes more than 5 seconds old |
+| `getPositionStream` | ✅ pushed by the `CLLocationManager` delegate, every fix; a second call while one runs gets that stream, as from geolocator_apple |
 | `distanceBetween` / `bearingBetween` | ✅ the interface's own Dart code |
 | `getServiceStatusStream` | ✅ starts with the current status, then each change CoreLocation reports |
 | `getLocationAccuracy` | ✅ `accuracyAuthorization`: precise or reduced |
 | `requestTemporaryFullAccuracy` | ◐ `requestTemporaryFullAccuracyAuthorizationWithPurposeKey`; throws `PermissionDefinitionsNotFoundException` without `NSLocationTemporaryUsageDescriptionDictionary`, as on iOS |
-| `AppleSettings` (via `toJson()`) | ◐ `activityType` and `allowBackgroundLocationUpdates` (only with `location` in `UIBackgroundModes`); `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do not exist on watchOS |
+| `AppleSettings` (via `toJson()`) | ◐ `activityType` (maritime from the watchOS 27 SDK and watchOS 27 on, `otherNavigation` before, as in geolocator_apple) and `allowBackgroundLocationUpdates` (only with `location` in `UIBackgroundModes`); `pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do not exist on watchOS |
 | `openAppSettings` / `openLocationSettings` | ✗ fail with `UnimplementedError`: watchOS has no settings page an app can open |
 
 ---

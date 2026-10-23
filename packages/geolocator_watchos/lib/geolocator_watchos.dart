@@ -6,9 +6,11 @@
 //
 // Method-channel plugins are not supported on watchOS, so this package follows
 // the FFI plugin model: `watchos/Classes/geolocator_watchos_ffi.m` wraps
-// CoreLocation (CLLocationManager) and caches the latest fix on a delegate,
-// which wakes Dart through a `NativeCallable.listener`; this class resolves
-// the symbols via `DynamicLibrary.process()` and re-reads what it waits on.
+// CoreLocation and caches the latest fix on a delegate, which wakes Dart
+// through a `NativeCallable.listener` with the kind of change; this class
+// resolves the symbols via `DynamicLibrary.process()` and re-reads what it
+// waits on. As in geolocator_apple, the position stream and single position
+// requests each have a CLLocationManager of their own.
 //
 // `AppleSettings` from geolocator_apple is read through `toJson()`, so its
 // `activityType` and `allowBackgroundLocationUpdates` reach CoreLocation
@@ -33,13 +35,14 @@ abstract class GeolocatorWatchosBackend {
   /// with [checkPermission].
   void requestPermission();
 
-  /// Starts continuous updates at [accuracyIndex] (the `LocationAccuracy`
-  /// index) with [distanceFilter] in metres (0 or less means none).
+  /// Starts the stream's continuous updates at [accuracyIndex] (the
+  /// `LocationAccuracy` index) with [distanceFilter] in metres (0 or less
+  /// means none).
   ///
-  /// [activityType] is a `CLActivityType` raw value, or 0 for CoreLocation's
-  /// default. [allowBackground] turns on background updates when the
-  /// `Info.plist`'s `UIBackgroundModes` has `location`, and is ignored
-  /// otherwise.
+  /// [activityType] is a `CLActivityType` raw value, or 6 for maritime;
+  /// anything else, 0 included, means `CLActivityTypeOther`.
+  /// [allowBackground] turns on background updates when the `Info.plist`'s
+  /// `UIBackgroundModes` has `location`, and is ignored otherwise.
   void startUpdates(
     int accuracyIndex,
     double distanceFilter, {
@@ -47,13 +50,20 @@ abstract class GeolocatorWatchosBackend {
     bool allowBackground = false,
   });
 
-  /// Asks for a single fix.
-  void requestLocation();
+  /// Starts the single-request manager at [accuracyIndex]. It skips cached
+  /// fixes more than 5 seconds old and stops after the first one it accepts.
+  void requestLocation(int accuracyIndex);
+
+  /// Stops the single-request manager, for a request that gave up.
+  void stopLocationRequest();
 
   /// The latest fix as the 10 doubles documented in the C header, or null.
   List<double>? readPosition();
 
-  /// Stops continuous updates.
+  /// How many fixes native has delivered; it goes up with each new one.
+  int positionCount();
+
+  /// Stops the stream's continuous updates.
   void stopUpdates();
 
   /// The `LocationAccuracyStatus` index the wearer allows: 0 reduced,
@@ -68,10 +78,23 @@ abstract class GeolocatorWatchosBackend {
   /// How many temporary full-accuracy requests have finished.
   int accuracyRequestsDone();
 
-  /// Registers the function native calls when a new fix lands, the
-  /// authorization or accuracy changes, or an accuracy request ends; or
-  /// `nullptr` to stop.
+  /// Registers the function native calls, with a [GeolocatorWatchosSignal]
+  /// kind, when a new fix lands, the authorization or accuracy changes, or an
+  /// accuracy request ends; or `nullptr` to stop.
   void setCallback(Pointer<NativeFunction<GeolocatorFixNative>> callback);
+}
+
+/// The kinds of change native signals, as `GEOLOCATOR_WATCHOS_SIGNAL_*` in
+/// the C header.
+abstract final class GeolocatorWatchosSignal {
+  /// A new fix, or a failed update.
+  static const int position = 0;
+
+  /// The authorization, or the location services switch, changed.
+  static const int authorization = 1;
+
+  /// A temporary full-accuracy request ended.
+  static const int accuracy = 2;
 }
 
 /// watchOS implementation of [GeolocatorPlatform].
@@ -86,24 +109,13 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
   static GeolocatorWatchosBackend? _backend;
 
-  /// A cached fix older than this, from before a request, is not an answer
-  /// to it: CoreLocation hands over its last fix first, however old.
-  static const Duration _freshness = Duration(seconds: 5);
+  /// Pending `getCurrentPosition` calls. They share the single-request
+  /// manager, which stops when the last of them ends.
+  static int _singleRequests = 0;
 
-  /// Position streams and pending `getCurrentPosition` calls. They share the
-  /// one CLLocationManager, which stops only when the last of them ends.
-  static int _users = 0;
-
-  static void _release() {
-    _users--;
-    if (_users == 0) {
-      _b.stopUpdates();
-    }
-  }
-
-  static double _notBefore() =>
-      (DateTime.now().millisecondsSinceEpoch - _freshness.inMilliseconds)
-          .toDouble();
+  /// The running position stream, which a second `getPositionStream` call
+  /// gets too, with the first call's settings, as from geolocator_apple.
+  Stream<Position>? _positionStream;
 
   static GeolocatorWatchosBackend get _b =>
       backendOverride ?? (_backend ??= _FfiBackend());
@@ -166,7 +178,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
     // Registered before the prompt: the user can answer faster than the call
     // to request it returns.
-    final void Function() stopListening = _Notifier.listen(_b, check);
+    final void Function() stopListening =
+        _Notifier.listen(_b, GeolocatorWatchosSignal.authorization, check);
     _b.requestPermission();
     check();
 
@@ -203,26 +216,27 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
         locationSettings?.timeLimit ?? const Duration(seconds: 30);
 
     final Completer<Position> completer = Completer<Position>();
-    final double notBefore = _notBefore();
+    // The fix cached now is not an answer: only one delivered after this
+    // request is. Native skips the stale fixes the single-request manager
+    // hands over first; a running stream's next fix answers too, as in
+    // geolocator_apple.
+    final int before = _b.positionCount();
 
     void check() {
+      if (_b.positionCount() == before || completer.isCompleted) {
+        return;
+      }
       final List<double>? fix = _b.readPosition();
-      if (fix != null && fix[9] >= notBefore && !completer.isCompleted) {
+      if (fix != null) {
         completer.complete(_toPosition(fix));
       }
     }
 
-    final void Function() stopListening = _Notifier.listen(_b, check);
-    // A position stream already running keeps its own settings; this only
-    // waits for its next fix.
-    if (_users == 0) {
-      _b.requestLocation();
-      _start(locationSettings);
-    }
-    _users++;
-    // A recent cached fix may already satisfy this, in which case no delegate
-    // callback is coming and waiting for one would burn the whole time limit.
-    check();
+    final void Function() stopListening =
+        _Notifier.listen(_b, GeolocatorWatchosSignal.position, check);
+    _singleRequests++;
+    _b.requestLocation(
+        (locationSettings?.accuracy ?? LocationAccuracy.best).index);
 
     try {
       return await completer.future.timeout(
@@ -232,48 +246,60 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
       );
     } finally {
       stopListening();
-      _release();
+      _singleRequests--;
+      if (_singleRequests == 0) {
+        _b.stopLocationRequest();
+      }
     }
   }
 
+  /// The position stream. While one runs, a second call gets that stream,
+  /// with the settings it started with, as from geolocator_apple; it starts
+  /// with the settings of this call again once every listener has left.
+  ///
+  /// Each fix native delivers is emitted, with no age filter: CoreLocation
+  /// hands over its last fix as updates start, and a reduced-accuracy fix can
+  /// legitimately be old.
   @override
   Stream<Position> getPositionStream({
     LocationSettings? locationSettings,
   }) {
+    final Stream<Position>? running = _positionStream;
+    if (running != null) {
+      return running;
+    }
     late StreamController<Position> controller;
-    List<double>? last;
-    double notBefore = 0;
+    int seen = 0;
     void Function()? stopListening;
 
     void emitIfNew() {
+      final int count = _b.positionCount();
+      if (count == seen) {
+        return;
+      }
+      seen = count;
       final List<double>? fix = _b.readPosition();
-      if (fix != null && fix[9] >= notBefore && !_sameFix(fix, last)) {
-        last = fix;
+      if (fix != null) {
         controller.add(_toPosition(fix));
       }
     }
 
     controller = StreamController<Position>.broadcast(
       onListen: () {
-        notBefore = _notBefore();
-        stopListening = _Notifier.listen(_b, emitIfNew);
+        seen = _b.positionCount();
+        stopListening =
+            _Notifier.listen(_b, GeolocatorWatchosSignal.position, emitIfNew);
         _start(locationSettings);
-        _users++;
-        // CLLocationManager delivers the last known fix immediately on start,
-        // which can land before the callback is in place.
-        emitIfNew();
       },
       onCancel: () {
         stopListening?.call();
         stopListening = null;
-        _release();
+        _positionStream = null;
+        _b.stopUpdates();
       },
     );
-    return controller.stream;
+    return _positionStream = controller.stream;
   }
-
-  static bool _sameFix(List<double> a, List<double>? b) =>
-      b != null && a[0] == b[0] && a[1] == b[1] && a[9] == b[9];
 
   /// The `CLActivityType` raw value for each geolocator `ActivityType` index:
   /// automotiveNavigation, fitness, otherNavigation, airborne, other,
@@ -322,7 +348,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
     }
 
     // Registered before the prompt, which the wearer may answer at once.
-    final void Function() stopListening = _Notifier.listen(_b, check);
+    final void Function() stopListening =
+        _Notifier.listen(_b, GeolocatorWatchosSignal.accuracy, check);
     try {
       if (!_b.requestTemporaryFullAccuracy(purposeKey)) {
         throw const PermissionDefinitionsNotFoundException(
@@ -341,7 +368,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   /// then each change.
   ///
   /// CoreLocation reports a change of the system switch as an authorization
-  /// change, which is when this re-reads it.
+  /// change, which is when this re-reads it: `locationServicesEnabled`
+  /// blocks, so it is not asked on every fix.
   @override
   Stream<ServiceStatus> getServiceStatusStream() =>
       Stream<ServiceStatus>.multi((MultiStreamController<ServiceStatus> c) {
@@ -356,7 +384,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
           }
         }
 
-        final void Function() stopListening = _Notifier.listen(_b, emit);
+        final void Function() stopListening =
+            _Notifier.listen(_b, GeolocatorWatchosSignal.authorization, emit);
         // Creates the location manager, whose delegate reports the changes.
         _b.checkPermission();
         emit();
@@ -364,7 +393,8 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
       }, isBroadcast: true);
 }
 
-/// Signature of the native→Dart new-fix signal.
+/// Signature of the native→Dart signal, which carries a
+/// [GeolocatorWatchosSignal] kind.
 typedef GeolocatorFixNative = Void Function(Int64);
 
 /// Fan-out for the single native callback slot.
@@ -375,7 +405,7 @@ typedef GeolocatorFixNative = Void Function(Int64);
 /// whichever finished last unregister the others, so they share one trampoline
 /// and every waiter is notified.
 class _Notifier {
-  static final Set<void Function()> _listeners = <void Function()>{};
+  static final Map<void Function(), int> _listeners = <void Function(), int>{};
   static NativeCallable<GeolocatorFixNative>? _callable;
 
   /// Which backend the trampoline is currently registered with.
@@ -384,18 +414,21 @@ class _Notifier {
   /// once and never again would leave a replaced backend permanently silent.
   static GeolocatorWatchosBackend? _registeredWith;
 
-  /// Calls [listener] whenever CoreLocation reports anything, and returns a
-  /// function that stops it.
+  /// Calls [listener] whenever CoreLocation reports a change of [kind], a
+  /// [GeolocatorWatchosSignal], and returns a function that stops it.
   static void Function() listen(
-      GeolocatorWatchosBackend backend, void Function() listener) {
-    _listeners.add(listener);
+      GeolocatorWatchosBackend backend, int kind, void Function() listener) {
+    _listeners[listener] = kind;
     if (!identical(_registeredWith, backend)) {
       final NativeCallable<GeolocatorFixNative> c = _callable ??= () {
         final NativeCallable<GeolocatorFixNative> created =
-            NativeCallable<GeolocatorFixNative>.listener((int _) {
+            NativeCallable<GeolocatorFixNative>.listener((int signalled) {
           // Copied: a listener may remove itself while being notified.
-          for (final void Function() l in _listeners.toList()) {
-            l();
+          for (final MapEntry<void Function(), int> l
+              in _listeners.entries.toList()) {
+            if (l.value == signalled) {
+              l.key();
+            }
           }
         });
         // Waiting on a fix should not, by itself, keep the isolate alive.
@@ -430,6 +463,8 @@ typedef _Int64Native = Int64 Function();
 typedef _Int64Dart = int Function();
 typedef _ReadNative = Int32 Function(Pointer<Double>);
 typedef _ReadDart = int Function(Pointer<Double>);
+typedef _AccuracyNative = Void Function(Int32);
+typedef _AccuracyDart = void Function(int);
 
 /// Resolves the CoreLocation C symbols and marshals the fix buffer.
 class _FfiBackend implements GeolocatorWatchosBackend {
@@ -450,9 +485,15 @@ class _FfiBackend implements GeolocatorWatchosBackend {
   late final _StartDart _startUpdates =
       _lib.lookupFunction<_StartNative, _StartDart>(
           'geolocator_watchos_start_updates');
-  late final _VoidDart _requestLocation =
-      _lib.lookupFunction<_VoidNative, _VoidDart>(
+  late final _AccuracyDart _requestLocation =
+      _lib.lookupFunction<_AccuracyNative, _AccuracyDart>(
           'geolocator_watchos_request_location');
+  late final _VoidDart _stopLocationRequest =
+      _lib.lookupFunction<_VoidNative, _VoidDart>(
+          'geolocator_watchos_stop_location_request');
+  late final _Int64Dart _positionCount =
+      _lib.lookupFunction<_Int64Native, _Int64Dart>(
+          'geolocator_watchos_position_count');
   late final _ReadDart _readPosition =
       _lib.lookupFunction<_ReadNative, _ReadDart>(
           'geolocator_watchos_read_position');
@@ -485,7 +526,13 @@ class _FfiBackend implements GeolocatorWatchosBackend {
           accuracyIndex, distanceFilter, activityType, allowBackground ? 1 : 0);
 
   @override
-  void requestLocation() => _requestLocation();
+  void requestLocation(int accuracyIndex) => _requestLocation(accuracyIndex);
+
+  @override
+  void stopLocationRequest() => _stopLocationRequest();
+
+  @override
+  int positionCount() => _positionCount();
 
   @override
   List<double>? readPosition() {

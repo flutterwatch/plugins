@@ -4,10 +4,12 @@
 //
 // watchOS implementation of `geolocator`, over dart:ffi.
 //
-// Backed by CoreLocation (CLLocationManager), which is available on watchOS.
-// Location updates arrive asynchronously on a delegate, which caches the
-// latest fix and wakes Dart through the callback below; Dart reads it back
-// with `read_position`. Permission requests and authorization status map to
+// Backed by CoreLocation, which is available on watchOS. As in
+// geolocator_apple, two CLLocationManagers share one delegate: one runs the
+// position stream with its settings, the other answers single position
+// requests. The delegate caches the latest fix, counts the fixes it accepts,
+// and wakes Dart through the callback below; Dart reads the fix back with
+// `read_position`. Permission requests and authorization status map to
 // geolocator's LocationPermission.
 
 #ifndef GEOLOCATOR_WATCHOS_FFI_H
@@ -35,10 +37,11 @@ int geolocator_watchos_check_permission(void);
 GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_request_permission(void);
 
-// Begins continuous updates. `accuracy` is a geolocator LocationAccuracy index
-// (0 lowest … 4 best, 5 bestForNavigation, 6 reduced); `distance_filter` is in
-// metres (<= 0 means none). `activity_type` is a CLActivityType raw value, or
-// 0 to leave CoreLocation's default. A nonzero `allow_background` turns on
+// Begins the stream's continuous updates. `accuracy` is a geolocator
+// LocationAccuracy index (0 lowest … 4 best, 5 bestForNavigation, 6 reduced);
+// `distance_filter` is in metres (<= 0 means none). `activity_type` is a
+// CLActivityType raw value, or 6 for maritime; any other value, 0 included,
+// means CLActivityTypeOther. A nonzero `allow_background` turns on
 // allowsBackgroundLocationUpdates, but only when the Info.plist's
 // UIBackgroundModes has "location": CoreLocation asserts otherwise, and does
 // so even when WKBackgroundModes has it.
@@ -46,9 +49,15 @@ GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_start_updates(int accuracy, double distance_filter,
                                       int activity_type, int allow_background);
 
-// Requests a single location fix.
+// Starts the single-request manager at `accuracy` (as above), with no
+// distance filter. It skips cached fixes more than 5 seconds old and stops
+// itself after the first fix it accepts.
 GEOLOCATOR_WATCHOS_EXPORT
-void geolocator_watchos_request_location(void);
+void geolocator_watchos_request_location(int accuracy);
+
+// Stops the single-request manager, for a request that gave up.
+GEOLOCATOR_WATCHOS_EXPORT
+void geolocator_watchos_stop_location_request(void);
 
 // Fills out[0..9] with latitude, longitude, accuracy, altitude,
 // altitudeAccuracy, heading, headingAccuracy, speed, speedAccuracy, and the
@@ -56,7 +65,12 @@ void geolocator_watchos_request_location(void);
 GEOLOCATOR_WATCHOS_EXPORT
 int geolocator_watchos_read_position(double* out);
 
-// Stops continuous updates.
+// How many fixes either manager has delivered: it goes up with each one, so
+// Dart can tell a new fix from the cached one, even at the same place.
+GEOLOCATOR_WATCHOS_EXPORT
+int64_t geolocator_watchos_position_count(void);
+
+// Stops the stream's continuous updates.
 GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_stop_updates(void);
 
@@ -77,13 +91,18 @@ int geolocator_watchos_request_temporary_full_accuracy(const char* purpose_key);
 GEOLOCATOR_WATCHOS_EXPORT
 int64_t geolocator_watchos_accuracy_requests_done(void);
 
+// What a signal reports, so Dart re-reads only what changed.
+#define GEOLOCATOR_WATCHOS_SIGNAL_POSITION 0       // a fix, or a failed update
+#define GEOLOCATOR_WATCHOS_SIGNAL_AUTHORIZATION 1  // authorization or service
+#define GEOLOCATOR_WATCHOS_SIGNAL_ACCURACY 2       // an accuracy request ended
+
 /// Called from the CLLocationManager delegate when a new fix lands, the
 /// authorization or accuracy changes, or a temporary accuracy request ends.
 ///
-/// Carries no value: the Dart end is a `NativeCallable.listener` and runs
-/// asynchronously, so it re-reads what it waits on rather than trusting a
-/// pointer captured at signal time.
-typedef void (*geolocator_watchos_cb)(int64_t unused);
+/// Carries one of the kinds above and no value: the Dart end is a
+/// `NativeCallable.listener` and runs asynchronously, so it re-reads what it
+/// waits on rather than trusting a pointer captured at signal time.
+typedef void (*geolocator_watchos_cb)(int64_t kind);
 
 /// Registers the function to wake Dart on a new fix, or NULL to stop.
 GEOLOCATOR_WATCHOS_EXPORT
