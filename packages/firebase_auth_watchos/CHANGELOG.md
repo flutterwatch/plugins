@@ -8,6 +8,13 @@
 * The watch still links the Firebase Apple SDK 11.x through
   `watchos/Package.swift`. The move to SDK 13 in `firebase_auth` 7.0.0 is
   for its iOS and macOS code.
+* `authStateChanges`, `idTokenChanges` and `userChanges` no longer repeat
+  their first value. The SDK calls each of its listeners once when the plugin
+  installs them, on the first native call for an app, so with 0.1.1 a stream
+  subscribed before any other auth call could emit the current user, or null,
+  a second time. As in `firebase_auth`, the streams now leave that call out.
+* The same streams report a signed-out state once, as `firebase_auth` 7.0.1
+  does: a null is not emitted when the last value emitted was null too.
 * `User.updateProfile`: `firebase_auth` 7.0.1 passes only the fields it is
   given, so an omitted field now keeps its value on the watch; this package
   already applied only the fields present in the request. A field given as
