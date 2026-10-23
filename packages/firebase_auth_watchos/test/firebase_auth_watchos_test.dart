@@ -262,6 +262,23 @@ void main() {
     expect(request['hasPhotoUrl'], isFalse);
   });
 
+  test('updateProfile forwards an explicit null', () async {
+    fake.snapshot = <String, Object?>{
+      'authGeneration': 1,
+      'idTokenGeneration': 1,
+      'user': _userMap(),
+    };
+    fake.opResult = <String, Object?>{'ok': true};
+    // firebase_auth 7.x passes only the fields it is given, so a null it is
+    // given reaches the platform as a key with a null value.
+    await auth.currentUser!.updateProfile(<String, String?>{'photoURL': null});
+    final Map<String, Object?> request = fake.beginRequests.single;
+    expect(request['op'], 'updateProfile');
+    expect(request['hasPhotoUrl'], isTrue);
+    expect(request['photoUrl'], isNull);
+    expect(request['hasDisplayName'], isFalse);
+  });
+
   test('sendPasswordResetEmail completes on ok', () async {
     fake.opResult = <String, Object?>{'ok': true};
     await auth.sendPasswordResetEmail('user@example.com');

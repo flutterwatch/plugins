@@ -17,7 +17,7 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseAuth`)
 |---|---|
 | Implementation (Dart + FFI + native) | ◐ the watch-viable flows, except the methods the README lists under "Not implemented yet" (reauthentication and linking among them) |
 | watchOS capability | ◐ email, anonymous and token sign-in are implemented; provider/OAuth, phone, and MFA flows need UI the watch cannot present |
-| Host unit tests | ✅ 13/13 pass (native FirebaseAuth faked) |
+| Host unit tests | ✅ 14/14 pass (native FirebaseAuth faked) |
 | On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator (checked with 0.1.1; 0.2.0 changes no native code and was not rebuilt). The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_auth pub example (smoke test added) |
@@ -67,7 +67,7 @@ watchOS).
   FirebaseAuthPlatform`, `UserWatchos extends UserPlatform`,
   `UserCredentialWatchos`, `MultiFactorWatchos`, over the FFI bindings.
 - `test/firebase_auth_watchos_test.dart` — host tests with the native backend
-  faked (13/13).
+  faked (14/14).
 - `example/` — the upstream firebase_auth example, ported for watchOS, plus
   an added `integration_test/firebase_auth_smoke_test.dart` (the pub example
   ships no upstream integration_test).

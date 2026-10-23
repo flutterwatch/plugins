@@ -8,6 +8,12 @@
 * The watch still links the Firebase Apple SDK 11.x through
   `watchos/Package.swift`. The move to SDK 13 in `firebase_auth` 7.0.0 is
   for its iOS and macOS code.
+* `User.updateProfile`: `firebase_auth` 7.0.1 passes only the fields it is
+  given, so an omitted field now keeps its value on the watch; this package
+  already applied only the fields present in the request. A field given as
+  `null` is forwarded to the SDK's profile change request. The Firebase Apple
+  SDK then clears it on the local user and does not send it to the server, as
+  on iOS. A new test checks that the `null` reaches the native layer.
 * README: the install snippet names `firebase_core: ^5.1.0`,
   `firebase_auth: ^7.0.1` and this version.
 * Example: `pubspec.yaml` names `firebase_auth: ^7.0.1`,
