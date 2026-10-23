@@ -1,16 +1,21 @@
+// Copyright (c) 2019, Alexandre Roux Tekartik. All rights reserved.
 // Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Use of this source code is governed by the BSD 2-Clause license that can
+// be found in the LICENSE file.
 //
 // sqflite's method protocol, answered in Dart over SQLite's C API.
+//
+// Adapted from sqflite_common_ffi's lib/src/sqflite_ffi_impl.dart, the
+// reference implementation of the protocol outside a method channel: its
+// structure, its error messages, and its handling of transaction ids,
+// operations queued behind another transaction, closed database ids, paged
+// cursors, and batches that continue on error. Here SQLite is the system's,
+// bound in sqlite3.dart, instead of package:sqlite3.
 //
 // sqflite_common drives every platform through one call,
 // `invokeMethod(method, arguments)`: on iOS and Android it crosses a method
 // channel, here it lands in [SqfliteWatchosHandler.handle]. The methods and
-// the shape of their arguments and results are sqflite's own; the behaviour
-// follows sqflite_common_ffi, the reference implementation of the protocol
-// outside a method channel: transaction ids, operations queued behind
-// another transaction, paged cursors, and batches that continue on error.
+// the shape of their arguments and results are sqflite's own.
 
 import 'dart:async';
 import 'dart:io';
@@ -206,7 +211,10 @@ class SqfliteWatchosHandler {
   Map<String, Object?> _open(Map<Object?, Object?> args) {
     final String path = _path(args);
     final bool readOnly = args['readOnly'] == true;
-    final bool singleInstance = args['singleInstance'] == true;
+    // An in-memory database is never shared, as in sqflite_darwin: each
+    // open is a database of its own.
+    final bool singleInstance =
+        args['singleInstance'] == true && path != _inMemory;
     if (singleInstance) {
       final _Database? existing = _singleInstances[path];
       if (existing != null) {

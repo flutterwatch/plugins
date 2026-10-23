@@ -3,9 +3,10 @@
 // found in the LICENSE file.
 //
 // Host-side tests that run real SQL. The handler binds SQLite's C API, which
-// macOS ships too, so these point it at the system libsqlite3 and drive it
-// through sqflite_common's own Database API, the way an app does. The watch
-// resolves the same functions from its process instead.
+// macOS and CI's Linux runner ship too, so these point it at the host's
+// system libsqlite3 and drive it through sqflite_common's own Database API,
+// the way an app does. The watch resolves the same functions from its
+// process instead.
 
 import 'dart:async';
 import 'dart:ffi';
@@ -18,9 +19,19 @@ import 'package:sqflite_common/sqflite.dart';
 // ignore: implementation_imports
 import 'package:sqflite_common/src/exception.dart'
     show SqfliteDatabaseException;
+// ignore: implementation_imports
+import 'package:sqflite_common/src/mixin/factory.dart'
+    show buildDatabaseFactory;
+import 'package:sqflite_platform_interface/sqflite_platform_interface.dart';
 import 'package:sqflite_watchos/sqflite_watchos.dart';
 import 'package:sqflite_watchos/src/handler.dart';
 import 'package:sqflite_watchos/src/sqlite3.dart';
+
+/// The host's system SQLite: `/usr/lib` on macOS, the shared library's
+/// soname on Linux.
+DynamicLibrary hostSqlite() => Platform.isMacOS
+    ? DynamicLibrary.open('/usr/lib/libsqlite3.dylib')
+    : DynamicLibrary.open('libsqlite3.so.0');
 
 void main() {
   late Directory dir;
@@ -28,11 +39,10 @@ void main() {
 
   setUpAll(() {
     dir = Directory.systemTemp.createTempSync('sqflite_watchos_test');
-    SqfliteWatchos.libraryOverride =
-        DynamicLibrary.open('/usr/lib/libsqlite3.dylib');
+    SqfliteWatchos.libraryOverride = hostSqlite();
     SqfliteWatchos.databasesPathOverride = dir.path;
     SqfliteWatchos.resetForTesting();
-    factory = SqfliteWatchos.databaseFactory;
+    factory = SqfliteWatchos.databaseFactoryWatchos;
   });
 
   tearDownAll(() => dir.deleteSync(recursive: true));
@@ -50,10 +60,18 @@ void main() {
   });
 
   test('registerWith keeps a factory the app already set', () {
-    final DatabaseFactory other = factory;
+    final DatabaseFactory other = buildDatabaseFactory(
+        invokeMethod: (String method, [Object? arguments]) async => null);
     databaseFactoryOrNull = other;
     SqfliteWatchos.registerWith();
     expect(identical(databaseFactoryOrNull, other), isTrue);
+    expect(identical(databaseFactoryOrNull, factory), isFalse);
+    databaseFactoryOrNull = null;
+    SqfliteWatchos.registerWith();
+  });
+
+  test('the implementation is a SqflitePlatform', () {
+    expect(SqfliteWatchos(), isA<SqflitePlatform>());
   });
 
   test('getDatabasesPath is where relative paths go', () async {
@@ -98,6 +116,57 @@ void main() {
     expect(rows[1]['s'], '');
     expect(rows[1]['b'], Uint8List(0));
     await db.close();
+  });
+
+  test('bools and plain int lists bind as on iOS: 1 or 0, and a blob',
+      () async {
+    final Database db = await factory.openDatabase(inMemoryDatabasePath);
+    await db.execute('CREATE TABLE t (flag INTEGER, data BLOB)');
+    await db.insert('t', <String, Object?>{
+      'flag': true,
+      'data': <int>[1, 2, 255],
+    });
+    await db.insert('t', <String, Object?>{'flag': false, 'data': <int>[]});
+    final List<Map<String, Object?>> rows =
+        await db.rawQuery('SELECT flag, data, typeof(data) AS type FROM t');
+    expect(rows[0]['flag'], 1);
+    expect(rows[0]['data'], Uint8List.fromList(<int>[1, 2, 255]));
+    expect(rows[0]['type'], 'blob');
+    expect(rows[1]['flag'], 0);
+    expect(rows[1]['data'], Uint8List(0));
+    expect(rows[1]['type'], 'blob');
+    expect(
+        await db
+            .rawQuery('SELECT count(*) AS n FROM t WHERE data = ?', <Object?>[
+          <int>[1, 2, 255]
+        ]),
+        <Map<String, Object?>>[
+          <String, Object?>{'n': 1},
+        ]);
+    await db.close();
+  });
+
+  test('a locked database is waited for, as FMDB waits on iOS', () async {
+    final OpenDatabaseOptions separate =
+        OpenDatabaseOptions(singleInstance: false);
+    final Database first = await openFresh('busy.db', options: separate);
+    await first.execute('CREATE TABLE t (x)');
+    final Database second =
+        await factory.openDatabase('busy.db', options: separate);
+    expect(await second.rawQuery('PRAGMA busy_timeout'), <Map<String, Object?>>[
+      <String, Object?>{'timeout': 2000},
+    ]);
+    await first.execute('BEGIN IMMEDIATE');
+    final Stopwatch waited = Stopwatch()..start();
+    await expectLater(
+      second.insert('t', <String, Object?>{'x': 1}),
+      throwsA(isA<DatabaseException>().having(
+          (DatabaseException e) => e.getResultCode(), 'SQLITE_BUSY', 5)),
+    );
+    expect(waited.elapsedMilliseconds, greaterThanOrEqualTo(1500));
+    await first.execute('ROLLBACK');
+    await second.close();
+    await first.close();
   });
 
   test('insert returns the row id, and 0 when nothing was inserted', () async {
@@ -476,7 +545,7 @@ void main() {
 
     setUp(() {
       handler = SqfliteWatchosHandler(
-        Sqlite3Library(DynamicLibrary.open('/usr/lib/libsqlite3.dylib')),
+        Sqlite3Library(hostSqlite()),
         databasesPath: dir.path,
         platformVersion: 'watchOS test',
       );
@@ -603,6 +672,29 @@ void main() {
           await handler
               .handle('query', <String, Object?>{'id': id, 'sql': 'SELECT 1'}),
           isNotNull);
+    });
+
+    test('an in-memory database is never a single instance', () async {
+      Future<int> openShared() async =>
+          ((await handler.handle('openDatabase', <String, Object?>{
+            'path': inMemoryDatabasePath,
+            'singleInstance': true,
+          }))! as Map<Object?, Object?>)['id']! as int;
+      final int first = await openShared();
+      final int second = await openShared();
+      expect(second, isNot(first));
+      await handler.handle('execute', <String, Object?>{
+        'id': first,
+        'sql': 'CREATE TABLE t (x)',
+      });
+      await expectLater(
+        handler.handle(
+            'query', <String, Object?>{'id': second, 'sql': 'SELECT x FROM t'}),
+        throwsA(isA<DatabaseException>().having(
+            (DatabaseException e) => e.isNoSuchTableError('t'),
+            'no such table',
+            true)),
+      );
     });
 
     test('getPlatformVersion and an unknown method', () async {

@@ -40,8 +40,8 @@ await db.insert('lap', <String, Object?>{'at': DateTime.now().millisecondsSinceE
 
 | sqflite | watchOS |
 |---|---|
-| `openDatabase` / `openReadOnlyDatabase` | supported; relative paths live in the app's Documents directory, as on iOS, and missing parent directories are created |
-| `execute` / `insert` / `update` / `delete` / `rawQuery` and friends | supported; integers are 64-bit, text is UTF-8, blobs come back as `Uint8List` |
+| `openDatabase` / `openReadOnlyDatabase` | supported; relative paths live in the app's Documents directory, as on iOS, and missing parent directories are created. A connection waits up to 2 seconds for another connection's lock, as on iOS |
+| `execute` / `insert` / `update` / `delete` / `rawQuery` and friends | supported; integers are 64-bit, a `bool` argument is stored as 1 or 0, text is UTF-8, and a blob (a `Uint8List` or a `List<int>` argument) comes back as `Uint8List` |
 | `queryCursor` | supported, page by page |
 | `batch` | supported, with `noResult` and `continueOnError` |
 | `transaction` | supported; calls from outside an open transaction wait until it ends |
@@ -58,12 +58,20 @@ an isolate of its own.
 
 ## Not supported on watchOS
 
-Nothing: every method of sqflite's protocol is answered.
-`androidSetLocale` and the other Android-only calls are Android-only on
-every other platform too. The sqflite-specific `PRAGMA sqflite_…`
-statements are accepted and ignored.
-`PORTING_REPORT.md` lists each method under "Protocol coverage".
+Every method of sqflite's protocol is answered; `PORTING_REPORT.md` lists
+each under "Protocol coverage". What is left:
+
+| sqflite | On watchOS | Why |
+|---|---|---|
+| `Sqflite.setDebugModeOn`, `Sqflite.devSetDebugModeOn`, `Sqflite.devSetOptions`, `Sqflite.devInvokeMethod` (all deprecated) | throw `MissingPluginException` | they call sqflite's method channel directly, not the database factory; `databaseFactory.setLogLevel` reaches this package |
+| `androidSetLocale` | fails | Android only, as on iOS |
+
+`Sqflite.firstIntValue`, `Sqflite.hex` and `Sqflite.setLockWarningInfo`
+run in Dart and work. The sqflite-specific `PRAGMA sqflite_…` statements
+are accepted and ignored.
 
 ## License
 
-The FlutterWatch Authors under a BSD-3-Clause license. See `LICENSE` for the full text.
+BSD-2-Clause, as upstream sqflite's. `lib/src/handler.dart` is adapted from
+sqflite_common_ffi and carries its copyright notice. See `LICENSE` for the
+full text.

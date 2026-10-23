@@ -92,6 +92,9 @@ class Sqlite3Library {
             Int32 Function(Pointer<Sqlite3>, Int32),
             int Function(
                 Pointer<Sqlite3>, int)>('sqlite3_extended_result_codes'),
+        _busyTimeout = library.lookupFunction<
+            Int32 Function(Pointer<Sqlite3>, Int32),
+            int Function(Pointer<Sqlite3>, int)>('sqlite3_busy_timeout'),
         _prepareV2 = library.lookupFunction<
             Int32 Function(Pointer<Sqlite3>, Pointer<Uint8>, Int32,
                 Pointer<Pointer<Sqlite3Statement>>, Pointer<Pointer<Uint8>>),
@@ -190,6 +193,7 @@ class Sqlite3Library {
       Pointer<Utf8>, Pointer<Pointer<Sqlite3>>, int, Pointer<Utf8>) _openV2;
   final int Function(Pointer<Sqlite3>) _closeV2;
   final int Function(Pointer<Sqlite3>, int) _extendedResultCodes;
+  final int Function(Pointer<Sqlite3>, int) _busyTimeout;
   final int Function(Pointer<Sqlite3>, Pointer<Uint8>, int,
       Pointer<Pointer<Sqlite3Statement>>, Pointer<Pointer<Uint8>>) _prepareV2;
   final int Function(Pointer<Sqlite3Statement>) _step;
@@ -221,6 +225,10 @@ class Sqlite3Library {
   final int Function(Pointer<Sqlite3>) _getAutocommit;
   final Pointer<Utf8> Function() _libVersion;
 
+  /// How long a statement waits for another connection's lock before it
+  /// fails with `SQLITE_BUSY`: FMDB's default, which sqflite keeps on iOS.
+  static const int busyTimeoutMilliseconds = 2000;
+
   /// `sqlite3_libversion()`.
   String get version => _libVersion().toDartString();
 
@@ -240,6 +248,7 @@ class Sqlite3Library {
           throw failure;
         }
         _extendedResultCodes(db, 1);
+        _busyTimeout(db, busyTimeoutMilliseconds);
         return SqliteConnection._(this, db);
       });
 }
@@ -401,6 +410,9 @@ class SqliteStatement {
           _check(_lib._bindNull(_statement, index));
         case int():
           _check(_lib._bindInt64(_statement, index, value));
+        case bool():
+          // As sqflite_darwin and sqflite_common_ffi bind it.
+          _check(_lib._bindInt64(_statement, index, value ? 1 : 0));
         case double():
           _check(_lib._bindDouble(_statement, index, value));
         case BigInt():
@@ -418,7 +430,9 @@ class SqliteStatement {
             _check(
                 _lib._bindText(_statement, index, p, bytes.length, _transient));
           });
-        case Uint8List():
+        case List<int>():
+          // A Uint8List, or a plain List<int> as sqflite_darwin and
+          // sqflite_common_ffi take one: a blob of one byte per value.
           if (value.isEmpty) {
             _check(_lib._bindZeroBlob(_statement, index, 0));
           } else {

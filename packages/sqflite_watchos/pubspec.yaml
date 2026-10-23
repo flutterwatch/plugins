@@ -23,9 +23,12 @@ dependencies:
   flutter:
     sdk: flutter
   path: ^1.8.0
-  # buildDatabaseFactory and SqfliteDatabaseException, which
-  # sqflite_common_ffi imports the same way.
-  sqflite_common: ^2.5.11
+  # buildDatabaseFactory and SqfliteDatabaseException come from src/, which
+  # sqflite_common_ffi imports the same way. src/ is not public API, so the
+  # constraint stops below the next minor. 2.5.14 fixes a hang when a cursor
+  # is closed inside a transaction.
+  sqflite_common: ">=2.5.14 <2.6.0"
+  sqflite_platform_interface: ^2.4.1
 
 dev_dependencies:
   flutter_lints: ^4.0.0
