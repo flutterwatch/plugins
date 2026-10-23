@@ -41,7 +41,7 @@ await db.insert('lap', <String, Object?>{'at': DateTime.now().millisecondsSinceE
 | sqflite | watchOS |
 |---|---|
 | `openDatabase` / `openReadOnlyDatabase` | supported; relative paths live in the app's Documents directory, as on iOS, and missing parent directories are created. A connection waits up to 2 seconds for another connection's lock, as on iOS |
-| `execute` / `insert` / `update` / `delete` / `rawQuery` and friends | supported; integers are 64-bit, a `bool` argument is stored as 1 or 0, text is UTF-8, and a blob (a `Uint8List` or a `List<int>` argument) comes back as `Uint8List` |
+| `execute` / `insert` / `update` / `delete` / `rawQuery` and friends | supported; integers are 64-bit, a `bool` argument is stored as 1 or 0, text is UTF-8, and a blob (a `Uint8List` or a `List<int>` argument) comes back as `Uint8List`. sqflite_common still warns once per type, in debug, about `bool` and `List<int>` arguments, as on every platform |
 | `queryCursor` | supported, page by page |
 | `batch` | supported, with `noResult` and `continueOnError` |
 | `transaction` | supported; calls from outside an open transaction wait until it ends |
