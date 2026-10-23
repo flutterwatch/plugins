@@ -22,7 +22,9 @@
   SDK then clears it on the local user and does not send it to the server, as
   on iOS. A new test checks that the `null` reaches the native layer.
 * README: the install snippet names `firebase_core: ^5.1.0`,
-  `firebase_auth: ^7.0.1` and this version.
+  `firebase_auth: ^7.0.1` and this version. "Not implemented yet" now lists
+  the `ActionCodeSettings` that `sendPasswordResetEmail`,
+  `sendEmailVerification` and `verifyBeforeUpdateEmail` do not pass on.
 * Example: `pubspec.yaml` names `firebase_auth: ^7.0.1`,
   `firebase_core: ^5.1.0` and `firebase_messaging: ^17.0.1`. No native code
   changed, and the example was not rebuilt on the Simulator for this version.

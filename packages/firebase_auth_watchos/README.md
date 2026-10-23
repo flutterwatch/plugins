@@ -50,7 +50,10 @@ enrollment. These throw `UnimplementedError` or report `unimplemented`.
 `User.reauthenticateWithCredential`, `User.linkWithCredential`,
 `User.unlink`, `sendSignInLinkToEmail`, `checkActionCode` and `setSettings`.
 Without reauthentication, Firebase rejects `updatePassword` and `delete` with
-`requires-recent-login` once the last sign-in is too old.
+`requires-recent-login` once the last sign-in is too old. Passing on
+`ActionCodeSettings` is not implemented yet either: `sendPasswordResetEmail`,
+`sendEmailVerification` and `verifyBeforeUpdateEmail` send their email without
+the settings they are given.
 
 ## Usage
 
