@@ -1,0 +1,14 @@
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.DS_Store
+
+# watchOS / CocoaPods
+watchos/Pods/
+watchos/Podfile.lock
+watchos/.symlinks/
+watchos/Flutter/Flutter.framework
