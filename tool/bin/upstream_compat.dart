@@ -8,7 +8,7 @@
 ///
 /// Usage, from `tool/`: `dart run bin/upstream_compat.dart
 /// [--root <repository>] [--table <upstream_versions.yaml>]
-/// [--flutter <flutter executable>]`.
+/// [--published <published.yaml>] [--flutter <flutter executable>]`.
 library;
 
 import 'dart:io';
@@ -17,11 +17,13 @@ import 'package:path/path.dart' as p;
 import 'package:plugins_tool/src/forbidden_words.dart';
 import 'package:plugins_tool/src/repository.dart';
 import 'package:plugins_tool/src/upstream_compat.dart';
+import 'package:plugins_tool/src/versions.dart';
 
 Future<void> main(List<String> arguments) async {
   final Map<String, String> options = parseOptions(arguments, <String>{
     'root',
     'table',
+    'published',
     'flutter',
   });
   final String tool = toolDirectory();
@@ -30,6 +32,11 @@ Future<void> main(List<String> arguments) async {
     exitCode = await runUpstreamCompatibility(
       options['root'] ?? repositoryRootOf(tool),
       options['table'] ?? p.join(tool, 'upstream_versions.yaml'),
+      parsePublished(
+        File(
+          options['published'] ?? p.join(tool, 'published.yaml'),
+        ).readAsStringSync(),
+      ),
       pubDevFetcher(client),
       flutterPubGet(flutter: options['flutter'] ?? 'flutter'),
       ForbiddenWords.load(p.join(tool, 'words', 'words.txt')),

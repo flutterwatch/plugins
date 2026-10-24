@@ -118,7 +118,9 @@ moved on:
   pub.dev with `upstream_versions.yaml`, and fails on a new major: check the
   package against it, then move the table and the README snippets together.
   It also resolves a scratch app with the latest upstream and the package,
-  once from this repository and once at its latest version on pub.dev.
+  once from this repository and once at its latest version on pub.dev. A
+  package without a row in `published.yaml` is staged and not on pub.dev
+  yet, so it resolves from this repository only.
 - `bin/pana_scores.dart` reads one `pana --json` report per package. Every
   section must be full, except "Platform support" for a package that
   declares only watchOS, which pana does not score (`AUTHORING.md`

@@ -1,0 +1,6 @@
+# The package has a row, as if it were published, but pub.dev does not
+# know it. This check reads only the package names.
+packages:
+  fixture_battery_plus_watchos:
+    version: 0.1.0
+    commit: '0000000000000000000000000000000000000000'
