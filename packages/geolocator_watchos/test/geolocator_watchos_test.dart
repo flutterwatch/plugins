@@ -32,6 +32,7 @@ class _FakeBackend implements GeolocatorWatchosBackend {
   int requestLocationCount = 0;
   int stopRequestCount = 0;
   int? lastRequestAccuracy;
+  final List<int> requestedAccuracies = <int>[];
 
   /// What CoreLocation hands over as the stream starts, or null for nothing.
   List<double>? fixOnStart;
@@ -73,6 +74,7 @@ class _FakeBackend implements GeolocatorWatchosBackend {
   void requestLocation(int accuracyIndex) {
     requestLocationCount++;
     lastRequestAccuracy = accuracyIndex;
+    requestedAccuracies.add(accuracyIndex);
     final List<double>? next = singleFix;
     if (next != null) {
       deliver(next);
@@ -262,6 +264,72 @@ void main() {
       expect((await a).latitude, 12.0);
       expect((await b).latitude, 12.0);
       expect(fake.stopRequestCount, 1, reason: 'stopped once both are done');
+    });
+
+    Future<Position> request(LocationAccuracy accuracy) =>
+        geo.getCurrentPosition(
+            locationSettings: LocationSettings(accuracy: accuracy));
+
+    test(
+        'pending calls run at the most accurate accuracy any of them asked for',
+        () async {
+      final List<Future<Position>> pending = <Future<Position>>[
+        request(LocationAccuracy.low),
+        request(LocationAccuracy.best),
+        request(LocationAccuracy.medium),
+      ];
+      await pumpEventQueue();
+      expect(fake.requestedAccuracies, <int>[
+        LocationAccuracy.low.index,
+        LocationAccuracy.best.index,
+        LocationAccuracy.best.index,
+      ]);
+      fake.deliver(_fix());
+      await Future.wait(pending);
+
+      // With none pending, the next call runs at its own accuracy.
+      fake.singleFix = _fix();
+      await request(LocationAccuracy.low);
+      expect(fake.requestedAccuracies.last, LocationAccuracy.low.index);
+    });
+
+    test('reduced is the least accurate, bestForNavigation the most', () async {
+      final List<Future<Position>> pending = <Future<Position>>[
+        request(LocationAccuracy.reduced),
+        request(LocationAccuracy.lowest),
+        request(LocationAccuracy.bestForNavigation),
+        request(LocationAccuracy.best),
+      ];
+      await pumpEventQueue();
+      expect(fake.requestedAccuracies, <int>[
+        LocationAccuracy.reduced.index,
+        LocationAccuracy.lowest.index,
+        LocationAccuracy.bestForNavigation.index,
+        LocationAccuracy.bestForNavigation.index,
+      ]);
+      fake.deliver(_fix());
+      await Future.wait(pending);
+    });
+
+    test('a call that times out leaves the others at the accuracy they share',
+        () async {
+      final Future<Position> best = request(LocationAccuracy.best);
+      final Future<Position> short = geo.getCurrentPosition(
+          locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+              timeLimit: Duration(milliseconds: 10)));
+      await expectLater(short, throwsA(isA<TimeoutException>()));
+      expect(fake.stopRequestCount, 0, reason: 'one call is still pending');
+      final Future<Position> medium = request(LocationAccuracy.medium);
+      await pumpEventQueue();
+      expect(fake.requestedAccuracies, <int>[
+        LocationAccuracy.best.index,
+        LocationAccuracy.best.index,
+        LocationAccuracy.best.index,
+      ]);
+      fake.deliver(_fix());
+      await Future.wait(<Future<Position>>[best, medium]);
+      expect(fake.stopRequestCount, 1);
     });
   });
 

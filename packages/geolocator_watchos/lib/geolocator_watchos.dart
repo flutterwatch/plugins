@@ -113,6 +113,12 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   /// manager, which stops when the last of them ends.
   static int _singleRequests = 0;
 
+  /// The accuracy the single-request manager runs at: the most accurate one
+  /// the pending `getCurrentPosition` calls asked for, as in
+  /// geolocator_apple. It is set afresh by the first call after the last one
+  /// ended.
+  static LocationAccuracy _singleRequestAccuracy = LocationAccuracy.best;
+
   /// The running position stream, which a second `getPositionStream` call
   /// gets too, with the first call's settings, as from geolocator_apple.
   Stream<Position>? _positionStream;
@@ -125,6 +131,20 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
   static void registerWith() {
     GeolocatorPlatform.instance = GeolocatorWatchos();
   }
+
+  /// The `desiredAccuracy` native sets for [accuracy], in metres:
+  /// CoreLocation's constant, where smaller is more accurate.
+  /// `kCLLocationAccuracyReduced` is 6380 km, the least accurate of all.
+  static double _desiredAccuracy(LocationAccuracy accuracy) =>
+      switch (accuracy) {
+        LocationAccuracy.bestForNavigation => -2,
+        LocationAccuracy.best => -1,
+        LocationAccuracy.high => 10,
+        LocationAccuracy.medium => 100,
+        LocationAccuracy.low => 1000,
+        LocationAccuracy.lowest => 3000,
+        LocationAccuracy.reduced => 6380000,
+      };
 
   static LocationPermission _mapStatus(int raw) {
     switch (raw) {
@@ -234,9 +254,14 @@ base class GeolocatorWatchos extends GeolocatorPlatform {
 
     final void Function() stopListening =
         _Notifier.listen(_b, GeolocatorWatchosSignal.position, check);
+    final LocationAccuracy accuracy =
+        locationSettings?.accuracy ?? LocationAccuracy.best;
+    if (_singleRequests == 0 ||
+        _desiredAccuracy(accuracy) < _desiredAccuracy(_singleRequestAccuracy)) {
+      _singleRequestAccuracy = accuracy;
+    }
     _singleRequests++;
-    _b.requestLocation(
-        (locationSettings?.accuracy ?? LocationAccuracy.best).index);
+    _b.requestLocation(_singleRequestAccuracy.index);
 
     try {
       return await completer.future.timeout(

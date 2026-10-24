@@ -1,3 +1,9 @@
+## 0.2.1
+
+* With several `getCurrentPosition` calls pending, the shared request runs at
+  the most accurate accuracy any of them asked for, until the last one ends,
+  as geolocator_apple does. The last call's accuracy used to win (#18).
+
 ## 0.2.0
 
 **Breaking**
