@@ -5,9 +5,9 @@
 | Aspect | Result |
 |---|---|
 | Implementation | ✅ Working (FFI) |
-| watchOS capability | Partial — no Downloads / Android external dirs (throw `UnimplementedError`) |
+| watchOS capability | Full, as on iOS — Downloads is the app's `NSDownloadsDirectory` path; the Android-only external directories throw `UnsupportedError` |
 | Host unit tests (`flutter-watchos test`) | ✅ pass |
-| Upstream integration test | ✅ passes verbatim |
+| Upstream integration test | ✅ passes verbatim on the watchOS 27.0 Simulator (16 tests, 2026-10-24) |
 | Internal unified demo | ✅ included |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -28,6 +28,13 @@ is that skeleton **finished by hand** as a working FFI implementation.
   `path_provider_platform_interface` and resolves the symbols via
   `DynamicLibrary.process()`.
 
+## Example
+
+`path_provider`'s own example app and its official integration test,
+ported unchanged with `flutter-watchos plugin port --include-example`. There
+are no watchOS deviations. On the watchOS 27.0 Simulator the example starts
+with no exception in its first 15 seconds and no overflow.
+
 ## Interface coverage
 
 Every public member of `path_provider_platform_interface` 2.1.3
@@ -43,8 +50,8 @@ watchOS" table lists the ✗ rows.
 | `getLibraryPath` | ✅ `NSLibraryDirectory` |
 | `getApplicationDocumentsPath` | ✅ `NSDocumentDirectory` |
 | `getApplicationCachePath` | ✅ `NSCachesDirectory` |
-| `getDownloadsPath` | ✗ throws `UnimplementedError`: watchOS has no Downloads directory |
-| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | ✗ throw `UnimplementedError`: external storage is an Android concept |
+| `getDownloadsPath` | ✅ `NSDownloadsDirectory`, as on iOS (not created) |
+| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | ✗ throw `UnsupportedError`, as on iOS: external storage is an Android concept |
 
 ---
 
