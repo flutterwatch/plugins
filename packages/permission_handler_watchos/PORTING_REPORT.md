@@ -102,7 +102,7 @@ watchOS would not show again.
 ## Example
 
 `example/lib/main.dart` is permission_handler_apple 9.6.3's own example,
-unchanged: a phone app on `baseflow_plugin_template` that lists every
+unchanged but for the formatting this repo's CI checks: a phone app on `baseflow_plugin_template` that lists every
 permission, shows its status and asks for it on a tap. It runs on the watch,
 cramped but usable (on the watchOS 27.0 Simulator a calendar request from it
 prompted and answered granted). The example's pubspec adds what it imports,
