@@ -51,6 +51,13 @@
   filter, as geolocator_apple's does: a reduced-accuracy fix can
   legitimately be old.
 
+**Example**
+
+* `geolocator`'s own example app, the Baseflow demo, replaces a hand-written
+  demo (`AUTHORING.md` §3). Its code is unchanged; the example adds
+  `url_launcher_watchos`, so the template's links open on the watch, and
+  scales its content by 0.6 so the phone layout fits the watch screen.
+
 **Docs**
 
 * README and PORTING_REPORT: the three members move out of "Not supported on

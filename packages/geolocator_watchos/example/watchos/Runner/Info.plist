@@ -20,6 +20,8 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>FlutterWatchOSContentScale</key>
+	<real>0.6</real>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This example reads your location to demonstrate geolocator on the watch.</string>
 	<key>WKApplication</key>
