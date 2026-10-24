@@ -3,9 +3,10 @@
 # Scoped to `lib` and `test` on purpose. Each `example/` is a separate Flutter
 # project with its own pubspec — several are ported upstream examples carrying
 # their own sub-projects (audioplayers' `example/server/`), and AUTHORING.md
-# says to ship those verbatim. Gating on them would make CI red for reasons
-# that are not the package's, and would pressure people into editing code the
-# repo deliberately keeps unmodified.
+# §3 keeps those as upstream wrote them, apart from listed watch deviations.
+# Gating on them would make CI red for reasons that are not the package's, and
+# would pressure people into editing code the repo deliberately keeps as
+# upstream's.
 #
 # Native code is not compiled here: these are watchOS FFI plugins, and every
 # test fakes the bindings through a `forTesting` constructor, so nothing needs
