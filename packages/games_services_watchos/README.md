@@ -133,6 +133,16 @@ These members of `games_services_platform_interface` 5.3.0 throw or fail on watc
 | `saveGame` / `loadGame` / `deleteGame` / `getSavedGames` | fails with `UnimplementedError` | `GKSavedGame` does not exist on watchOS |
 | `showSavedGames` | fails with `UnimplementedError` | the Play Games saved-games screen; Android only |
 
+## Example
+
+The example is `games_services`' own example app, unchanged, ported with
+`flutter-watchos plugin port --include-example`, with its `assets/logo.png`,
+which the porter does not copy. Its MIT licence is in `example/LICENSE`. There
+are no watchOS deviations. `games_services` has no integration test;
+`example/integration_test/watchos_games_services_test.dart` covers the
+registration, the FFI linkage, the player stream and how each signed-out call
+fails.
+
 ## Status
 
 Sign-in and score submission have been observed working on a physical Apple

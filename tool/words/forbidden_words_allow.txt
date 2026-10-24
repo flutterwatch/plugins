@@ -25,6 +25,7 @@ packages/in_app_purchase_watchos/lib/in_app_purchase_watchos.dart | rawPrice: (p
 # which is the CLI's, so each entry names its packages.
 packages/audioplayers_watchos/**/LICENSE | Permission is hereby granted, free of charge, | The MIT licence text of an upstream plugin, which stays verbatim.
 packages/geolocator_watchos/LICENSE | Permission is hereby granted, free of charge, | The MIT licence text of an upstream plugin, which stays verbatim.
+packages/games_services_watchos/example/LICENSE | Permission is hereby granted, free of charge, | The MIT licence text of the upstream example, which stays verbatim.
 packages/audioplayers_watchos/**/*.dart | calloc.free( | package:ffi's calloc.free, which releases native memory; a Dart API call.
 packages/firebase_*_watchos/**/*.dart | calloc.free( | package:ffi's calloc.free, which releases native memory; a Dart API call.
 packages/flutter_watch_link/**/*.dart | calloc.free( | package:ffi's calloc.free, which releases native memory; a Dart API call.
