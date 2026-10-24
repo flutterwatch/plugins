@@ -97,10 +97,22 @@ updates with the wrist down.
 | Apple Watch (`watchos`) | yes |
 | Watch simulator (`watchsimulator`) | query methods verified; live fixes need a simulated location |
 
-The example is geolocator's own upstream Baseflow demo, ported verbatim. That
-demo ships no `integration_test/`, so this package is verified by building and
-running the example on the watch simulator; the interactive permission prompt
-and live position updates are verified on a physical Apple Watch.
+The interactive permission prompt and live position updates are verified on
+a physical Apple Watch.
+
+## Example
+
+The example is `geolocator`'s own example app, the Baseflow demo, ported with
+`flutter-watchos plugin port --include-example`. Its code is unchanged; these
+are its watchOS deviations:
+
+| Where | Change | Why |
+|---|---|---|
+| `example/pubspec.yaml` | adds `url_launcher_watchos: ^0.1.1` | the Baseflow template opens its links with `url_launcher`, which needs it to open them on the watch |
+| `example/watchos/Runner/Info.plist` | sets `FlutterWatchOSContentScale` to `0.6` | the demo is designed for a phone and overflowed the watch screen by 106 pixels on a 46 mm Simulator; the scale lays it out in a logical space 1.67 times the screen's size and draws it smaller, without touching the Dart code |
+
+The demo ships no `integration_test/`, so this package is verified by building
+and running the example on the watch simulator.
 
 ## Not supported on watchOS
 
