@@ -38,4 +38,9 @@ PATH_PROVIDER_WATCHOS_EXPORT const char* path_provider_watchos_documents_path(vo
 /// `NSCachesDirectory` in the user domain.
 PATH_PROVIDER_WATCHOS_EXPORT const char* path_provider_watchos_cache_path(void);
 
+/// `NSDownloadsDirectory` in the user domain, as
+/// `NSSearchPathForDirectoriesInDomains` reports it. This is the path iOS
+/// path_provider returns; the directory is not created.
+PATH_PROVIDER_WATCHOS_EXPORT const char* path_provider_watchos_downloads_path(void);
+
 #endif  // PATH_PROVIDER_WATCHOS_FFI_H

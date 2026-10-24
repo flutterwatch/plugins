@@ -83,3 +83,20 @@ const char* path_provider_watchos_cache_path(void) {
     });
     return path;
 }
+
+const char* path_provider_watchos_downloads_path(void) {
+    static const char* path = NULL;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        @autoreleasepool {
+            // The lookup iOS path_provider makes: the user-domain path,
+            // whether or not the directory exists yet.
+            NSString* downloads = NSSearchPathForDirectoriesInDomains(
+                NSDownloadsDirectory, NSUserDomainMask, YES).firstObject;
+            if (downloads != nil) {
+                path = strdup(downloads.UTF8String);
+            }
+        }
+    });
+    return path;
+}

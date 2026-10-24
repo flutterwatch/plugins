@@ -1,3 +1,12 @@
+## 0.1.1
+
+* `getDownloadsPath` returns the app's `NSDownloadsDirectory` path, and the
+  external storage getters throw `UnsupportedError`, as on iOS. Before, all
+  four threw `UnimplementedError`.
+* Example: `path_provider`'s own example app and its official integration
+  test, unchanged, replace a hand-written demo and a trimmed copy of the
+  test (`AUTHORING.md` §3).
+
 ## 0.1.0
 
 * The version moves from 0.0.1 to 0.1.0, so that a `^0.1.0` constraint

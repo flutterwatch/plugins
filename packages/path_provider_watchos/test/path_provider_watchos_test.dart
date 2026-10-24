@@ -20,6 +20,8 @@ class _FakeBindings extends PathProviderWatchosBindings {
   String? get documentsPath => '/sandbox/Documents';
   @override
   String? get cachePath => '/sandbox/Library/Caches';
+  @override
+  String? get downloadsPath => '/sandbox/Downloads';
 }
 
 void main() {
@@ -40,11 +42,21 @@ void main() {
     expect(await provider.getLibraryPath(), '/sandbox/Library');
     expect(await provider.getApplicationDocumentsPath(), '/sandbox/Documents');
     expect(await provider.getApplicationCachePath(), '/sandbox/Library/Caches');
+    expect(await provider.getDownloadsPath(), '/sandbox/Downloads');
   });
 
-  test('watchOS-inapplicable directories keep throwing defaults', () {
+  test('the external storage getters throw UnsupportedError, as on iOS',
+      () async {
     final PathProviderWatchos provider = PathProviderWatchos();
-    expect(provider.getDownloadsPath, throwsUnimplementedError);
-    expect(provider.getExternalStoragePath, throwsUnimplementedError);
+    await expectLater(
+        provider.getExternalStoragePath(), throwsUnsupportedError);
+    await expectLater(provider.getExternalCachePaths(), throwsUnsupportedError);
+    for (final StorageDirectory? type in <StorageDirectory?>[
+      null,
+      ...StorageDirectory.values,
+    ]) {
+      await expectLater(
+          provider.getExternalStoragePaths(type: type), throwsUnsupportedError);
+    }
   });
 }
