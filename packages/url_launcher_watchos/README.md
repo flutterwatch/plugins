@@ -83,6 +83,15 @@ These members of `url_launcher_platform_interface` 2.3.2 throw or fail on watchO
 | `launchUrl` / `launch` with a scheme other than `http:`, `https:`, `tel:` and `sms:` (`mailto:` included) | return false | `openSystemURL:` owns only `tel:` and `sms:` and fails silently on other schemes |
 | `supportsMode(externalNonBrowserApplication)` | returns false | the watch cannot tell whether the iPhone opens a web URL in an app; `launchUrl` still launches it as `externalApplication` |
 
+## Example
+
+The example is `url_launcher`'s own example app, and
+`example/integration_test/url_launcher_test.dart` is its official test, both
+unchanged, ported with `flutter-watchos plugin port --include-example`. There
+are no watchOS deviations. `example/integration_test/watchos_url_launcher_test.dart`
+covers what the official test does not: the on-watch browser, Handoff and
+the schemes the watch refuses.
+
 ## Testing
 
 `UrlLauncherWatchos.bindingsOverride` accepts a fake extending

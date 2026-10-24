@@ -1,3 +1,9 @@
+## 0.1.2
+
+* Example: `url_launcher`'s own example app and its official integration
+  test, unchanged, replace a hand-written demo (`AUTHORING.md` §3). The
+  former test stays beside it as `watchos_url_launcher_test.dart`.
+
 ## 0.1.1
 
 * README: the install snippet names `url_launcher: ^6.3.2` instead of `any`,
