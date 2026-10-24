@@ -110,6 +110,109 @@ class _FakeBindings extends FirebaseAuthWatchosBindings {
   }
 }
 
+// Listens to the stream [changes] returns and collects the uids it emits. The
+// subscription is cancelled when the test ends, passed or failed.
+List<String?> _listenUids(Stream<UserPlatform?> Function() changes) {
+  final List<String?> seen = <String?>[];
+  final StreamSubscription<UserPlatform?> subscription =
+      changes().listen((UserPlatform? user) => seen.add(user?.uid));
+  addTearDown(subscription.cancel);
+  return seen;
+}
+
+// Serves a native snapshot with both listener counters at [generation], as
+// when the SDK's two listeners report the same event, and lets the change
+// streams poll it.
+Future<void> _report(
+  _FakeBindings fake,
+  int generation,
+  Map<String, Object?>? user,
+) {
+  fake.snapshot = <String, Object?>{
+    'authGeneration': generation,
+    'idTokenGeneration': generation,
+    'user': user,
+  };
+  return Future<void>.delayed(const Duration(milliseconds: 30));
+}
+
+// A signed-out start, the call the SDK makes to each listener it installs, a
+// sign-in, a sign-out and a second call for the same signed-out state: each
+// signed-out state is reported once, as firebase_auth 7.x does.
+Future<void> _expectSignedOutReportedOnce(
+  _FakeBindings fake,
+  Stream<UserPlatform?> Function() changes,
+) async {
+  final List<String?> seen = _listenUids(changes);
+  await Future<void>.delayed(const Duration(milliseconds: 20));
+  expect(seen, <String?>[null]);
+
+  await _report(fake, 1, null);
+  expect(seen, <String?>[null]);
+
+  await _report(fake, 2, _userMap());
+  expect(seen, <String?>[null, 'uid-1']);
+
+  await _report(fake, 3, null);
+  expect(seen, <String?>[null, 'uid-1', null]);
+
+  await _report(fake, 4, null);
+  expect(seen, <String?>[null, 'uid-1', null]);
+}
+
+// A signed-in start, then the call the SDK makes to each listener it
+// installs: the user is emitted once, as firebase_auth does. A sign-out after
+// that call is reported.
+Future<void> _expectInstallCallLeftOut(
+  _FakeBindings fake,
+  Stream<UserPlatform?> Function() changes,
+) async {
+  fake.snapshot = <String, Object?>{
+    'authGeneration': 0,
+    'idTokenGeneration': 0,
+    'user': _userMap(),
+  };
+  final List<String?> seen = _listenUids(changes);
+  await Future<void>.delayed(const Duration(milliseconds: 20));
+  expect(seen, <String?>['uid-1']);
+
+  await _report(fake, 1, _userMap());
+  expect(seen, <String?>['uid-1']);
+
+  await _report(fake, 2, null);
+  expect(seen, <String?>['uid-1', null]);
+}
+
+// A signed-in start and a sign-out before the SDK's install call runs: that
+// call reports the signed-out state, and for authStateChanges it is the only
+// report, so it is emitted. The sign-out's own report that follows bumps
+// only the ID-token counter, as the auth-state listener reports a uid once,
+// and is not emitted again.
+Future<void> _expectSignOutInInstallCallReported(
+  _FakeBindings fake,
+  Stream<UserPlatform?> Function() changes,
+) async {
+  fake.snapshot = <String, Object?>{
+    'authGeneration': 0,
+    'idTokenGeneration': 0,
+    'user': _userMap(),
+  };
+  final List<String?> seen = _listenUids(changes);
+  await Future<void>.delayed(const Duration(milliseconds: 20));
+  expect(seen, <String?>['uid-1']);
+
+  await _report(fake, 1, null);
+  expect(seen, <String?>['uid-1', null]);
+
+  fake.snapshot = <String, Object?>{
+    'authGeneration': 1,
+    'idTokenGeneration': 2,
+    'user': null,
+  };
+  await Future<void>.delayed(const Duration(milliseconds: 30));
+  expect(seen, <String?>['uid-1', null]);
+}
+
 void main() {
   late _FakeBindings fake;
   late FirebaseAuthWatchos auth;
@@ -262,6 +365,23 @@ void main() {
     expect(request['hasPhotoUrl'], isFalse);
   });
 
+  test('updateProfile forwards an explicit null', () async {
+    fake.snapshot = <String, Object?>{
+      'authGeneration': 1,
+      'idTokenGeneration': 1,
+      'user': _userMap(),
+    };
+    fake.opResult = <String, Object?>{'ok': true};
+    // firebase_auth 7.x passes only the fields it is given, so a null it is
+    // given reaches the platform as a key with a null value.
+    await auth.currentUser!.updateProfile(<String, String?>{'photoURL': null});
+    final Map<String, Object?> request = fake.beginRequests.single;
+    expect(request['op'], 'updateProfile');
+    expect(request['hasPhotoUrl'], isTrue);
+    expect(request['photoUrl'], isNull);
+    expect(request['hasDisplayName'], isFalse);
+  });
+
   test('sendPasswordResetEmail completes on ok', () async {
     fake.opResult = <String, Object?>{'ok': true};
     await auth.sendPasswordResetEmail('user@example.com');
@@ -271,16 +391,20 @@ void main() {
 
   test('authStateChanges emits the current user, then on generation change',
       () async {
-    final List<String?> seen = <String?>[];
-    final Stream<UserPlatform?> stream = auth.authStateChanges();
-    final StreamSubscription<UserPlatform?> sub =
-        stream.listen((UserPlatform? user) => seen.add(user?.uid));
+    // The listeners were installed, and the SDK made its first call to each,
+    // before this subscription.
+    fake.snapshot = <String, Object?>{
+      'authGeneration': 1,
+      'idTokenGeneration': 1,
+      'user': null,
+    };
+    final List<String?> seen = _listenUids(auth.authStateChanges);
     await Future<void>.delayed(const Duration(milliseconds: 20));
     expect(seen, <String?>[null]);
 
     fake.snapshot = <String, Object?>{
-      'authGeneration': 1,
-      'idTokenGeneration': 1,
+      'authGeneration': 2,
+      'idTokenGeneration': 2,
       'user': _userMap(),
     };
     await Future<void>.delayed(const Duration(milliseconds: 30));
@@ -288,13 +412,49 @@ void main() {
 
     // An idToken-only change must not re-emit on authStateChanges.
     fake.snapshot = <String, Object?>{
-      'authGeneration': 1,
-      'idTokenGeneration': 2,
+      'authGeneration': 2,
+      'idTokenGeneration': 3,
       'user': _userMap(),
     };
     await Future<void>.delayed(const Duration(milliseconds: 30));
     expect(seen, <String?>[null, 'uid-1']);
-    await sub.cancel();
+  });
+
+  test('authStateChanges reports a signed-out state once', () async {
+    await _expectSignedOutReportedOnce(fake, auth.authStateChanges);
+  });
+
+  test('idTokenChanges reports a signed-out state once', () async {
+    await _expectSignedOutReportedOnce(fake, auth.idTokenChanges);
+  });
+
+  test('userChanges reports a signed-out state once', () async {
+    await _expectSignedOutReportedOnce(fake, auth.userChanges);
+  });
+
+  test('authStateChanges leaves out the listener install call', () async {
+    await _expectInstallCallLeftOut(fake, auth.authStateChanges);
+  });
+
+  test('idTokenChanges leaves out the listener install call', () async {
+    await _expectInstallCallLeftOut(fake, auth.idTokenChanges);
+  });
+
+  test('userChanges leaves out the listener install call', () async {
+    await _expectInstallCallLeftOut(fake, auth.userChanges);
+  });
+
+  test('authStateChanges reports a sign-out the install call carries',
+      () async {
+    await _expectSignOutInInstallCallReported(fake, auth.authStateChanges);
+  });
+
+  test('idTokenChanges reports a sign-out the install call carries', () async {
+    await _expectSignOutInInstallCallReported(fake, auth.idTokenChanges);
+  });
+
+  test('userChanges reports a sign-out the install call carries', () async {
+    await _expectSignOutInInstallCallReported(fake, auth.userChanges);
   });
 
   test('delegateFor returns one instance per app', () {

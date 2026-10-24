@@ -1,5 +1,6 @@
 # The latest version of each upstream package on pub.dev, read from the
-# pub.dev API (latest.version) on 2026-09-30.
+# pub.dev API (latest.version) on 2026-09-30; the four Firebase upstreams on
+# 2026-10-23, when their packages moved to the new majors.
 #
 # tool/bin/check_readme_snippets.dart holds every README install snippet to
 # it: an upstream constraint must be a caret constraint that admits this
@@ -11,10 +12,10 @@ upstreams:
   battery_plus: 7.1.1
   connectivity_plus: 7.3.1
   device_info_plus: 13.2.0
-  firebase_auth: 6.7.0
-  firebase_core: 4.15.0
-  firebase_messaging: 16.7.0
-  firebase_storage: 13.6.0
+  firebase_auth: 7.0.1
+  firebase_core: 5.1.0
+  firebase_messaging: 17.0.1
+  firebase_storage: 14.0.1
   flutter_secure_storage: 11.2.0
   games_services: 5.3.0
   geolocator: 14.1.1
@@ -26,6 +27,7 @@ upstreams:
   permission_handler: 13.0.2
   sensors_plus: 7.1.0
   shared_preferences: 2.5.5
+  sqflite: 2.4.5
   url_launcher: 6.3.2
   video_player: 2.14.0
 

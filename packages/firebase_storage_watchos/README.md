@@ -16,8 +16,10 @@ snapshots the Dart side polls.
 > Firebase support on watchOS is new.
 >
 > **What has been checked:** the example app builds and starts on the
-> watchOS 27.0 Simulator, and the host unit tests pass. It has not yet been
-> run on a physical Apple Watch.
+> watchOS 27.0 Simulator, and the host unit tests pass. The Simulator run
+> was with 0.1.1 and `firebase_storage` 13.x; 0.2.0 changes no native code,
+> and its example has not been rebuilt yet. It has not yet been run on a
+> physical Apple Watch.
 >
 > Requires `firebase_core_watchos` (the initialization + app registry
 > foundation) and a `flutter-watchos` CLI with external-SwiftPM-dependency
@@ -43,11 +45,14 @@ This is a federated plugin implementation. Apps that already depend on
 
 ```yaml
 dependencies:
-  firebase_core: ^4.0.0
-  firebase_core_watchos: ^0.1.0
-  firebase_storage: ^13.0.0
-  firebase_storage_watchos: ^0.1.0
+  firebase_core: ^5.1.0
+  firebase_core_watchos: ^0.1.2
+  firebase_storage: ^14.0.1
+  firebase_storage_watchos: ^0.2.0
 ```
+
+Version 0.2.0 needs `firebase_storage` 14.x and `firebase_core` 5.x. An app
+that stays on `firebase_storage` 13.x uses 0.1.1.
 
 Then use `firebase_storage`'s API exactly as on iOS — the watchOS
 implementation registers automatically via Flutter's federated plugin runner.

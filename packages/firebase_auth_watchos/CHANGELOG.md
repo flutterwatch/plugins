@@ -1,3 +1,39 @@
+## 0.2.0
+
+* **Breaking:** works with `firebase_auth` 7.x, and needs it. The package now
+  depends on `firebase_core: ^5.0.0` (was `^4.0.0`) and
+  `firebase_auth_platform_interface: ^9.1.1` (was `^9.0.5`), the first
+  version of the platform interface for `firebase_core` 5.x. An app that
+  stays on `firebase_auth` 6.x keeps 0.1.1.
+* The watch still links the Firebase Apple SDK 11.x through
+  `watchos/Package.swift`. The newer SDK that `firebase_auth` 7.x uses on iOS
+  and macOS does not apply to it.
+* `authStateChanges`, `idTokenChanges` and `userChanges` no longer repeat
+  their first value for the call the SDK makes to each listener when the
+  plugin installs it, on the first native call for an app. With 0.1.1 a
+  stream subscribed before any other auth call could emit the current user,
+  or null, a second time. The streams now leave that call out when it reports
+  the value they last emitted, and emit it when the user changed before it
+  ran: for `authStateChanges` it can be the only report of such a sign-out.
+  `idTokenChanges` and `userChanges` can still emit a signed-in user twice
+  when the SDK restores or signs in that user while the plugin installs its
+  listeners; `firebase_auth` usually emits it once there.
+* The same streams report a signed-out state once, as `firebase_auth` 7.0.1
+  does: a null is not emitted when the last value emitted was null too.
+* `User.updateProfile`: `firebase_auth` 7.0.1 passes only the fields it is
+  given, so an omitted field now keeps its value on the watch; this package
+  already applied only the fields present in the request. A field given as
+  `null` is forwarded to the SDK's profile change request. The Firebase Apple
+  SDK then clears it on the local user and does not send it to the server, as
+  on iOS. A new test checks that the `null` reaches the native layer.
+* README: the install snippet names `firebase_core: ^5.1.0`,
+  `firebase_auth: ^7.0.1` and this version, and says that
+  `sendPasswordResetEmail`, `sendEmailVerification` and
+  `verifyBeforeUpdateEmail` do not pass on their `ActionCodeSettings` yet.
+* Example: `pubspec.yaml` names `firebase_auth: ^7.0.1`,
+  `firebase_core: ^5.1.0` and `firebase_messaging: ^17.0.1`. No native code
+  changed, and the example was not rebuilt on the Simulator for this version.
+
 ## 0.1.1
 
 * API docs and comments say "release" for handing native memory back.

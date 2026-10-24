@@ -5,7 +5,8 @@ The watchOS implementation of [`geolocator`](https://pub.dev/packages/geolocator
 Location comes from **CoreLocation** (`CLLocationManager`) over dart:ffi: the
 delegate caches the latest fix and **pushes** a signal into Dart. The position
 stream, `getCurrentPosition` and `requestPermission` all wait on it — nothing
-polls.
+polls. As in geolocator_apple, the position stream and `getCurrentPosition`
+each have a location manager of their own.
 
 > Scaffolded by [`flutter-watchos plugin port`](https://github.com/flutterwatch/flutter-watchos)
 > from `geolocator_apple`, then implemented and verified by hand.
@@ -18,7 +19,7 @@ This is a federated plugin implementation. Apps that already depend on
 ```yaml
 dependencies:
   geolocator: ^14.1.1
-  geolocator_watchos: ^0.1.1
+  geolocator_watchos: ^0.2.0
 ```
 
 The plugin registers automatically via Flutter's federated registry — no
@@ -37,11 +38,57 @@ Add a location usage description to the watch app's `Info.plist`:
 |---|---|
 | `checkPermission` / `requestPermission` | supported (when-in-use) |
 | `isLocationServiceEnabled` | supported |
-| `getCurrentPosition` / `getPositionStream` | supported |
+| `getCurrentPosition` | supported; skips cached fixes more than 5 seconds old, and does not wait on a running stream |
+| `getPositionStream` | supported; while a stream runs, a second call gets it, with its settings, as from geolocator_apple |
 | `getLastKnownPosition` | supported (last cached fix) |
+| `getLocationAccuracy` | supported (precise or reduced) |
+| `requestTemporaryFullAccuracy` | supported; needs `NSLocationTemporaryUsageDescriptionDictionary` |
+| `getServiceStatusStream` | supported; starts with the current status |
 
 The watch has no *Always* background-location entitlement flow that iOS has;
 authorization is when-in-use.
+
+### Workouts and background updates
+
+`AppleSettings` from `geolocator`, passed to `getPositionStream`, reaches
+CoreLocation here too: `activityType` sets `CLLocationManager.activityType`,
+and `allowBackgroundLocationUpdates`, which `AppleSettings` turns on by
+default, sets `allowsBackgroundLocationUpdates`. A running or cycling app
+passes `ActivityType.fitness`:
+
+```dart
+Geolocator.getPositionStream(
+  locationSettings: AppleSettings(
+    accuracy: LocationAccuracy.bestForNavigation,
+    activityType: ActivityType.fitness,
+    allowBackgroundLocationUpdates: true,
+  ),
+);
+```
+
+Background updates turn on only when the `Info.plist`'s `UIBackgroundModes`
+has `location`; without it the setting is ignored, because CoreLocation
+asserts and the app ends otherwise. It has to be `UIBackgroundModes`, also on
+the watch: `location` under `WKBackgroundModes` does not count and still
+trips the assertion.
+
+```xml
+<key>UIBackgroundModes</key>
+<array>
+	<string>location</string>
+</array>
+```
+App Review accepts background location only for a feature that needs it
+(App Review Guideline 2.5.4); say what it is for in the usage description.
+
+`pauseLocationUpdatesAutomatically` and `showBackgroundLocationIndicator` do
+not exist on watchOS and are ignored. `ActivityType.maritime` needs the
+watchOS 27 SDK and watchOS 27; otherwise it is `otherNavigation`, as in
+geolocator_apple. An app recording a workout keeps running with the wrist
+down through its `HKWorkoutSession`, not through this setting.
+
+Not yet checked on a physical watch: the temporary full-accuracy prompt, and
+updates with the wrist down.
 
 ## Status
 
@@ -62,9 +109,6 @@ These members of `geolocator_platform_interface` 4.4.0 throw or fail on watchOS.
 
 | Member | On watchOS | Why |
 |---|---|---|
-| `getServiceStatusStream` | throws `UnimplementedError` when called | not implemented yet |
-| `getLocationAccuracy` | fails with `UnimplementedError` | not implemented yet |
-| `requestTemporaryFullAccuracy` | fails with `UnimplementedError` | not implemented |
 | `openAppSettings` / `openLocationSettings` | fail with `UnimplementedError` | watchOS has no settings page an app can open |
 
 ## License

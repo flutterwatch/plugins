@@ -191,6 +191,26 @@ void main() {
     expect(fake.taskRequests.single['data'], base64Encode(utf8.encode('hi')));
   });
 
+  test('putString base64 uploads the bytes with the custom metadata', () {
+    // What firebase_storage 14.0.1 passes for a data URL: the payload as
+    // base64, and metadata that keeps the caller's custom metadata.
+    storage.ref('d.txt').putString(
+          base64Encode(utf8.encode('hi')),
+          PutStringFormat.base64,
+          SettableMetadata(
+            contentType: 'text/plain',
+            customMetadata: <String, String>{'owner': 'watch'},
+          ),
+        );
+    final Map<String, Object?> request = fake.taskRequests.single;
+    expect(request['kind'], 'putData');
+    expect(request['data'], base64Encode(utf8.encode('hi')));
+    final Map<Object?, Object?> metadata =
+        request['metadata']! as Map<Object?, Object?>;
+    expect(metadata['contentType'], 'text/plain');
+    expect(metadata['customMetadata'], <String, String>{'owner': 'watch'});
+  });
+
   test('task onComplete resolves on the success snapshot', () async {
     fake.taskSnapshots = <Map<String, Object?>>[
       <String, Object?>{

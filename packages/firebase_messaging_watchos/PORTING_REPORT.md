@@ -3,7 +3,12 @@
 Scaffolded by `flutter-watchos plugin port --from-pub firebase_messaging
 --include-example` on 2026-07-18, then hand-finished.
 
-Source: `firebase_messaging` 16.4.3
+Source: `firebase_messaging` 16.4.3. Since 0.2.0 it implements
+`firebase_messaging_platform_interface` 4.11.0 and later, for
+`firebase_messaging` 17.x; read against 17.0.1 and platform interface 4.11.1.
+The watch still links the Firebase Apple SDK 11.x (`watchos/Package.resolved`
+pins 11.15.0); the newer SDK that `firebase_messaging` 17.x uses on iOS and
+macOS does not apply to it.
 Base platform: ios (Objective-C)
 Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 
@@ -11,10 +16,10 @@ Model: **dart:ffi over the Firebase Apple SDK** (`FirebaseMessaging`)
 
 | Aspect | Status |
 |---|---|
-| Implementation (Dart + FFI + native) | ✅ complete (background handler is a no-op — see below) |
+| Implementation (Dart + FFI + native) | ◐ complete except the Firebase Installation ID registration of `firebase_messaging` 17 (`register`, `unregister`, `onRegistered`, `onUnregistered`), which is not implemented yet; the background handler is a no-op (see below) |
 | watchOS capability | ✅ FirebaseMessaging is source-built and watch-capable |
-| Host unit tests | ✅ 15/15 pass (native FirebaseMessaging faked) |
-| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator, where `getToken` fails because the Simulator has no APNs. The smoke test was not run for this version |
+| Host unit tests | ✅ 16/16 pass (native FirebaseMessaging faked) |
+| On-simulator build + link + run | ◐ links the Firebase Apple SDK; the example builds and starts on the watchOS 27.0 Simulator, where `getToken` fails because the Simulator has no APNs (checked with 0.1.1; 0.2.0 changes no native code and was not rebuilt). The smoke test was not run for this version |
 | Physical watch hardware | ○ not yet verified |
 | Upstream integration test | ○ none in the firebase_messaging pub example (smoke test added) |
 
@@ -59,6 +64,13 @@ private var flutterAppDelegate
 isolate to run a Dart handler in. `setDeliveryMetricsExportToBigQuery` is
 Android/web only.
 
+`register`, `unregister`, `onRegistered` and `onUnregistered`, which
+platform interface 4.11.0 adds for `firebase_messaging` 17, keep the
+interface's `UnimplementedError`. The Firebase Apple SDK has
+`registerWithCompletion:` and `unregisterWithCompletion:` from 12.16.0, and
+the watch links 11.x; moving to 12.16 or later needs a Simulator and device
+check of its own.
+
 Notification settings are mapped from the watchOS-safe subset of
 `UNNotificationSettings` (authorization/alert/sound/notificationCenter/critical,
 plus announcement on watchOS 6+ and timeSensitive on watchOS 8+); badge,
@@ -87,7 +99,7 @@ System frameworks/libraries: `Foundation`, `Security`, `WatchKit`,
   FirebaseMessagingPlatform` with the message pump feeding
   `onMessage`/`onMessageOpenedApp`, over the FFI bindings.
 - `test/firebase_messaging_watchos_test.dart` — host tests with the native
-  backend faked (15/15).
+  backend faked (16/16).
 - `example/` — the upstream firebase_messaging example, ported for watchOS
   (runner refreshed to the host-module model so the app-delegate adaptor is
   available), plus an added `integration_test/firebase_messaging_smoke_test.dart`

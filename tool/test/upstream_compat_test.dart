@@ -4,7 +4,8 @@
 
 // The weekly upstream compatibility check on its fixtures, in
 // tool/test/fixtures/upstream_compat/. Each fixture's pub_dev.yaml stands
-// in for the pub.dev API, and its resolve.yaml for `flutter pub get`: a
+// in for the pub.dev API, its published.yaml (when it has one) for
+// tool/published.yaml, and its resolve.yaml for `flutter pub get`: a
 // package and source listed there fails to resolve with that output. The
 // games_services output is the one plugins.md P6 recorded on 2026-09-29.
 
@@ -14,6 +15,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:plugins_tool/src/forbidden_words.dart';
 import 'package:plugins_tool/src/upstream_compat.dart';
+import 'package:plugins_tool/src/versions.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
@@ -38,6 +40,14 @@ LatestVersionFetcher fixtureFetcher(String fixture) {
       for (final MapEntry<Object?, Object?> entry in document.entries)
         '${entry.key}': '${entry.value}',
   });
+}
+
+/// The rows of the fixture's published.yaml; none when it has none.
+Map<String, PublishedRow> fixturePublished(String fixture) {
+  final File published = File(p.join(fixture, 'published.yaml'));
+  return published.existsSync()
+      ? parsePublished(published.readAsStringSync())
+      : <String, PublishedRow>{};
 }
 
 /// A resolver that fails for the package and source the fixture's
@@ -100,6 +110,7 @@ void main() {
       final int code = await runUpstreamCompatibility(
         root,
         p.join(fixture.directory, 'upstream_versions.yaml'),
+        fixturePublished(fixture.directory),
         fixtureFetcher(fixture.directory),
         fixtureResolver(fixture.directory, root),
         words,
@@ -124,6 +135,7 @@ void main() {
     final int code = await runUpstreamCompatibility(
       root,
       p.join(fixture, 'upstream_versions.yaml'),
+      fixturePublished(fixture),
       mapFetcher(<String, String>{
         'battery_plus': '7.1.1',
         'fixture_battery_plus_watchos': '0.1.0-${words.words.first}.1',
@@ -149,6 +161,7 @@ void main() {
     final int code = await runUpstreamCompatibility(
       root,
       p.join(fixture, 'upstream_versions.yaml'),
+      fixturePublished(fixture),
       (String package) async =>
           throw const HttpException('pub.dev answered 503.'),
       fixtureResolver(fixture, root),
@@ -157,6 +170,28 @@ void main() {
     );
     expect(code, 1);
     expect('$out', contains('pub.dev could not be read'));
+  });
+
+  test('an unpublished package does not claim a version on pub.dev', () async {
+    final String fixture = p.join(
+      'test',
+      'fixtures',
+      'upstream_compat',
+      'unpublished_package',
+    );
+    final String root = p.join(fixture, 'repo');
+    final StringBuffer out = StringBuffer();
+    final int code = await runUpstreamCompatibility(
+      root,
+      p.join(fixture, 'upstream_versions.yaml'),
+      fixturePublished(fixture),
+      fixtureFetcher(fixture),
+      fixtureResolver(fixture, root),
+      words,
+      out,
+    );
+    expect(code, 0, reason: '$out');
+    expect('$out', isNot(contains('from pub.dev')));
   });
 
   test('compareWithTable', () {

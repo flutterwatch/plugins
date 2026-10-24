@@ -8,9 +8,11 @@ These are companions to [flutter-watchos](https://github.com/flutterwatch/flutte
 implementations of popular pub.dev plugins, produced with the
 `flutter-watchos plugin port` tool and finished/verified by hand.
 
-Every package here is on pub.dev under the
+Packages with a pub badge below are on pub.dev under the
 [`flutterwatch.dev`](https://pub.dev/publishers/flutterwatch.dev/packages)
-publisher (see [Usage](#usage)).
+publisher (see [Usage](#usage)). A package without one is staged at `0.0.x`
+and not published yet (see [AUTHORING.md](AUTHORING.md), "Versioning &
+publishing").
 
 ## How watchOS plugins work
 
@@ -72,7 +74,8 @@ at the time; the last full run on the Simulator is under
 | [`sensors_plus_watchos`](packages/sensors_plus_watchos) [![pub](https://img.shields.io/pub/v/sensors_plus_watchos.svg)](https://pub.dev/packages/sensors_plus_watchos) | [`sensors_plus`](https://pub.dev/packages/sensors_plus) | CoreMotion (`CMMotionManager`) |
 | [`local_auth_watchos`](packages/local_auth_watchos) [![pub](https://img.shields.io/pub/v/local_auth_watchos.svg)](https://pub.dev/packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | LocalAuthentication (passcode) |
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
-| [`permission_handler_watchos`](packages/permission_handler_watchos) | [`permission_handler`](https://pub.dev/packages/permission_handler) | UserNotifications, and CoreLocation, CoreMotion, AVFAudio, Contacts, EventKit and CoreBluetooth loaded at runtime |
+| [`permission_handler_watchos`](packages/permission_handler_watchos) | [`permission_handler`](https://pub.dev/packages/permission_handler) | UserNotifications, and CoreLocation, CoreMotion, AVFAudio, Contacts, EventKit, CoreBluetooth and Intents loaded at runtime |
+| [`sqflite_watchos`](packages/sqflite_watchos) | [`sqflite`](https://pub.dev/packages/sqflite) | The system SQLite (`libsqlite3`), its C API called from Dart |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
 | [`in_app_purchase_watchos`](packages/in_app_purchase_watchos) [![pub](https://img.shields.io/pub/v/in_app_purchase_watchos.svg)](https://pub.dev/packages/in_app_purchase_watchos) | [`in_app_purchase`](https://pub.dev/packages/in_app_purchase) | StoreKit (`SKProductsRequest`, `SKPaymentQueue`) |
@@ -107,6 +110,7 @@ published package would be misleading:
 | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | No GoogleSignIn watchOS SDK; sign-in is delegated to the paired iPhone |
 | [`image_picker`](https://pub.dev/packages/image_picker) | No camera and no photo-picker UI on the watch |
 | [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) | No Google Maps SDK for watchOS (an Apple MapKit backend would not honestly implement the interface) |
+| [`wakelock_plus`](https://pub.dev/packages/wakelock_plus) | No public watchOS API keeps the display lit. `WKExtendedRuntimeSession` keeps the app running, not the screen, and needs a session type that matches the app's use, so giving every app one is an App Review risk (guideline 2.5.4); see [#10](https://github.com/flutterwatch/plugins/pull/10) |
 
 Note the difference from tvOS: **CoreLocation, HealthKit, CoreMotion,
 StoreKit purchasing, and (watchOS 9+) LocalAuthentication all exist on the
@@ -116,9 +120,7 @@ watch** — plugins built on those are portable, not excluded.
 
 These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
-`sqflite` (SQLite), `flutter_tts` (AVFoundation),
-`wakelock_plus` (only a session-typed `WKExtendedRuntimeSession`, not a
-general idle-timer disable), and `cloud_firestore` (the Firebase Apple SDK
+`flutter_tts` (AVFoundation) and `cloud_firestore` (the Firebase Apple SDK
 ships Firestore's core as a prebuilt binary with no watchOS slice, so a
 port needs Firebase's from-source Firestore build; the rest of the
 network-viable Firebase family — core, auth, storage, messaging — is

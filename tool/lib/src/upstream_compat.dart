@@ -16,6 +16,11 @@
 /// - resolves a scratch app with the upstream at its latest version and the
 ///   package from this repository, and another with the package's latest
 ///   version on pub.dev, as a user would; either failing to resolve fails.
+///
+/// A package without a row in `tool/published.yaml` is staged
+/// (`AUTHORING.md` section 4) and not on pub.dev yet, so only the package
+/// from this repository is resolved. A package with a row that pub.dev does
+/// not know fails.
 library;
 
 import 'dart:convert';
@@ -28,6 +33,7 @@ import 'package:yaml/yaml.dart';
 import 'forbidden_words.dart';
 import 'public_log.dart';
 import 'readme_snippets.dart';
+import 'versions.dart';
 
 /// Returns a package's latest version on pub.dev, or null when pub.dev does
 /// not know the package.
@@ -212,10 +218,12 @@ List<String> resolutionReason(String output, {int limit = 8}) {
 }
 
 /// Runs the check on the repository at [root] with the table in
-/// [tableFile], writes the report to [out] and returns the exit code.
+/// [tableFile] and the rows of `tool/published.yaml` in [published], writes
+/// the report to [out] and returns the exit code.
 Future<int> runUpstreamCompatibility(
   String root,
   String tableFile,
+  Map<String, PublishedRow> published,
   LatestVersionFetcher latestVersion,
   Resolver resolve,
   ForbiddenWords words,
@@ -287,9 +295,7 @@ Future<int> runUpstreamCompatibility(
             packagePath: p.absolute(root, 'packages', package),
           ),
         );
-        if (packageLatest == null) {
-          report.problems.add('pub.dev has no version of $package.');
-        } else {
+        if (packageLatest != null) {
           tryResolve(
             'published',
             '$packageLatest from pub.dev',
@@ -300,11 +306,20 @@ Future<int> runUpstreamCompatibility(
               packageVersion: packageLatest,
             ),
           );
+        } else if (published.containsKey(package)) {
+          report.problems.add('pub.dev has no version of $package.');
+        } else {
+          report.notes.add(
+            'Not published yet (no row in tool/published.yaml), so only the '
+            'package from this repository was resolved.',
+          );
         }
       }
-      report.summary =
-          '$upstream $upstreamLatest resolves with the package from this '
-          'repository and with $packageLatest from pub.dev';
+      report.summary = packageLatest == null
+          ? '$upstream $upstreamLatest resolves with the package from this '
+                'repository'
+          : '$upstream $upstreamLatest resolves with the package from this '
+                'repository and with $packageLatest from pub.dev';
       if (report.writeTo(out, words)) {
         failures++;
       }
