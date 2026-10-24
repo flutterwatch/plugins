@@ -38,7 +38,7 @@ Add a location usage description to the watch app's `Info.plist`:
 |---|---|
 | `checkPermission` / `requestPermission` | supported (when-in-use) |
 | `isLocationServiceEnabled` | supported |
-| `getCurrentPosition` | supported; skips cached fixes more than 5 seconds old, and does not wait on a running stream |
+| `getCurrentPosition` | supported; skips cached fixes more than 5 seconds old, and does not wait on a running stream; calls pending together share one request, at the most accurate accuracy any of them asked for, as in geolocator_apple |
 | `getPositionStream` | supported; while a stream runs, a second call gets it, with its settings, as from geolocator_apple |
 | `getLastKnownPosition` | supported (last cached fix) |
 | `getLocationAccuracy` | supported (precise or reduced) |

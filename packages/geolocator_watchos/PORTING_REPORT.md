@@ -80,7 +80,7 @@ watchOS" table lists the ✗ rows.
 | `checkPermission` / `requestPermission` | ✅ when-in-use authorization |
 | `isLocationServiceEnabled` | ✅ |
 | `getLastKnownPosition` | ✅ the last cached fix |
-| `getCurrentPosition` | ✅ a `CLLocationManager` of its own, as in geolocator_apple; skips cached fixes more than 5 seconds old |
+| `getCurrentPosition` | ✅ a `CLLocationManager` of its own, as in geolocator_apple; skips cached fixes more than 5 seconds old; calls pending together share it, at the most accurate accuracy any of them asked for (geolocator_apple 2.4.3's rule) |
 | `getPositionStream` | ✅ pushed by the `CLLocationManager` delegate, every fix; a second call while one runs gets that stream, as from geolocator_apple |
 | `distanceBetween` / `bearingBetween` | ✅ the interface's own Dart code |
 | `getServiceStatusStream` | ✅ starts with the current status, then each change CoreLocation reports |
