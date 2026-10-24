@@ -1,0 +1,1 @@
+void scratch(void) {}

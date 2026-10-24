@@ -8,10 +8,11 @@
 # would pressure people into editing code the repo deliberately keeps as
 # upstream's.
 #
-# Native code is not compiled here: these are watchOS FFI plugins, and every
-# test fakes the bindings through a `forTesting` constructor, so nothing needs
-# a Mac. Compiling the `.m` sources needs a watchOS SDK and belongs in the
-# per-package `example` build, run on a Mac by hand — see AUTHORING.md §3.
+# The package tests fake the native bindings through a `forTesting`
+# constructor, so they need no Mac. The `native` job compiles the native
+# sources on macOS with -fsyntax-only, the way the CLI builds them, on Xcode 26
+# and 27; running the code is still each package's `example` build on a Mac
+# (AUTHORING.md §3).
 name: CI
 
 on:
@@ -187,3 +188,53 @@ jobs:
         if: success() || failure()
         working-directory: tool
         run: dart run bin/check_test_names.dart
+
+  native:
+    # Spec 0022 D1 (#17): every plugin's .m, .mm, .c and SwiftUI view source,
+    # compiled the way the CLI compiles it, with -fsyntax-only, for a watch
+    # and for the Simulator. macos-26 runs the oldest Xcode 26 the CLI
+    # supports and its default; xcode-27 runs Xcode 27. A symbol one SDK lacks
+    # (CLActivityTypeMaritime in #12) fails here, not in an app's build.
+    name: native sources (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Xcode 26
+            runner: macos-26
+            developer_dirs: >-
+              /Applications/Xcode_26.0.1.app/Contents/Developer
+              /Applications/Xcode_26.6.app/Contents/Developer
+          - label: Xcode 27
+            runner: xcode-27
+            developer_dirs: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile with each Xcode
+        env:
+          DEVELOPER_DIRS: ${{ matrix.developer_dirs }}
+        run: |
+          status=0
+          for developer_dir in $DEVELOPER_DIRS; do
+            if [ ! -d "$developer_dir" ]; then
+              echo "FAILED no Xcode at $developer_dir"
+              status=1
+              continue
+            fi
+            DEVELOPER_DIR="$developer_dir" tool/check_native_sources.sh || status=1
+          done
+          exit "$status"
+
+      # The check must be able to fail. Its fixtures hold an undeclared
+      # symbol and a warning, which fail, and a clean source with a
+      # deprecation, which passes.
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Test the check
+        working-directory: tool
+        run: |
+          dart pub get
+          dart test test/check_native_sources_test.dart
