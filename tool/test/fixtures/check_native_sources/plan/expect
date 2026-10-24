@@ -1,0 +1,8 @@
+0
+plan   clang   watchos arm64-apple-watchos26.0 packages/a_watchos/watchos/Classes/a_watchos_ffi.m
+plan   clang   watchsimulator arm64-apple-watchos26.0-simulator packages/a_watchos/watchos/Classes/a_watchos_ffi.m
+skip   b_watchos: its watchos/Package.swift names a SwiftPM package, which only a SwiftPM build provides
+plan   clang   watchos arm64-apple-watchos26.0 packages/c_watchos/watchos/Classes/c_watchos.c
+plan   swiftc  watchos arm64-apple-watchos26.0 c_watchos_views: packages/c_watchos/watchos/Views/c_watchos_views.swift
+plan   swiftc  watchsimulator arm64-apple-watchos26.0-simulator c_watchos_views: packages/c_watchos/watchos/Views/c_watchos_views.swift
+include -Ipackages/a_watchos/watchos/Classes
