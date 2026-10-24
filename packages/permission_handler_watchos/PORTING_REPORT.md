@@ -12,6 +12,7 @@
 | System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. In upstream's example: calendar (full access) allowed → granted |
 | Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
 | App Store Connect upload | not yet done: whether ITMS-90683 reads the class names of groups an app does not use is unchecked (see "Design") |
+| Example deviations | `example/pubspec.yaml` adds `url_launcher_watchos`, for the links of `baseflow_plugin_template`, which go through `url_launcher`. `example/lib/main.dart` is otherwise upstream's, formatted as this repo's CI checks |
 | Physical watch | not yet checked |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.

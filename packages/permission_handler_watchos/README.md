@@ -98,6 +98,19 @@ the error codes are the iOS implementation's.
 | `camera`, `photos`, `photosAddOnly`, `mediaLibrary`, `speech`, `appTrackingTransparency`, `backgroundRefresh`, `phone` | `denied`; a request `permanentlyDenied`; service `disabled` | watchOS has none of these; iOS answers the same for a permission it does not know |
 | `openAppSettings` | returns false | watchOS has no settings page an app can open; the wearer changes a permission in the watch's Settings or in the Watch app on the iPhone |
 
+## Example deviations
+
+The example is `permission_handler_apple`'s own example app, unchanged
+except for this watchOS deviation (and the formatting this repository's CI
+checks):
+
+| Where | Change | Why |
+|---|---|---|
+| `example/pubspec.yaml` | adds `url_launcher_watchos` | the example's `baseflow_plugin_template` opens its links with `url_launcher`, which has no watchOS implementation without it |
+
+`example/integration_test/permission_handler_test.dart` is this package's
+own: upstream has no integration test.
+
 ## License
 
 MIT, as upstream `permission_handler` is. See `LICENSE` for the full text.
