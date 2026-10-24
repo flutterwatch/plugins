@@ -97,8 +97,9 @@ updates with the wrist down.
 | Apple Watch (`watchos`) | yes |
 | Watch simulator (`watchsimulator`) | query methods verified; live fixes need a simulated location |
 
-The interactive permission prompt and live position updates are verified on
-a physical Apple Watch.
+The interactive permission prompt and live position updates were verified on
+a physical Apple Watch with 0.1.x. 0.2.0 has run only on the Simulator so far
+([#16](https://github.com/flutterwatch/plugins/issues/16)).
 
 ## Example
 
