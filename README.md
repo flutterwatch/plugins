@@ -8,9 +8,11 @@ These are companions to [flutter-watchos](https://github.com/flutterwatch/flutte
 implementations of popular pub.dev plugins, produced with the
 `flutter-watchos plugin port` tool and finished/verified by hand.
 
-Every package here is on pub.dev under the
+Packages with a pub badge below are on pub.dev under the
 [`flutterwatch.dev`](https://pub.dev/publishers/flutterwatch.dev/packages)
-publisher (see [Usage](#usage)).
+publisher (see [Usage](#usage)). A package without one is staged at `0.0.x`
+and not published yet (see [AUTHORING.md](AUTHORING.md), "Versioning &
+publishing").
 
 ## How watchOS plugins work
 
