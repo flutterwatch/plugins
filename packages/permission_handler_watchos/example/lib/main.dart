@@ -1,99 +1,166 @@
-// Copyright 2026 The FlutterWatch Authors. All rights reserved.
-// Use of this source code is governed by the MIT license that can be found
-// in the LICENSE file.
-//
-// A watch demo of permission_handler: every permission watchOS has, with its
-// status. Tapping one asks for it.
-//
-// permission_handler's own example is a phone app built on
-// baseflow_plugin_template, whose url_launcher links do not run on the watch.
-
+import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
 
-/// The permissions watchOS has, in the order the list shows them.
-const List<Permission> watchPermissions = <Permission>[
-  Permission.notification,
-  Permission.locationWhenInUse,
-  Permission.locationAlways,
-  Permission.sensors,
-  Permission.microphone,
-  Permission.contacts,
-  Permission.calendarFullAccess,
-  Permission.calendarWriteOnly,
-  Permission.reminders,
-  Permission.bluetooth,
-];
-
-void main() => runApp(const PermissionsApp());
-
-/// The demo app.
-class PermissionsApp extends StatelessWidget {
-  /// Creates the app.
-  const PermissionsApp({super.key});
-
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-        theme: ThemeData(brightness: Brightness.dark),
-        home: Scaffold(
-          body: ListView(
-            padding: MediaQuery.paddingOf(context) +
-                const EdgeInsets.symmetric(horizontal: 8),
-            children: <Widget>[
-              for (final Permission permission in watchPermissions)
-                PermissionTile(permission: permission),
-            ],
-          ),
-        ),
-      );
+void main() {
+  runApp(
+    BaseflowPluginExample(
+      pluginName: 'Permission Handler',
+      githubURL: 'https://github.com/Baseflow/flutter-permission-handler',
+      pubDevURL: 'https://pub.dev/packages/permission_handler',
+      pages: [PermissionHandlerWidget.createPage()],
+    ),
+  );
 }
 
-/// One permission: its name and status; a tap asks for it.
-class PermissionTile extends StatefulWidget {
-  /// Creates the tile for [permission].
-  const PermissionTile({super.key, required this.permission});
+///Defines the main theme color
+final MaterialColor themeMaterialColor =
+    BaseflowPluginExample.createMaterialColor(
+      const Color.fromRGBO(48, 49, 60, 1),
+    );
 
-  /// The permission it shows.
+/// A Flutter application demonstrating the functionality of this plugin
+class PermissionHandlerWidget extends StatefulWidget {
+  const PermissionHandlerWidget._();
+
+  /// Create a page containing the functionality of this plugin
+  static ExamplePage createPage() {
+    return ExamplePage(
+      Icons.location_on,
+      (context) => const PermissionHandlerWidget._(),
+    );
+  }
+
+  @override
+  PermissionHandlerWidgetState createState() => PermissionHandlerWidgetState();
+}
+
+/// The state of the [PermissionHandlerWidget] that listens for permission status changes.
+class PermissionHandlerWidgetState extends State<PermissionHandlerWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ListView(
+        children:
+            Permission.values
+                .where((permission) {
+                  return permission != Permission.unknown &&
+                      permission != Permission.phone &&
+                      permission != Permission.sms &&
+                      permission != Permission.ignoreBatteryOptimizations &&
+                      permission != Permission.accessMediaLocation &&
+                      permission != Permission.activityRecognition &&
+                      permission != Permission.manageExternalStorage &&
+                      permission != Permission.systemAlertWindow &&
+                      permission != Permission.requestInstallPackages &&
+                      permission != Permission.accessNotificationPolicy &&
+                      permission != Permission.bluetoothScan &&
+                      permission != Permission.bluetoothAdvertise &&
+                      permission != Permission.bluetoothConnect &&
+                      permission != Permission.nearbyWifiDevices &&
+                      permission != Permission.videos &&
+                      permission != Permission.audio &&
+                      permission != Permission.scheduleExactAlarm &&
+                      permission != Permission.sensorsAlways;
+                })
+                .map((permission) => PermissionWidget(permission))
+                .toList(),
+      ),
+    );
+  }
+}
+
+/// Permission widget containing information about the passed [Permission]
+class PermissionWidget extends StatefulWidget {
+  /// Constructs a [PermissionWidget] for the supplied [Permission]
+  const PermissionWidget(this.permission, {super.key});
+
+  /// The [Permission] that this widget is rendered for.
   final Permission permission;
 
   @override
-  State<PermissionTile> createState() => _PermissionTileState();
+  State<PermissionWidget> createState() => _PermissionState();
 }
 
-class _PermissionTileState extends State<PermissionTile> {
-  String _status = '…';
+class _PermissionState extends State<PermissionWidget> {
+  final PermissionHandlerPlatform _permissionHandler =
+      PermissionHandlerPlatform.instance;
+  PermissionStatus _permissionStatus = PermissionStatus.denied;
 
   @override
   void initState() {
     super.initState();
-    _read();
+
+    _listenForPermissionStatus();
   }
 
-  Future<void> _read() async {
-    final PermissionStatus status = await widget.permission.status;
-    if (mounted) {
-      setState(() => _status = status.name);
-    }
+  void _listenForPermissionStatus() async {
+    final status = await _permissionHandler.checkPermissionStatus(
+      widget.permission,
+    );
+    setState(() => _permissionStatus = status);
   }
 
-  Future<void> _ask() async {
-    String status;
-    try {
-      status = (await widget.permission.request()).name;
-    } on PlatformException catch (error) {
-      status = error.code;
-    }
-    if (mounted) {
-      setState(() => _status = status);
+  Color getPermissionColor() {
+    switch (_permissionStatus) {
+      case PermissionStatus.denied:
+        return Colors.red;
+      case PermissionStatus.granted:
+        return Colors.green;
+      case PermissionStatus.limited:
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
   @override
-  Widget build(BuildContext context) => ListTile(
-        dense: true,
-        title: Text(widget.permission.toString().split('.').last),
-        subtitle: Text(_status),
-        onTap: _ask,
-      );
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(
+        widget.permission.toString(),
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+      subtitle: Text(
+        _permissionStatus.toString(),
+        style: TextStyle(color: getPermissionColor()),
+      ),
+      trailing:
+          (widget.permission is PermissionWithService)
+              ? IconButton(
+                icon: const Icon(Icons.info, color: Colors.white),
+                onPressed: () {
+                  checkServiceStatus(
+                    context,
+                    widget.permission as PermissionWithService,
+                  );
+                },
+              )
+              : null,
+      onTap: () {
+        requestPermission(widget.permission);
+      },
+    );
+  }
+
+  void checkServiceStatus(
+    BuildContext context,
+    PermissionWithService permission,
+  ) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          (await _permissionHandler.checkServiceStatus(permission)).toString(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> requestPermission(Permission permission) async {
+    final status = await _permissionHandler.requestPermissions([permission]);
+
+    setState(() {
+      _permissionStatus = status[permission] ?? PermissionStatus.denied;
+    });
+  }
 }

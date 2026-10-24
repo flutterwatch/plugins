@@ -8,14 +8,24 @@
 // INPreferences throws, ending the app, in a process without the Siri
 // entitlement, and the exception leaves its dispatch_once unfinished, so it
 // cannot be caught and asked again. The iOS implementation only compiles this
-// in when the app sets PERMISSION_ASSISTANT; here NSSiriUsageDescription in
-// the Info.plist, which a Siri request needs anyway, is that opt-in. Without
-// it the status is denied and a request fails as a missing key.
+// in when the app sets PERMISSION_ASSISTANT. Here the opt-in is the
+// Info.plist key below, set to YES, which an app adds only with the Siri
+// capability; a usage description alone does not switch it on, since apps
+// are told to add every group's. Without the opt-in, Siri is never asked
+// about: the status is denied, and so is a request.
 
 #import "phw_internal.h"
 
 #import <Intents/Intents.h>
 #import <objc/message.h>
+
+// The Info.plist key, a Boolean, that says the app has the Siri capability.
+static NSString* const kSiriOptIn = @"PermissionHandlerWatchosSiri";
+
+static BOOL _optedIn(void) {
+    id value = [[NSBundle mainBundle] objectForInfoDictionaryKey:kSiriOptIn];
+    return [value isKindOfClass:[NSNumber class]] && [value boolValue];
+}
 
 static PHWStatus _assistantStatus(NSInteger status) {
     switch ((INSiriAuthorizationStatus)status) {
@@ -38,7 +48,7 @@ static PHWStatus _assistantStatus(NSInteger status) {
 }
 
 - (void)checkPermission:(PHWPermission)permission done:(PHWStatusHandler)done {
-    Class preferences = phw_has_key(@"NSSiriUsageDescription") ? [self preferencesClass] : nil;
+    Class preferences = _optedIn() ? [self preferencesClass] : nil;
     done(preferences == nil
              ? PHWStatusDenied
              : _assistantStatus(phw_class_integer(preferences, @selector(siriAuthorizationStatus))));
@@ -53,6 +63,10 @@ static PHWStatus _assistantStatus(NSInteger status) {
 - (void)requestPermission:(PHWPermission)permission
                      done:(PHWStatusHandler)done
                    failed:(PHWErrorHandler)failed {
+    if (!_optedIn()) {
+        done(PHWStatusDenied);
+        return;
+    }
     if (!phw_has_key(@"NSSiriUsageDescription")) {
         phw_missing_key(@"NSSiriUsageDescription", failed);
         return;

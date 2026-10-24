@@ -35,7 +35,9 @@ Add the usage description of each permission you ask for to the watch app's
 `NSRemindersFullAccessUsageDescription`, `NSBluetoothAlwaysUsageDescription`,
 `NSSiriUsageDescription`. A request whose key is missing fails with a
 `PlatformException` whose code is `MISSING_USAGE_DESCRIPTION`, where watchOS
-would terminate the app.
+would terminate the app. Siri also needs its own opt-in, only with the Siri
+capability (see `assistant` below), because asking about Siri without the
+capability ends the app.
 
 ### App Review
 
@@ -83,7 +85,7 @@ the app's privacy manifest (`PrivacyInfo.xcprivacy`) declares
 | `calendarFullAccess`, `calendarWriteOnly`, `reminders` | supported, with the full-access and write-only prompts |
 | `bluetooth` | supported, with the service status |
 | `criticalAlerts` | supported; needs the Critical Alerts entitlement (`com.apple.developer.usernotifications.critical-alerts`), which Apple grants on request |
-| `assistant` | Siri, supported; needs the Siri capability (`com.apple.developer.siri`) and `NSSiriUsageDescription`. watchOS ends an app without the capability that asks about Siri, so the key is the opt-in the iOS implementation's build macro is: without it the status is `denied` and Siri is never asked |
+| `assistant` | Siri, supported for an app that opts in: watchOS ends an app without the Siri capability (`com.apple.developer.siri`) that asks about Siri, so the iOS implementation's build macro is an Info.plist key here, `PermissionHandlerWatchosSiri` set to `YES`, which only an app with the capability sets, with `NSSiriUsageDescription`. Without it the status is `denied`, a request too, and Siri is never asked |
 | `storage` | granted, as on iOS: the app's own container needs no permission |
 
 `shouldShowRequestPermissionRationale` is false, as on iOS. The statuses and

@@ -9,7 +9,7 @@
 | Host unit tests (`flutter test`) | ✅ 8 pass |
 | Upstream integration test | ○ none upstream (Baseflow's example is a manual demo) |
 | watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ 5 pass on the watchOS 27.0 Simulator |
-| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → denied, then allowed → granted; always kept at "while using" → permanentlyDenied |
+| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. In upstream's example: calendar (full access) allowed → granted |
 | Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
 | App Store Connect upload | not yet done: whether ITMS-90683 reads the class names of groups an app does not use is unchecked (see "Design") |
 | Physical watch | not yet checked |
@@ -59,8 +59,12 @@ prompt at a time.
 A location prompt closed without an answer, with the crown, sends no
 delegate call on watchOS, not even the second "not determined" report the
 iOS implementation takes as that (seen on the watchOS 27.0 Simulator). The
-app becoming active again answers then: with the status at that moment, or,
-if it is still "not determined" a second later, denied.
+app becoming active again answers then, if it resigned active since the
+request (the prompt taking the screen does that): with the status at that
+moment, or, if it is still "not determined" a second later, denied. An
+answer from the delegate in that second stands the re-read down, so a
+request made right after, such as "always" after "when in use", is not
+answered by it.
 
 An "always" location request kept at "while using" changes nothing, so
 CoreLocation sends no delegate call. As in the iOS implementation, the app
@@ -80,7 +84,7 @@ watchOS would not show again.
 | `calendarFullAccess`, `calendarWriteOnly`, `calendar`, `reminders` | ✅ EKEventStore, with the full-access and write-only requests |
 | `bluetooth` | ✅ CBCentralManager: creating it asks, its first state update answers; service status is whether it is powered on |
 | `criticalAlerts` | ✅ UNUserNotificationCenter's critical alert setting and request; needs the Critical Alerts entitlement |
-| `assistant` | ✅ INPreferences (watchOS 6+), Siri; needs the Siri capability. INPreferences throws in an app without it (seen on the Simulator), so `NSSiriUsageDescription` is the opt-in, in place of the iOS implementation's `PERMISSION_ASSISTANT` macro: without the key the status is `denied` and a request fails with `MISSING_USAGE_DESCRIPTION` |
+| `assistant` | ◐ INPreferences (watchOS 6+), Siri, for an app that opts in; needs the Siri capability. INPreferences throws in an app without it (seen on the Simulator), so the Info.plist key `PermissionHandlerWatchosSiri` (`YES`) is the opt-in, in place of the iOS implementation's `PERMISSION_ASSISTANT` macro; `NSSiriUsageDescription`, which apps add with every other group's, does not switch it on. Without the opt-in the status is `denied` and so is a request; with it and no `NSSiriUsageDescription`, a request fails with `MISSING_USAGE_DESCRIPTION`. A per-app compile-time opt-in is #19 |
 | `storage` | ✅ granted, service not applicable, as on iOS |
 | `camera`, `photos`, `photosAddOnly`, `mediaLibrary`, `speech`, `appTrackingTransparency`, `backgroundRefresh`, `phone` | ✗ not on watchOS: `denied`, a request `permanentlyDenied`, service `disabled`, as iOS answers for an unknown permission |
 | The Android-only permissions | answered as an unknown permission, as on iOS |
@@ -97,11 +101,19 @@ watchOS would not show again.
 
 ## Example
 
-permission_handler's own example is a phone app built on
-`baseflow_plugin_template`, whose `url_launcher` links do not run on the watch,
-so `example/lib/main.dart` is a small watch demo instead: every permission
-watchOS has, with its status, asked for on a tap. The example's Info.plist has
-the usage description of each.
+`example/lib/main.dart` is permission_handler_apple 9.6.3's own example,
+unchanged: a phone app on `baseflow_plugin_template` that lists every
+permission, shows its status and asks for it on a tap. It runs on the watch,
+cramped but usable (on the watchOS 27.0 Simulator a calendar request from it
+prompted and answered granted). The example's pubspec adds what it imports,
+`baseflow_plugin_template` and `permission_handler_platform_interface`, and
+`url_launcher_watchos` for the template's links, which call url_launcher only
+when tapped; `res/images/` is upstream's. On the Simulator the template's
+info page opened, but its link buttons sit below a scroll area too small to
+reach there, so the links were not tapped. The Info.plist has the usage
+description of each permission. Upstream has no integration test, so
+`integration_test/permission_handler_test.dart` is this package's own; it
+imports only `permission_handler`.
 
 Generated by `flutter-watchos plugin port` on 2026-10-21.
 

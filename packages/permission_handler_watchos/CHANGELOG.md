@@ -7,7 +7,8 @@ physical watch.
   dart:ffi: status, service status and requests for location (when in use
   and always), notifications, critical alerts, sensors, the microphone,
   contacts, the calendar (full access and write only), reminders, Bluetooth
-  and Siri (`assistant`), with the iOS implementation's statuses and error
+  and Siri (`assistant`, for an app that sets `PermissionHandlerWatchosSiri`
+  in its Info.plist), with the iOS implementation's statuses and error
   codes. `storage` is granted, as on iOS.
 * Each framework but UserNotifications is loaded at runtime instead of
   linked. Every group's class names and selectors are still in the binary,
@@ -23,6 +24,6 @@ physical watch.
   on iOS. A location prompt closed without an answer answers denied, as on
   iOS; watchOS sends no delegate call then, so the app becoming active
   again is the answer.
-* The example's `lib/` is a watch demo of every permission watchOS has,
-  because the upstream example needs `url_launcher`; a watchOS integration
-  test checks the answers that need no prompt.
+* The example's `lib/` is permission_handler_apple's own example,
+  unchanged, with `url_launcher_watchos` for its template's links; a
+  watchOS integration test checks the answers that need no prompt.

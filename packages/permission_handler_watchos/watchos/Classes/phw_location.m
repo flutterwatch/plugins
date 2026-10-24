@@ -48,6 +48,12 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     NSMutableArray<PHWStatusHandler>* _waiting;
     PHWPermission _asked;
     id _activeObserver;
+    id _resignObserver;
+    // Whether the app resigned active since the request: the prompt taking
+    // the screen does that, and only a return after it is an answer.
+    BOOL _resigned;
+    // Goes up with every answer, so a re-read armed before one stands down.
+    NSUInteger _answers;
 }
 
 - (CLLocationManager*)manager {
@@ -142,31 +148,46 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
 }
 
 // Answers the waiting requests when the app becomes active again after the
-// prompt, with what the status is then. An answer the wearer gave reaches
-// the delegate too, maybe just after: a status still "not determined" is
-// read again a moment later before it counts as a prompt closed unanswered.
+// prompt took the screen (it resigned active first), with what the status is
+// then. An answer the wearer gave reaches the delegate too, maybe just after:
+// a status still "not determined" is read again a moment later before it
+// counts as a prompt closed unanswered, unless the delegate answered in
+// between.
 - (void)observeActive {
     if (_activeObserver != nil) {
         return;
     }
+    _resigned = NO;
     __weak PHWLocationStrategy* weakSelf = self;
-    _activeObserver = [[NSNotificationCenter defaultCenter]
-        addObserverForName:WKApplicationDidBecomeActiveNotification
-                    object:nil
-                     queue:[NSOperationQueue mainQueue]
-                usingBlock:^(NSNotification* note) {
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    _resignObserver = [center addObserverForName:WKApplicationWillResignActiveNotification
+                                          object:nil
+                                           queue:[NSOperationQueue mainQueue]
+                                      usingBlock:^(NSNotification* note) {
         PHWLocationStrategy* strongSelf = weakSelf;
-        if (strongSelf == nil) {
+        if (strongSelf != nil) {
+            strongSelf->_resigned = YES;
+        }
+    }];
+    _activeObserver = [center addObserverForName:WKApplicationDidBecomeActiveNotification
+                                          object:nil
+                                           queue:[NSOperationQueue mainQueue]
+                                      usingBlock:^(NSNotification* note) {
+        PHWLocationStrategy* strongSelf = weakSelf;
+        if (strongSelf == nil || !strongSelf->_resigned) {
             return;
         }
         if (strongSelf->_manager.authorizationStatus != kCLAuthorizationStatusNotDetermined) {
             [strongSelf answer:strongSelf->_manager.authorizationStatus];
             return;
         }
+        NSUInteger answers = strongSelf->_answers;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kUnansweredDelay * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
             PHWLocationStrategy* later = weakSelf;
-            if (later != nil) {
+            // An answer since, from the delegate, stands this re-read down:
+            // a request made after it is not answered by it.
+            if (later != nil && later->_answers == answers) {
                 [later answer:later->_manager.authorizationStatus];
             }
         });
@@ -177,9 +198,14 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     if (_waiting.count == 0) {
         return;
     }
+    _answers++;
     if (_activeObserver != nil) {
         [[NSNotificationCenter defaultCenter] removeObserver:_activeObserver];
         _activeObserver = nil;
+    }
+    if (_resignObserver != nil) {
+        [[NSNotificationCenter defaultCenter] removeObserver:_resignObserver];
+        _resignObserver = nil;
     }
     NSArray<PHWStatusHandler>* waiting = [_waiting copy];
     [_waiting removeAllObjects];
