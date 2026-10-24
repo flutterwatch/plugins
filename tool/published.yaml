@@ -47,8 +47,8 @@ packages:
     version: 0.2.1
     commit: 0d192268b0cab4fc46d02cd97a282409c40adbc3
   geolocator_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.0
+    commit: 09cb1b374e75e6ccffc7a1d1beb384223ba62333
   in_app_purchase_watchos:
     version: 0.1.2
     commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
