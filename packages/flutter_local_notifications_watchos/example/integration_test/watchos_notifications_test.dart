@@ -54,6 +54,30 @@ void main() {
     expect(details.notificationResponse, isNull);
   });
 
+  testWidgets('show completes without permission', (WidgetTester _) async {
+    // watchOS 27 reports a missing permission as a UNErrorDomain error from
+    // adding the request, which upstream 22.3.2 ignores; so does this
+    // package. Runs on an unattended run, where nothing was allowed.
+    final NotificationsEnabledOptions? options = await plugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()!
+        .checkPermissions();
+    if (options!.isEnabled) {
+      // Allowed on an earlier run that kept the install: nothing to check.
+      markTestSkipped('notifications are allowed, so none is refused');
+      return;
+    }
+    // With iOS details but no attachments, whose null once ended the app.
+    await plugin.show(
+      id: 1003,
+      title: 'Lap 2',
+      body: '5:31 /km',
+      notificationDetails: const NotificationDetails(
+        iOS: DarwinNotificationDetails(subtitle: 'Run'),
+      ),
+    );
+  }, skip: _prompt);
+
   testWidgets('checkPermissions reports the alerts the app was allowed',
       (WidgetTester _) async {
     final NotificationsEnabledOptions? options = await plugin

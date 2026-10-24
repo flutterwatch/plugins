@@ -162,13 +162,11 @@ static void _requestAuthorization(int64_t request, UNAuthorizationOptions option
         _finish(request, @{@"granted" : @NO});
         return;
     }
+    // As upstream, an error is not reported: the answer is whether it was
+    // granted.
     [[UNUserNotificationCenter currentNotificationCenter]
         requestAuthorizationWithOptions:options
                       completionHandler:^(BOOL granted, NSError* error) {
-        if (error != nil) {
-            _fail(request, @"permission", error);
-            return;
-        }
         _finish(request, @{@"granted" : @(granted)});
     }];
 }
@@ -281,7 +279,8 @@ __attribute__((constructor)) static void _observe(void) {
 
 static UNNotificationCategory* _category(NSDictionary* json) {
     NSMutableArray<UNNotificationAction*>* actions = [NSMutableArray array];
-    for (NSDictionary* action in json[@"actions"]) {
+    id actionList = json[@"actions"];
+    for (NSDictionary* action in [actionList isKindOfClass:[NSArray class]] ? actionList : @[]) {
         if (![action isKindOfClass:[NSDictionary class]]) {
             continue;
         }
@@ -409,7 +408,10 @@ static UNMutableNotificationContent* _content(NSDictionary* json, NSError** erro
         }
     }
     NSMutableArray<UNNotificationAttachment*>* attachments = [NSMutableArray array];
-    for (NSDictionary* item in details[@"attachments"]) {
+    // Details without attachments send null, which JSON makes NSNull: only a
+    // list is walked.
+    id items = details[@"attachments"];
+    for (NSDictionary* item in [items isKindOfClass:[NSArray class]] ? items : @[]) {
         if (![item isKindOfClass:[NSDictionary class]] ||
             ![item[@"filePath"] isKindOfClass:[NSString class]]) {
             continue;
@@ -476,7 +478,9 @@ int64_t flutter_local_notifications_watchos_initialize(const char* json) {
     NSMutableSet<UNNotificationCategory*>* categories = [NSMutableSet set];
     NSMutableDictionary<NSString*, NSArray<NSString*>*>* foreground =
         [NSMutableDictionary dictionary];
-    for (NSDictionary* category in settings[@"categories"]) {
+    id categoryList = settings[@"categories"];
+    for (NSDictionary* category in
+         [categoryList isKindOfClass:[NSArray class]] ? categoryList : @[]) {
         if ([category isKindOfClass:[NSDictionary class]] &&
             [category[@"identifier"] isKindOfClass:[NSString class]]) {
             UNNotificationCategory* built = _category(category);

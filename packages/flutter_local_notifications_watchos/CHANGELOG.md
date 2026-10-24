@@ -27,6 +27,13 @@ physical watch.
 * `providesAppNotificationSettings` is asked for and reported;
   `criticalSoundVolume` plays the default critical sound at that volume.
 * LICENSE carries Michael Bui's notice, as upstream's does.
+* `DarwinNotificationDetails` without attachments no longer ends the app:
+  their null reached native as NSNull, which it walked as a list.
+* As upstream, an error from asking for permission is not reported; the
+  answer is whether it was granted.
+* The example's "With actions" buttons schedule a notification with an
+  action that opens the app, a background action, and a reported
+  dismissal, or one without it.
 * The example's `lib/` is a small watch demo, because the upstream example
   needs `flutter_timezone`; its official integration test is upstream's,
   unchanged.

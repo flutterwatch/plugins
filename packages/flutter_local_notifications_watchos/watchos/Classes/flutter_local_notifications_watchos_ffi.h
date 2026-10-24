@@ -42,24 +42,32 @@ void flutter_local_notifications_watchos_set_callback(flnw_signal_callback callb
 // "actions": [{"identifier", "title", "options"}], "options"}],
 // "defaults": {"presentAlert", "presentSound", "presentBadge",
 // "presentBanner", "presentList"}, "request": {"alert", "sound", "badge",
-// "provisional", "critical"}}. Result: {"granted": <bool>}.
+// "provisional", "critical", "providesAppNotificationSettings"}}.
+// Result: {"granted": <bool>}; false, without asking, when none of alert,
+// sound, badge, critical and providesAppNotificationSettings is asked for.
 FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_initialize(const char* json);
 
-// `json` is {"alert", "sound", "badge", "provisional", "critical"}.
-// Result: {"granted": <bool>}.
+// `json` is {"alert", "sound", "badge", "provisional", "critical",
+// "providesAppNotificationSettings"}. Result: {"granted": <bool>}, as for
+// initialize; an error from the system is not reported, as upstream.
 FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_request_permissions(const char* json);
 
 // Result: {"isEnabled", "isAlertEnabled", "isSoundEnabled",
-// "isBadgeEnabled", "isProvisionalEnabled", "isCriticalEnabled"}.
+// "isBadgeEnabled", "isProvisionalEnabled", "isCriticalEnabled",
+// "isProvidesAppNotificationSettingsEnabled"}. "isEnabled" is full
+// authorization only; provisional is "isProvisionalEnabled".
 FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_check_permissions(void);
 
 // Adds a notification request. `json` is {"id", "title", "body", "payload",
 // "details": {...DarwinNotificationDetails...}, "trigger": {"type": "now"} |
 // {"type": "calendar", "epochMs", "timeZone", "match"} | {"type":
-// "interval", "seconds", "repeats"}}. Result: {}.
+// "interval", "seconds", "repeats"}}. Of the details, "dismissIsolate" (an
+// index) asks for the dismissal to be reported. Result: {}; an error in
+// UNErrorDomain, which watchOS 27 gives for a missing permission, is not
+// reported, as upstream.
 FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_add(const char* json);
 
@@ -82,14 +90,20 @@ FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_active(void);
 
 // {"launched": <bool>, "response": {"id", "actionId", "payload", "type"} or
-// null}: the tap that launched the app, if it arrived before this was first
-// asked and before `initialize`. A tap after that queues for the response
-// callback instead, so it is never lost.
+// null}: what launched the app, a tap on the notification or on an action
+// that opens the app, if it arrived before this was first asked and before
+// `initialize`. A background action or a dismissal is never the launch. A
+// launch response after that queues for the response callback instead, so
+// it is never lost; on the Simulator an action that opens the app arrived
+// that way, about 0.2 s after this was read.
 FLNW_EXPORT
 char* flutter_local_notifications_watchos_launch_details(void);
 
-// Drains the queued taps (all but the launch tap), as a JSON array of {"id",
-// "actionId", "payload", "type"}; NULL when none are queued.
+// Drains the queued responses (all but the launch), as a JSON array of
+// {"id", "actionId", "payload", "type"}; NULL when none are queued. They are
+// taps and actions, background ones included, and the dismissals of
+// notifications that set dismissIsolate; one for the main isolate that came
+// in before `initialize` is dropped, as upstream drops it.
 FLNW_EXPORT
 char* flutter_local_notifications_watchos_poll_responses(void);
 

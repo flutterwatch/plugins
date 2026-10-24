@@ -6,6 +6,11 @@
 // flutter_timezone, which has no watchOS implementation, so this
 // watch-sized demo stands in for it. The official integration test in
 // integration_test/ is upstream's, unchanged.
+//
+// "With actions" schedules a notification of the `lap` category: "Resume"
+// opens the app, "Skip" does not, and the category reports dismissals. The
+// status line shows the last response, so a run on the watch can check what
+// each reaches.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,6 +19,21 @@ import 'package:timezone/timezone.dart' as tz;
 
 final FlutterLocalNotificationsPlugin _notifications =
     FlutterLocalNotificationsPlugin();
+
+/// The category of the notifications "With actions" schedules.
+const String _lapCategory = 'lap';
+
+/// One line for [r]: what kind of response, its action, its id and payload.
+String _describe(NotificationResponse r) => <String>[
+      switch (r.notificationResponseType) {
+        NotificationResponseType.selectedNotification => 'tapped',
+        NotificationResponseType.selectedNotificationAction =>
+          'action ${r.actionId}',
+        NotificationResponseType.notificationDismissed => 'dismissed',
+      },
+      '#${r.id}',
+      if (r.payload != null && r.payload!.isNotEmpty) r.payload!,
+    ].join(' ');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,17 +77,34 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final NotificationAppLaunchDetails? launch =
         await _notifications.getNotificationAppLaunchDetails();
     final bool? granted = await _notifications.initialize(
-      settings: const InitializationSettings(
-        iOS: DarwinInitializationSettings(),
+      settings: InitializationSettings(
+        iOS: DarwinInitializationSettings(
+          notificationCategories: <DarwinNotificationCategory>[
+            DarwinNotificationCategory(
+              _lapCategory,
+              actions: <DarwinNotificationAction>[
+                DarwinNotificationAction.plain('resume', 'Resume',
+                    options: <DarwinNotificationActionOption>{
+                      DarwinNotificationActionOption.foreground,
+                    }),
+                DarwinNotificationAction.plain('skip', 'Skip'),
+              ],
+              options: <DarwinNotificationCategoryOption>{
+                DarwinNotificationCategoryOption.customDismissAction,
+              },
+            ),
+          ],
+        ),
       ),
       onDidReceiveNotificationResponse: (NotificationResponse r) {
-        setState(() => _status = 'tapped #${r.id} ${r.payload ?? ''}');
+        setState(() => _status = _describe(r));
       },
     );
     setState(() {
-      if (launch?.didNotificationLaunchApp == true) {
-        _status = 'launched by #${launch!.notificationResponse?.id}';
-      } else if (!_status.startsWith('tapped')) {
+      final NotificationResponse? launched = launch?.notificationResponse;
+      if (launch?.didNotificationLaunchApp == true && launched != null) {
+        _status = 'launched: ${_describe(launched)}';
+      } else if (_status == 'starting') {
         // A launch tap that came in after the launch details were read
         // arrived as a response; keep it on screen.
         _status = granted == true ? 'allowed' : 'not allowed';
@@ -102,6 +139,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _status = 'scheduled #$id, $pending pending');
   }
 
+  /// Schedules a `lap` notification ten seconds out; [reportDismissal]
+  /// sets `dismissIsolate`, without which a dismissal is not reported.
+  Future<void> _scheduleWithActions({required bool reportDismissal}) async {
+    final int id = _next++;
+    await _notifications.zonedSchedule(
+      id: id,
+      title: 'Lap ${id + 1}',
+      body: reportDismissal ? 'Resume, skip or dismiss' : 'Resume or skip',
+      scheduledDate: tz.TZDateTime.now(tz.UTC).add(const Duration(seconds: 10)),
+      notificationDetails: NotificationDetails(
+        iOS: DarwinNotificationDetails(
+          categoryIdentifier: _lapCategory,
+          dismissIsolate:
+              reportDismissal ? NotificationDismissedIsolate.main : null,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexact,
+      payload: 'lap-$id',
+    );
+    setState(() => _status = 'scheduled #$id with actions');
+  }
+
   Future<void> _cancelAll() async {
     await _notifications.cancelAll();
     setState(() => _status = 'cancelled');
@@ -118,6 +177,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
             FilledButton(onPressed: _show, child: const Text('Show now')),
             FilledButton.tonal(
                 onPressed: _schedule, child: const Text('In 10 seconds')),
+            FilledButton.tonal(
+                onPressed: () => _scheduleWithActions(reportDismissal: true),
+                child: const Text('With actions')),
+            FilledButton.tonal(
+                onPressed: () => _scheduleWithActions(reportDismissal: false),
+                child: const Text('Actions, no dismissal')),
             TextButton(onPressed: _cancelAll, child: const Text('Cancel all')),
           ],
         ),

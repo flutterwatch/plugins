@@ -49,7 +49,7 @@ missing.
 | `periodicallyShow` / `periodicallyShowWithDuration` | supported: a repeating interval trigger |
 | `cancel` / `cancelAll` / `cancelAllPendingNotifications` | supported |
 | `pendingNotificationRequests` / `getActiveNotifications` | supported, for this package's notifications |
-| `getNotificationAppLaunchDetails` | supported: the tap that launched the app. A launch tap that comes in only after this was asked is not lost: it reaches `onDidReceiveNotificationResponse` once `initialize` has run |
+| `getNotificationAppLaunchDetails` | supported: the tap that launched the app. A launch response that comes in only after this was asked is not lost: it reaches `onDidReceiveNotificationResponse` once `initialize` has run. On the Simulator a tap on the notification arrived in time, an action that opens the app did not, so read both |
 | `onDidReceiveNotificationResponse` | taps and action taps, with the notification's id and payload; background actions too, since the watch app has no background isolate, and dismissals of notifications whose details set `dismissIsolate`. A banner shown while the app is in front closes when tapped and sends no response: watchOS does not report that tap |
 
 Of `DarwinNotificationDetails`, these reach the notification: the
