@@ -49,6 +49,10 @@ class PathProviderWatchosBindings {
       .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
           'path_provider_watchos_cache_path');
 
+  late final Pointer<Utf8> Function() _downloadsPath = _lib!
+      .lookupFunction<Pointer<Utf8> Function(), Pointer<Utf8> Function()>(
+          'path_provider_watchos_downloads_path');
+
   String? _string(Pointer<Utf8> Function() f) {
     final Pointer<Utf8> p = f();
     // Native pointers are cached per-process and owned by the plugin — never
@@ -70,6 +74,9 @@ class PathProviderWatchosBindings {
 
   /// `NSCachesDirectory`.
   String? get cachePath => _string(_cachePath);
+
+  /// `NSDownloadsDirectory`, as iOS path_provider reports it; not created.
+  String? get downloadsPath => _string(_downloadsPath);
 }
 
 /// watchOS implementation of [PathProviderPlatform].
@@ -104,7 +111,28 @@ base class PathProviderWatchos extends PathProviderPlatform {
   @override
   Future<String?> getApplicationCachePath() async => _b.cachePath;
 
-  // The remaining interface methods (external storage, downloads) describe
-  // directories that do not exist on watchOS; the base class's
-  // UnimplementedError defaults are the correct behaviour.
+  @override
+  Future<String?> getDownloadsPath() async => _b.downloadsPath;
+
+  // External storage is an Android concept. As on iOS (path_provider_foundation),
+  // these getters throw UnsupportedError.
+
+  @override
+  Future<String?> getExternalStoragePath() async {
+    throw UnsupportedError(
+        'getExternalStoragePath is not supported on watchOS');
+  }
+
+  @override
+  Future<List<String>?> getExternalCachePaths() async {
+    throw UnsupportedError('getExternalCachePaths is not supported on watchOS');
+  }
+
+  @override
+  Future<List<String>?> getExternalStoragePaths({
+    StorageDirectory? type,
+  }) async {
+    throw UnsupportedError(
+        'getExternalStoragePaths is not supported on watchOS');
+  }
 }

@@ -12,6 +12,11 @@ dependencies:
   geolocator: ^14.1.1
   geolocator_watchos:
     path: ../
+  # Upstream's example is built on the Baseflow template.
+  baseflow_plugin_template: ^2.1.2
+  # The template's links open with url_launcher; this lets them open on the
+  # watch (a listed deviation, see the README).
+  url_launcher_watchos: ^0.1.1
 
 dev_dependencies:
   flutter_test:

@@ -1,85 +1,250 @@
-// Copyright 2026 The FlutterWatch Authors. All rights reserved.
+// Copyright 2013 The Flutter Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// ignore_for_file: public_member_api_docs
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-void main() => runApp(const ExampleApp());
-
-/// Exercises each class of URL watchOS can act on, and one it cannot.
-class ExampleApp extends StatefulWidget {
-  const ExampleApp({super.key});
-
-  @override
-  State<ExampleApp> createState() => _ExampleAppState();
+void main() {
+  runApp(const MyApp());
 }
 
-class _ExampleAppState extends State<ExampleApp> {
-  String _status = 'Pick a URL';
-
-  Future<void> _open(String url,
-      {LaunchMode mode = LaunchMode.platformDefault}) async {
-    final Uri uri = Uri.parse(url);
-    if (!await canLaunchUrl(uri)) {
-      setState(() => _status = 'unsupported: ${uri.scheme}:');
-      return;
-    }
-    final bool ok = await launchUrl(uri, mode: mode);
-    if (!mounted) {
-      return;
-    }
-    // "Handed to the system", not "the user followed it": watchOS reports no
-    // completion for any of these.
-    setState(() => _status = ok ? 'handed to system' : 'refused');
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(8),
-            children: <Widget>[
-              Text(_status, textAlign: TextAlign.center),
-              const SizedBox(height: 8),
-              _Button(
-                label: 'https (on watch)',
-                onTap: () => _open('https://example.com'),
-              ),
-              _Button(
-                label: 'https (→ iPhone)',
-                onTap: () => _open(
-                  'https://example.com',
-                  mode: LaunchMode.externalApplication,
-                ),
-              ),
-              _Button(label: 'tel', onTap: () => _open('tel:+15551234567')),
-              _Button(label: 'sms', onTap: () => _open('sms:+15551234567')),
-              _Button(
-                label: 'mailto (unsupported)',
-                onTap: () => _open('mailto:hello@example.com'),
-              ),
-            ],
-          ),
-        ),
-      ),
+      title: 'URL Launcher',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const MyHomePage(title: 'URL Launcher'),
     );
   }
 }
 
-class _Button extends StatelessWidget {
-  const _Button({required this.label, required this.onTap});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+  final String title;
 
-  final String label;
-  final VoidCallback onTap;
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  bool _hasCallSupport = false;
+  Future<void>? _launched;
+  String _phone = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for phone call support.
+    canLaunchUrl(Uri(scheme: 'tel', path: '123')).then((bool result) {
+      setState(() {
+        _hasCallSupport = result;
+      });
+    });
+  }
+
+  Future<void> _launchInBrowser(Uri url) async {
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchInBrowserView(Uri url) async {
+    if (!await launchUrl(url, mode: LaunchMode.inAppBrowserView)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchInWebView(Uri url) async {
+    if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchInAppWithBrowserOptions(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.inAppBrowserView,
+      browserConfiguration: const BrowserConfiguration(showTitle: true),
+    )) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchAsInAppWebViewWithCustomHeaders(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.inAppWebView,
+      webViewConfiguration: const WebViewConfiguration(
+        headers: <String, String>{'my_header_key': 'my_header_value'},
+      ),
+    )) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchInWebViewWithoutJavaScript(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.inAppWebView,
+      webViewConfiguration: const WebViewConfiguration(enableJavaScript: false),
+    )) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchInWebViewWithoutDomStorage(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.inAppWebView,
+      webViewConfiguration: const WebViewConfiguration(enableDomStorage: false),
+    )) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _launchUniversalLinkIOS(Uri url) async {
+    final bool nativeAppLaunchSucceeded = await launchUrl(
+      url,
+      mode: LaunchMode.externalNonBrowserApplication,
+    );
+    if (!nativeAppLaunchSucceeded) {
+      await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+    }
+  }
+
+  Widget _launchStatus(BuildContext context, AsyncSnapshot<void> snapshot) {
+    if (snapshot.hasError) {
+      return Text('Error: ${snapshot.error}');
+    } else {
+      return const Text('');
+    }
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    await launchUrl(launchUri);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: ElevatedButton(onPressed: onTap, child: Text(label)),
+    // onPressed calls using this URL are not gated on a 'canLaunch' check
+    // because the assumption is that every device can launch a web URL.
+    final toLaunch =
+        Uri(scheme: 'https', host: 'www.cylog.org', path: 'headers/');
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: ListView(
+        children: <Widget>[
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  onChanged: (String text) => _phone = text,
+                  decoration: const InputDecoration(
+                      hintText: 'Input the phone number to launch'),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _hasCallSupport
+                    ? () => setState(() {
+                          _launched = _makePhoneCall(_phone);
+                        })
+                    : null,
+                child: _hasCallSupport
+                    ? const Text('Make phone call')
+                    : const Text('Calling not supported'),
+              ),
+              Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(toLaunch.toString())),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInBrowser(toLaunch);
+                }),
+                child: const Text('Launch in browser'),
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInBrowserView(toLaunch);
+                }),
+                child: const Text('Launch in app'),
+              ),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchAsInAppWebViewWithCustomHeaders(toLaunch);
+                }),
+                child: const Text('Launch in app (Custom Headers)'),
+              ),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInWebViewWithoutJavaScript(toLaunch);
+                }),
+                child: const Text('Launch in app (JavaScript OFF)'),
+              ),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInWebViewWithoutDomStorage(toLaunch);
+                }),
+                child: const Text('Launch in app (DOM storage OFF)'),
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchUniversalLinkIOS(toLaunch);
+                }),
+                child: const Text(
+                  'Launch a universal link in a native app, fallback to Safari.(Youtube)',
+                ),
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInWebView(toLaunch);
+                  Timer(const Duration(seconds: 5), () {
+                    closeInAppWebView();
+                  });
+                }),
+                child: const Text('Launch in app + close after 5 seconds'),
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _launched = _launchInAppWithBrowserOptions(toLaunch);
+                }),
+                child: const Text('Launch in app with title displayed'),
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              Link(
+                uri: Uri.parse(
+                  'https://pub.dev/documentation/url_launcher/latest/link/link-library.html',
+                ),
+                target: LinkTarget.blank,
+                builder: (BuildContext ctx, FollowLink? openLink) {
+                  return TextButton.icon(
+                    onPressed: openLink,
+                    label: const Text('Link Widget documentation'),
+                    icon: const Icon(Icons.read_more),
+                  );
+                },
+              ),
+              const Padding(padding: EdgeInsets.all(16.0)),
+              FutureBuilder<void>(future: _launched, builder: _launchStatus),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

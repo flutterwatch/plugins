@@ -165,7 +165,11 @@ A few packages need a writable directory and therefore also
 Each ported package ships the **upstream plugin's own example** (its demo
 `lib/` and, where upstream has one, its official `integration_test/`), ported
 by `flutter-watchos plugin port --include-example` with a watchOS runner on
-top, plus host-side unit tests. The example imports only the app-facing
+top, plus host-side unit tests. The example differs from upstream's only by
+the watch deviations that the package's README and `PORTING_REPORT.md` list.
+Where upstream's example cannot launch on the watch, the package ships a
+small watch demo instead, and its `PORTING_REPORT.md` says why
+([`AUTHORING.md`](AUTHORING.md) §3). The example imports only the app-facing
 plugin, and the `*_watchos` implementation registers itself through
 federation. The four Firebase packages add a smoke test, because their
 upstream examples have none. To run an integration test on the Simulator:
@@ -290,7 +294,7 @@ plugins/
 │   ├── watchos/Classes/          # native FFI (Objective-C, exported C symbols)
 │   ├── watchos/Views/            # native SwiftUI platform views (optional)
 │   ├── watchos/Package.swift     # SwiftPM manifest
-│   ├── example/                  # upstream example + integration_test, verbatim
+│   ├── example/                  # upstream example + integration_test (AUTHORING.md §3)
 │   ├── test/                     # host-side unit tests (FFI bindings faked)
 │   ├── PORTING_REPORT.md         # port detail + verification-status table
 │   ├── README.md  CHANGELOG.md  LICENSE

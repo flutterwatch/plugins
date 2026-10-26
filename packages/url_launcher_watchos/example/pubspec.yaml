@@ -12,6 +12,8 @@ dependencies:
   url_launcher: ^6.3.2
   url_launcher_watchos:
     path: ../
+  # Upstream's example imports it (lib/files.dart).
+  path: ^1.8.0
 
 dev_dependencies:
   flutter_test:

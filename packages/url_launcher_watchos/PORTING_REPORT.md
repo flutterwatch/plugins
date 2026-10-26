@@ -9,8 +9,8 @@
 | Host unit tests (`flutter-watchos test`) | ✅ pass (10) |
 | Native compile (`arm64-apple-watchos7.0-simulator`, `-Wall -Wextra`) | ✅ clean, all 3 symbols exported |
 | CLI integration | ✅ `url_launcher` drops off the "no watchOS implementation" warning in a real app |
-| Upstream integration test | ✗ not reused — upstream asserts an in-app `SFSafariViewController`/webview surface that cannot exist on watchOS |
-| Own integration test (Simulator, real FFI) | ✅ pass (5) — symbols resolve via `DynamicLibrary.process()` and `url_launcher` federates to this implementation |
+| Upstream integration test | ✅ passes verbatim on the watchOS 27.0 Simulator (`url_launcher`'s `url_launcher_test.dart`, 2026-10-24) |
+| watchOS integration test (`watchos_url_launcher_test.dart`, Simulator, real FFI) | ✅ pass (6) — symbols resolve via `DynamicLibrary.process()` and `url_launcher` federates to this implementation |
 | On-device (Apple Watch Ultra 3, watchOS 26.5, release AOT) | ✅ `tel:` and `sms:` confirmed by hand — both raise the system call / compose UI on the watch. Web path confirmed too: the system sheet appears and reports the link can be viewed on the iPhone |
 | On-device Handoff pickup on the phone | ✅ confirmed — the Handoff icon appears in the paired iPhone's app switcher and opens the page |
 
@@ -28,6 +28,14 @@ note independently prescribes the mechanism used here: "watchOS only supports
 scaffold's shape (package name, `dartPluginClass: UrlLauncherWatchos`,
 `ffiPlugin: true`, `implements: url_launcher`) matches this package; the
 exported symbols and every method body are the human half it leaves behind.
+
+## Example
+
+`url_launcher`'s own example app and its official integration test, ported
+unchanged with `flutter-watchos plugin port --include-example`. There are no
+watchOS deviations. The official test checks `canLaunchUrl` and the legacy
+`canLaunch`. `watchos_url_launcher_test.dart` beside it checks the on-watch
+browser, Handoff and the refused schemes.
 
 ## Status
 

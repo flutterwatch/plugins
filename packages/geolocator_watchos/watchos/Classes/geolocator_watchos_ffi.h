@@ -51,7 +51,8 @@ void geolocator_watchos_start_updates(int accuracy, double distance_filter,
 
 // Starts the single-request manager at `accuracy` (as above), with no
 // distance filter. It skips cached fixes more than 5 seconds old and stops
-// itself after the first fix it accepts.
+// itself after the first fix it accepts. With several requests pending, Dart
+// passes the most accurate accuracy any of them asked for.
 GEOLOCATOR_WATCHOS_EXPORT
 void geolocator_watchos_request_location(int accuracy);
 

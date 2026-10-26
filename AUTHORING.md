@@ -284,11 +284,30 @@ its definition. A release build keeps the app's code in `Runner` itself: run
 stub without Flutter code).
 
 Finally, run the real native code end-to-end on the simulator. Ship the
-**upstream plugin's own example and its official `integration_test` verbatim** —
+**upstream plugin's own example and its official `integration_test`** —
 `flutter-watchos plugin port --include-example` ports both, unmodified, with a
-watchOS runner on top. Do **not** hand-write a substitute test: if an official
-test surfaces a real behavioural gap, fix the **implementation**, not the test.
-Then:
+watchOS runner on top. The example stays upstream's code, except for these
+watch deviations, each listed in the package `README.md` and
+`PORTING_REPORT.md`:
+
+- `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` where the call it
+  guards reaches a plugin with no watchOS implementation.
+- A missing `*_watchos` package is added to the example's pubspec.
+- An upstream comment with a forbidden word is reworded.
+
+If upstream's example cannot launch on the watch even with these deviations
+(for example, its start-up calls a plugin that has no watchOS
+implementation), ship a small watch demo of the app-facing API instead, and
+say why in an `## Example` section of `PORTING_REPORT.md`. The official
+`integration_test` still ships. A limit that only part of the example hits,
+such as a link the watch cannot open, is not a reason: use a deviation, or
+record the limit in the verification table.
+
+The official tests stay verbatim. Do **not** hand-write a substitute test: if
+an official test surfaces a real behavioural gap, fix the **implementation**,
+not the test. A test for behaviour the official ones do not cover goes next
+to them, named `watchos_<topic>_test.dart` so it is not taken for an upstream
+test. Then:
 
 ```sh
 cd example

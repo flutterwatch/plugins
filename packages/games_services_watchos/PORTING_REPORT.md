@@ -7,14 +7,24 @@
 | Implementation | ✅ Working (GameKit FFI) — sign-in and submission; reads unconfirmed on device |
 | watchOS capability | Partial — sign-in, the player stream and leaderboards; no Game Center UI, achievements, saved games or access point |
 | Host unit tests | ✅ pass (FFI bindings faked) |
-| Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours covers registration, FFI linkage, the player stream and how each signed-out call fails, ✅ 7 pass on the watchOS 26.5 Simulator (0.2.0, 12 October 2026) |
-| Unified demo | ✅ example included (`example/`), builds and starts on the watchOS 26.5 Simulator; its widget test (`example/test/watchos_layout_test.dart`, 11 pass) checks the layout on three watch screens in both safe areas |
+| Upstream integration test | ○ none exists upstream — `games_services` ships no `test/` or `integration_test/`; ours, `watchos_games_services_test.dart`, covers registration, FFI linkage, the player stream and how each signed-out call fails, ✅ 7 pass on the watchOS 27.0 Simulator (2026-10-24) |
+| Example | ✅ `games_services`' own example app, unchanged; it starts on the watchOS 27.0 Simulator with no exception in its first 15 seconds and no overflow |
 
 This package is published on pub.dev. The table is deliberately honest:
 sign-in and submission have been observed working on a physical Apple Watch
 Series 10, and reading entries has not. 0.2.0 changes only Dart code: its
 sign-in and submission results and its player stream are checked by the host
 tests and on the Simulator, and have not run on a watch yet.
+
+## Example
+
+`games_services`' own example app, ported unchanged with `flutter-watchos
+plugin port --include-example`. The porter copies `lib/` only, so the
+example's `assets/logo.png` and the `assets:` entry of its pubspec were
+copied from `games_services` 5.3.0 by hand. The example is MIT-licensed
+upstream code; `example/LICENSE` carries that licence. There are no watchOS
+deviations. It replaces a hand-written demo and its layout widget test
+(`AUTHORING.md` §3).
 
 ## What was ported
 

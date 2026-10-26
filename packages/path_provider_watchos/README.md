@@ -34,8 +34,17 @@ These members of `path_provider_platform_interface` 2.1.3 throw or fail on watch
 
 | Member | On watchOS | Why |
 |---|---|---|
-| `getDownloadsPath` | throws `UnimplementedError` | watchOS has no Downloads directory |
-| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | throw `UnimplementedError` | external storage is an Android concept |
+| `getExternalStoragePath` / `getExternalStoragePaths` / `getExternalCachePaths` | throw `UnsupportedError`, as on iOS | external storage is an Android concept |
+
+`getDownloadsPath` returns the app's `NSDownloadsDirectory` path, as on iOS.
+The directory is not created.
+
+## Example
+
+The example is `path_provider`'s own example app, and
+`example/integration_test/path_provider_test.dart` is its official test,
+both unchanged, ported with `flutter-watchos plugin port --include-example`.
+There are no watchOS deviations.
 
 ## License
 

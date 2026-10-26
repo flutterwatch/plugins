@@ -1,0 +1,4 @@
+1
+FAILED
+use of undeclared identifier 'bad_watchos_undeclared'
+Native sources: some do not compile cleanly with
