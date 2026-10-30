@@ -8,9 +8,11 @@ These are companions to [flutter-watchos](https://github.com/flutterwatch/flutte
 implementations of popular pub.dev plugins, produced with the
 `flutter-watchos plugin port` tool and finished/verified by hand.
 
-Every package here is on pub.dev under the
+Packages with a pub badge below are on pub.dev under the
 [`flutterwatch.dev`](https://pub.dev/publishers/flutterwatch.dev/packages)
-publisher (see [Usage](#usage)).
+publisher (see [Usage](#usage)). A package without one is staged at `0.0.x`
+and not published yet (see [AUTHORING.md](AUTHORING.md), "Versioning &
+publishing").
 
 ## How watchOS plugins work
 
@@ -72,6 +74,7 @@ at the time; the last full run on the Simulator is under
 | [`sensors_plus_watchos`](packages/sensors_plus_watchos) [![pub](https://img.shields.io/pub/v/sensors_plus_watchos.svg)](https://pub.dev/packages/sensors_plus_watchos) | [`sensors_plus`](https://pub.dev/packages/sensors_plus) | CoreMotion (`CMMotionManager`) |
 | [`local_auth_watchos`](packages/local_auth_watchos) [![pub](https://img.shields.io/pub/v/local_auth_watchos.svg)](https://pub.dev/packages/local_auth_watchos) | [`local_auth`](https://pub.dev/packages/local_auth) | LocalAuthentication (passcode) |
 | [`geolocator_watchos`](packages/geolocator_watchos) [![pub](https://img.shields.io/pub/v/geolocator_watchos.svg)](https://pub.dev/packages/geolocator_watchos) | [`geolocator`](https://pub.dev/packages/geolocator) | CoreLocation (`CLLocationManager`) |
+| [`sqflite_watchos`](packages/sqflite_watchos) | [`sqflite`](https://pub.dev/packages/sqflite) | The system SQLite (`libsqlite3`), its C API called from Dart |
 | [`video_player_watchos`](packages/video_player_watchos) [![pub](https://img.shields.io/pub/v/video_player_watchos.svg)](https://pub.dev/packages/video_player_watchos) | [`video_player`](https://pub.dev/packages/video_player) | AVFoundation + AVKit platform view |
 | [`audioplayers_watchos`](packages/audioplayers_watchos) [![pub](https://img.shields.io/pub/v/audioplayers_watchos.svg)](https://pub.dev/packages/audioplayers_watchos) | [`audioplayers`](https://pub.dev/packages/audioplayers) | AVFoundation (`AVPlayer`) |
 | [`in_app_purchase_watchos`](packages/in_app_purchase_watchos) [![pub](https://img.shields.io/pub/v/in_app_purchase_watchos.svg)](https://pub.dev/packages/in_app_purchase_watchos) | [`in_app_purchase`](https://pub.dev/packages/in_app_purchase) | StoreKit (`SKProductsRequest`, `SKPaymentQueue`) |
@@ -117,11 +120,11 @@ watch** — plugins built on those are portable, not excluded.
 
 These have a watchOS-viable native backend and are good future additions;
 they are simply out of scope for now (large surface or partial support):
-`sqflite` (SQLite), `flutter_tts` (AVFoundation) and `cloud_firestore`
-(the Firebase Apple SDK ships Firestore's core as a prebuilt binary with no
-watchOS slice, so a port needs Firebase's from-source Firestore build; the
-rest of the network-viable Firebase family — core, auth, storage,
-messaging — is ported above).
+`flutter_tts` (AVFoundation) and `cloud_firestore` (the Firebase Apple SDK
+ships Firestore's core as a prebuilt binary with no watchOS slice, so a
+port needs Firebase's from-source Firestore build; the rest of the
+network-viable Firebase family — core, auth, storage, messaging — is
+ported above).
 
 ## Usage
 
@@ -162,7 +165,11 @@ A few packages need a writable directory and therefore also
 Each ported package ships the **upstream plugin's own example** (its demo
 `lib/` and, where upstream has one, its official `integration_test/`), ported
 by `flutter-watchos plugin port --include-example` with a watchOS runner on
-top, plus host-side unit tests. The example imports only the app-facing
+top, plus host-side unit tests. The example differs from upstream's only by
+the watch deviations that the package's README and `PORTING_REPORT.md` list.
+Where upstream's example cannot launch on the watch, the package ships a
+small watch demo instead, and its `PORTING_REPORT.md` says why
+([`AUTHORING.md`](AUTHORING.md) §3). The example imports only the app-facing
 plugin, and the `*_watchos` implementation registers itself through
 federation. The four Firebase packages add a smoke test, because their
 upstream examples have none. To run an integration test on the Simulator:
@@ -287,7 +294,7 @@ plugins/
 │   ├── watchos/Classes/          # native FFI (Objective-C, exported C symbols)
 │   ├── watchos/Views/            # native SwiftUI platform views (optional)
 │   ├── watchos/Package.swift     # SwiftPM manifest
-│   ├── example/                  # upstream example + integration_test, verbatim
+│   ├── example/                  # upstream example + integration_test (AUTHORING.md §3)
 │   ├── test/                     # host-side unit tests (FFI bindings faked)
 │   ├── PORTING_REPORT.md         # port detail + verification-status table
 │   ├── README.md  CHANGELOG.md  LICENSE

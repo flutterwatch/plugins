@@ -1,6 +1,6 @@
 name: geolocator_watchos
 description: "watchOS implementation of the geolocator plugin, providing position and permission handling from CoreLocation (CLLocationManager) via dart:ffi."
-version: 0.1.1
+version: 0.2.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins/tree/main/packages/geolocator_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues
@@ -28,6 +28,8 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
+  # Only for the host tests, which pass its AppleSettings as an app does.
+  geolocator_apple: ^2.4.2
 
 flutter:
   plugin:
@@ -51,6 +53,11 @@ flutter:
           - geolocator_watchos_request_permission
           - geolocator_watchos_start_updates
           - geolocator_watchos_request_location
+          - geolocator_watchos_stop_location_request
           - geolocator_watchos_read_position
+          - geolocator_watchos_position_count
           - geolocator_watchos_stop_updates
+          - geolocator_watchos_accuracy_authorization
+          - geolocator_watchos_request_temporary_full_accuracy
+          - geolocator_watchos_accuracy_requests_done
           - geolocator_watchos_set_callback

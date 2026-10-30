@@ -2,7 +2,7 @@ name: games_services_watchos
 description: >-
   watchOS implementation of the games_services plugin: Game Center
   leaderboards over GameKit, bridged with dart:ffi.
-version: 0.2.0
+version: 0.2.1
 homepage: https://flutterwatch.dev
 repository: https://github.com/flutterwatch/plugins/tree/main/packages/games_services_watchos
 issue_tracker: https://github.com/flutterwatch/plugins/issues

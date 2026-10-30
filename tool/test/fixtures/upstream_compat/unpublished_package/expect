@@ -1,0 +1,4 @@
+0
+ok   fixture_sqflite_watchos: sqflite 2.4.5 resolves with the package from this repository
+Not published yet (no row in tool/published.yaml), so only the package from this repository was resolved.
+Upstream compatibility: all 1 packages resolve with their latest upstream.

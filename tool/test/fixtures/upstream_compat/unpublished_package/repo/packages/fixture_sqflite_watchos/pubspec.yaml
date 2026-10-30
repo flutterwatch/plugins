@@ -1,0 +1,8 @@
+name: fixture_sqflite_watchos
+version: 0.0.1
+flutter:
+  plugin:
+    implements: sqflite
+    platforms:
+      watchos:
+        ffiPlugin: true

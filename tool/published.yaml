@@ -26,17 +26,17 @@ packages:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
   firebase_auth_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.0
+    commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
   firebase_core_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.1.2
+    commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
   firebase_messaging_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.0
+    commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
   firebase_storage_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.0
+    commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
   flutter_secure_storage_watchos:
     version: 0.1.0
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
@@ -44,14 +44,14 @@ packages:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
   games_services_watchos:
-    version: 0.1.0
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.1
+    commit: 0d192268b0cab4fc46d02cd97a282409c40adbc3
   geolocator_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.2.1
+    commit: c6c1feadc908a72e4b29f7579f70f85e7aa49ec2
   in_app_purchase_watchos:
-    version: 0.1.1
-    commit: f8c97ee74d3738429641c2b5396b941d4825784b
+    version: 0.1.2
+    commit: 07450a2838e541fdd7a316c5f6c43723cb6b5e09
   local_auth_watchos:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
@@ -62,8 +62,8 @@ packages:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
   path_provider_watchos:
-    version: 0.1.0
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.1.1
+    commit: 0d192268b0cab4fc46d02cd97a282409c40adbc3
   sensors_plus_watchos:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
@@ -71,8 +71,8 @@ packages:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
   url_launcher_watchos:
-    version: 0.1.1
-    commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6
+    version: 0.1.2
+    commit: 0d192268b0cab4fc46d02cd97a282409c40adbc3
   video_player_watchos:
     version: 0.1.1
     commit: 40a72726cf8d58641e2e87247ebc87a03d5e41e6

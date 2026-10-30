@@ -1,3 +1,10 @@
+## 0.2.1
+
+* Example: `games_services`' own example app, unchanged, with its logo and
+  its MIT licence (`example/LICENSE`), replaces a hand-written demo and its
+  layout test (`AUTHORING.md` §3). The integration test is now
+  `watchos_games_services_test.dart`.
+
 ## 0.2.0
 
 * Implements `games_services_platform_interface` 5.3.0 (`^5.3.0`, was

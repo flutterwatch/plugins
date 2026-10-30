@@ -1,0 +1,6 @@
+# What pub get prints when it fails, per package and source. The package
+# has no row in published.yaml and pub.dev does not know it, so the check
+# must not resolve it from pub.dev.
+fixture_sqflite_watchos published: |
+  Resolving dependencies...
+  Because upstream_compatibility depends on fixture_sqflite_watchos any which doesn't exist (could not find package fixture_sqflite_watchos at https://pub.dev), version solving failed.

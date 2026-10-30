@@ -18,6 +18,13 @@ tool/check_generated_ignored.sh
 (cd tool && dart run bin/publish_dry_run.dart)
 ```
 
+The `native` job of `ci.yml` runs one more on macOS, once per Xcode, as
+`DEVELOPER_DIR` picks it. It needs Xcode, so the Ubuntu jobs leave it out:
+
+```sh
+tool/check_native_sources.sh
+```
+
 The weekly workflow `.github/workflows/upstream.yml` runs two more, which
 read pub.dev and so are not part of the per-change checks:
 
@@ -108,6 +115,22 @@ runs it in the package job, after the tests. Its report goes into a public
 log, so a line of pub's output that holds a forbidden word is withheld and
 fails the package.
 
+## Native sources
+
+`check_native_sources.sh` compiles every plugin's native watchOS sources the way
+the CLI does, with `-fsyntax-only`, for `arm64-apple-watchos26.0` and its
+Simulator triple:
+- `.m`, `.mm` and `.c` files go through clang, with the CLI's flags;
+- SwiftUI view sources go through `swiftc -typecheck`, with a copy of the
+  CLI's registration shim (`native/plugin_views_shim.swift`).
+
+An error or a warning fails, except a deprecation, which is counted.
+in_app_purchase_watchos uses StoreKit 1 on purpose. A package whose
+`watchos/Package.swift` names a SwiftPM package is listed and skipped, as only
+a SwiftPM build provides its modules. `--list` prints the plan without
+compiling, and the Ubuntu tool tests run it on fixtures. The compile fixtures
+run on macOS, in the `native` job.
+
 ## Weekly upstream compatibility
 
 `.github/workflows/upstream.yml` runs every Monday and by hand, and never
@@ -118,7 +141,9 @@ moved on:
   pub.dev with `upstream_versions.yaml`, and fails on a new major: check the
   package against it, then move the table and the README snippets together.
   It also resolves a scratch app with the latest upstream and the package,
-  once from this repository and once at its latest version on pub.dev.
+  once from this repository and once at its latest version on pub.dev. A
+  package without a row in `published.yaml` is staged and not on pub.dev
+  yet, so it resolves from this repository only.
 - `bin/pana_scores.dart` reads one `pana --json` report per package. Every
   section must be full, except "Platform support" for a package that
   declares only watchOS, which pana does not score (`AUTHORING.md`

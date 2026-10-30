@@ -1,0 +1,4 @@
+0
+packages/ok_watchos/watchos/Classes/ok_watchos_ffi.m  (1 deprecation warning)
+ok_watchos_views
+Native sources: all compile cleanly with

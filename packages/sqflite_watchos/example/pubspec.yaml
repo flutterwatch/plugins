@@ -1,0 +1,28 @@
+name: sqflite_example
+description: "watchOS example for sqflite_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.4.4
+  sqflite_watchos:
+    path: ../
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # The official integration test imports these two.
+  material_ui: ^1.5.0
+  test: ^1.25.0
+
+flutter:
+  uses-material-design: true
