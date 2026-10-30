@@ -1,0 +1,4 @@
+1
+FAIL up_watchos/example
+dependencies: up_common is a git dependency without a pinned commit
+dev_dependencies: up_tools is a git dependency without a pinned commit

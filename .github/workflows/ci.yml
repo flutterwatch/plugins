@@ -177,7 +177,8 @@ jobs:
 
       # Spec 0006 criterion 14a: an example that depends on `any` builds
       # against whatever is newest that day, so no example pubspec names
-      # `any`, or no constraint, under dependencies or dev_dependencies.
+      # `any`, or no constraint, under dependencies or dev_dependencies, and
+      # a git dependency pins a full commit hash.
       - name: Example constraints
         if: success() || failure()
         working-directory: tool

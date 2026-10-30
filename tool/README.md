@@ -104,7 +104,8 @@ that no longer matches. It moved here from
 or `dev_dependencies`. An example built against whatever is newest that day
 can break with no change in this repository. Use a caret constraint on the
 version the example was last run with; `path:` and `sdk:` entries and
-`dependency_overrides` are not checked.
+`dependency_overrides` are not checked. A `git:` dependency must set `ref`
+to a full commit hash: a branch, a tag or no `ref` can move the same way.
 
 ## Publish dry-run
 

@@ -22,6 +22,7 @@ physical watch.
   minor.
 * Two FFI exports: `sqflite_watchos_databases_path` and
   `sqflite_watchos_sqlite_version`.
-* The example's `lib/` is a small watch demo, because sqflite's own example
-  depends on the unpublished `sqflite_example_common`; its official
-  integration test is upstream's, unchanged.
+* The example is sqflite 2.4.5's own. It depends on `sqflite_example_common`,
+  which is not on pub.dev, so its pubspec pins that package to the
+  tekartik/sqflite commit of the release. Its official integration test is
+  upstream's, unchanged.
