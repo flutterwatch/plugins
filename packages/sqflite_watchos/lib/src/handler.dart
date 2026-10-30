@@ -14,8 +14,9 @@
 //
 // sqflite_common drives every platform through one call,
 // `invokeMethod(method, arguments)`: on iOS and Android it crosses a method
-// channel, here it lands in [SqfliteWatchosHandler.handle]. The methods and
-// the shape of their arguments and results are sqflite's own.
+// channel, here it crosses to a background isolate (worker.dart) and lands
+// in [SqfliteWatchosHandler.handle]. The methods and the shape of their
+// arguments and results are sqflite's own.
 
 import 'dart:async';
 import 'dart:io';
@@ -271,6 +272,14 @@ class SqfliteWatchosHandler {
       _singleInstances.remove(db.path);
     }
     db.close();
+  }
+
+  /// Closes every open database, as `closeDatabase` closes one: what is
+  /// queued on each fails. The background isolate calls it before it ends.
+  void closeAll() {
+    for (final _Database db in _databases.values.toList()) {
+      _forget(db);
+    }
   }
 
   void _delete(String path) {

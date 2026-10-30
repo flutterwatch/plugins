@@ -5,11 +5,10 @@
 // Host-side tests that run real SQL. The handler binds SQLite's C API, which
 // macOS and CI's Linux runner ship too, so these point it at the host's
 // system libsqlite3 and drive it through sqflite_common's own Database API,
-// the way an app does. The watch resolves the same functions from its
-// process instead.
+// the way an app does, on the background isolate an app's calls run on. The
+// watch resolves the same functions from its process instead.
 
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -27,25 +26,26 @@ import 'package:sqflite_watchos/sqflite_watchos.dart';
 import 'package:sqflite_watchos/src/handler.dart';
 import 'package:sqflite_watchos/src/sqlite3.dart';
 
-/// The host's system SQLite: `/usr/lib` on macOS, the shared library's
-/// soname on Linux.
-DynamicLibrary hostSqlite() => Platform.isMacOS
-    ? DynamicLibrary.open('/usr/lib/libsqlite3.dylib')
-    : DynamicLibrary.open('libsqlite3.so.0');
+import 'host_sqlite.dart';
 
 void main() {
   late Directory dir;
   late DatabaseFactory factory;
 
-  setUpAll(() {
+  setUpAll(() async {
     dir = Directory.systemTemp.createTempSync('sqflite_watchos_test');
-    SqfliteWatchos.libraryOverride = hostSqlite();
+    SqfliteWatchos.libraryPathOverride = hostSqlitePath;
     SqfliteWatchos.databasesPathOverride = dir.path;
-    SqfliteWatchos.resetForTesting();
+    await SqfliteWatchos.resetForTesting();
     factory = SqfliteWatchos.databaseFactoryWatchos;
   });
 
-  tearDownAll(() => dir.deleteSync(recursive: true));
+  tearDownAll(() async {
+    // Closes what is still open before the files go. A stop that never
+    // ends fails here instead of hanging the run.
+    await SqfliteWatchos.resetForTesting().timeout(const Duration(seconds: 10));
+    dir.deleteSync(recursive: true);
+  });
 
   Future<Database> openFresh(String name,
       {OpenDatabaseOptions? options}) async {
@@ -157,18 +157,30 @@ void main() {
       <String, Object?>{'timeout': 2000},
     ]);
     await first.execute('BEGIN IMMEDIATE');
+    int ticks = 0;
+    final Timer ticking =
+        Timer.periodic(const Duration(milliseconds: 10), (_) => ticks++);
     final Stopwatch waited = Stopwatch()..start();
     await expectLater(
       second.insert('t', <String, Object?>{'x': 1}),
       throwsA(isA<DatabaseException>().having(
           (DatabaseException e) => e.getResultCode(), 'SQLITE_BUSY', 5)),
     );
-    // Apple's SQLite, which the watch runs, waits out the timeout first. The
-    // libsqlite3 of CI's Ubuntu runner failed the same insert after 39 ms,
-    // without waiting, so the wait is only checked on macOS; the timeout
-    // itself is checked above on both.
+    ticking.cancel();
+    // The wait blocks the background isolate, so this one keeps ticking.
+    // Apple's SQLite, which the watch runs, waits out the timeout first. On
+    // CI's Ubuntu runner the same insert failed after 39 ms, most likely
+    // because of `flutter test` rather than Ubuntu's SQLite: its Dart
+    // profiler samples each thread about once a millisecond, on Linux by
+    // sending it SIGPROF, and each signal ends one of SQLite's busy-handler
+    // sleeps early, while SQLite counts the time it asked to sleep. macOS
+    // samples threads without a signal, and the watch sends none either. So
+    // the wait is only checked on macOS; the timeout itself is checked above
+    // on both.
     if (Platform.isMacOS) {
       expect(waited.elapsedMilliseconds, greaterThanOrEqualTo(1500));
+      expect(ticks, greaterThanOrEqualTo(50),
+          reason: 'this isolate ran while the background one waited');
     }
     await first.execute('ROLLBACK');
     await second.close();
@@ -371,6 +383,28 @@ void main() {
       await db.close();
     });
 
+    test('a transaction SQLite rolled back fails with its own error', () async {
+      final Database db = await openFresh('rolled_back.db');
+      await db.execute('CREATE TABLE t (x UNIQUE ON CONFLICT ROLLBACK)');
+      // sqflite_common sends no ROLLBACK of its own once the error says the
+      // transaction is closed. Sent anyway, it would fail with "no
+      // transaction is active" and replace the unique-constraint error.
+      await expectLater(
+        db.transaction((Transaction txn) async {
+          await txn.insert('t', <String, Object?>{'x': 1});
+          await txn.insert('t', <String, Object?>{'x': 1});
+        }),
+        throwsA(isA<DatabaseException>().having(
+            (DatabaseException e) => e.isUniqueConstraintError(),
+            'unique',
+            true)),
+      );
+      expect(await db.query('t'), isEmpty);
+      await db.insert('t', <String, Object?>{'x': 2});
+      expect(await db.query('t'), hasLength(1));
+      await db.close();
+    });
+
     test('a call outside a running transaction waits for it', () async {
       final Database db = await openFresh('queue.db');
       await db.execute('CREATE TABLE t (x)');
@@ -539,6 +573,55 @@ void main() {
         <String, Object?>{'x': 42},
       ]);
       await copy.close();
+    });
+  });
+
+  group('the background isolate', () {
+    // A recursive count that keeps SQLite busy for a few hundred
+    // milliseconds: 0.4 s on an M-series Mac.
+    const String longCount = 'WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL '
+        'SELECT i + 1 FROM n WHERE i < 3000000) SELECT count(*) AS c FROM n';
+
+    test('a long statement leaves timers on the calling isolate running',
+        () async {
+      final Database db = await factory.openDatabase(inMemoryDatabasePath);
+      bool done = false;
+      int ticks = 0;
+      final Timer ticking =
+          Timer.periodic(const Duration(milliseconds: 5), (_) {
+        if (!done) {
+          ticks++;
+        }
+      });
+      final List<Map<String, Object?>> rows =
+          await db.rawQuery(longCount).whenComplete(() {
+        done = true;
+      });
+      ticking.cancel();
+      expect(rows, <Map<String, Object?>>[
+        <String, Object?>{'c': 3000000},
+      ]);
+      // Run on this isolate, the count would let no timer fire until it
+      // ended.
+      expect(ticks, greaterThanOrEqualTo(3));
+      await db.close();
+    });
+
+    test('a long statement on one database holds up a call on another',
+        () async {
+      // Every database shares the one isolate, which runs a call at a time.
+      final Database busy = await factory.openDatabase(inMemoryDatabasePath);
+      final Database other = await factory.openDatabase(inMemoryDatabasePath);
+      final List<String> order = <String>[];
+      final Future<void> long =
+          busy.rawQuery(longCount).then((_) => order.add('long'));
+      // Posted once the count is running.
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await other.rawQuery('SELECT 1').then((_) => order.add('short'));
+      await long;
+      expect(order, <String>['long', 'short']);
+      await busy.close();
+      await other.close();
     });
   });
 
