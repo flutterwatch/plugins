@@ -4,8 +4,15 @@
 //
 // Contacts, through CNContactStore. Contacts is loaded at runtime and only
 // messaged.
+//
+// Compiled in only when the app's Info.plist sets NSContactsUsageDescription
+// (PERMISSION_CONTACTS), or by a flutter-watchos that predates `defines`.
+// Otherwise contacts answers as PHWUnknownStrategy, and none of this is in
+// the app.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_CONTACTS
 
 #import <Contacts/Contacts.h>
 
@@ -25,6 +32,9 @@ static PHWStatus _contactsStatus(NSInteger status) {
             return PHWStatusDenied;
     }
 }
+
+@interface PHWContactsStrategy : NSObject <PHWStrategy>
+@end
 
 @implementation PHWContactsStrategy {
     // Kept until its request answers.
@@ -79,3 +89,15 @@ static PHWStatus _contactsStatus(NSInteger status) {
 }
 
 @end
+
+Class phw_contacts_strategy(void) {
+    return [PHWContactsStrategy class];
+}
+
+#else
+
+Class phw_contacts_strategy(void) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

@@ -46,7 +46,9 @@ time). A working watchOS plugin therefore ships native code as
    through dead-stripping, and default visibility puts it in the binary's
    export table, where `DynamicLibrary.process()` finds it. The CLI also sets
    `STRIP_STYLE = non-global`, so the strip of an App Store build keeps the
-   exports. §3 shows how to check a build.
+   exports. §3 shows how to check a build. A plugin can also map macros to
+   app Info.plist keys under `defines`, to leave out the code for an API an
+   app does not use (§2e).
 4. **Dart** — a class extending the upstream `*_platform_interface`, with
    a `static void registerWith()` that installs itself as the default
    instance, and methods that call the FFI bindings. Keep the bindings in
@@ -258,6 +260,60 @@ Constraints:
 
 The four `firebase_*_watchos` packages (core, auth, storage, messaging)
 are worked examples of all of the above.
+
+## 2e. Compiling out what an app does not use
+
+App Store Connect asks for the usage description of each privacy-sensitive
+API a binary references (ITMS-90683), whether or not the app calls it. A
+plugin that covers several such APIs can leave out the ones an app does not
+use, as permission_handler's iOS implementation does with its `PERMISSION_*`
+macros. Map each macro to the app Info.plist key that turns it on, under
+`defines:` next to `ffiSymbols`:
+
+```yaml
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        dartPluginClass: <Name>Watchos
+        defines:
+          <NAME>_CONTACTS: NSContactsUsageDescription
+          <NAME>_LOCATION:
+            - NSLocationWhenInUseUsageDescription
+            - NSLocationAlwaysAndWhenInUseUsageDescription
+```
+
+From the first flutter-watchos release after 0.1.1, the CLI compiles the
+plugin's native sources with `-D<MACRO>=1` (in Swift, `-D<MACRO>`) for each
+macro whose key the watch app's Info.plist sets. A plugin that declares
+`defines` also gets the marker, `FLUTTER_WATCHOS_PLUGIN_DEFINES`, on every
+source. A plugin without `defines`, or whose `defines` is misspelled or
+misplaced, does not get it, and compiles as before. An older CLI passes
+neither, so guard each group to keep it in apps built by one:
+
+```objc
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || <NAME>_CONTACTS
+// The contacts code.
+#endif
+```
+
+- Give a group that is left out an answer: `permission_handler_watchos`
+  answers as the iOS implementation answers a permission it does not know.
+- Keep the macros and keys in the pubspec and in the sources the same: a
+  misspelled one leaves its group out of every app, and nothing fails to
+  compile. `permission_handler_watchos` has a test that compares them.
+- `tool/check_native_sources.sh` compiles such a plugin three ways: with no
+  `-D`, with the marker and every macro, and with the marker alone (see
+  `tool/README.md`).
+- The CLI compiles plugin sources on every `flutter-watchos build` and
+  `run`; an Xcode build or archive does not. After an Info.plist edit, an
+  app rebuilds with `flutter-watchos build` before it archives.
+
+The rules, which values turn a macro on, what `-v` prints and why a plugin
+built through SwiftPM (§2d) is not covered, are in the CLI's
+[Compiling out what an app does not use](https://github.com/flutterwatch/flutter-watchos/blob/main/doc/plugins.md#compiling-out-what-an-app-does-not-use).
+`permission_handler_watchos` is the worked example.
 
 ## 3. Verify
 

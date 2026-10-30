@@ -107,7 +107,8 @@ static PHWErrorHandler _failer(int64_t request) {
 
 // ---- Strategies -------------------------------------------------------------
 
-// Main queue only.
+// Main queue only. A group the build left out answers through
+// PHWUnknownStrategy: its file's function says which (phw_internal.h).
 static id<PHWStrategy> _strategy(int32_t permission) {
     static NSMutableDictionary<NSString*, id<PHWStrategy>>* strategies;
     if (strategies == nil) {
@@ -121,25 +122,25 @@ static id<PHWStrategy> _strategy(int32_t permission) {
         case PHWPermissionLocation:
         case PHWPermissionLocationAlways:
         case PHWPermissionLocationWhenInUse:
-            kind = [PHWLocationStrategy class];
+            kind = phw_location_strategy((PHWPermission)permission);
             break;
         case PHWPermissionSensors:
-            kind = [PHWMotionStrategy class];
+            kind = phw_motion_strategy();
             break;
         case PHWPermissionMicrophone:
-            kind = [PHWMicrophoneStrategy class];
+            kind = phw_microphone_strategy();
             break;
         case PHWPermissionContacts:
-            kind = [PHWContactsStrategy class];
+            kind = phw_contacts_strategy();
             break;
         case PHWPermissionCalendar:
         case PHWPermissionCalendarWriteOnly:
         case PHWPermissionCalendarFullAccess:
         case PHWPermissionReminders:
-            kind = [PHWEventsStrategy class];
+            kind = phw_events_strategy((PHWPermission)permission);
             break;
         case PHWPermissionBluetooth:
-            kind = [PHWBluetoothStrategy class];
+            kind = phw_bluetooth_strategy();
             break;
         case PHWPermissionStorage:
             kind = [PHWStorageStrategy class];
@@ -148,7 +149,7 @@ static id<PHWStrategy> _strategy(int32_t permission) {
             kind = [PHWCriticalAlertsStrategy class];
             break;
         case PHWPermissionAssistant:
-            kind = [PHWAssistantStrategy class];
+            kind = phw_assistant_strategy();
             break;
         default:
             kind = [PHWUnknownStrategy class];

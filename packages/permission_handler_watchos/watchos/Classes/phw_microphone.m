@@ -4,8 +4,15 @@
 //
 // The microphone, through AVAudioApplication's record permission. AVFAudio
 // is loaded at runtime and only messaged.
+//
+// Compiled in only when the app's Info.plist sets
+// NSMicrophoneUsageDescription (PERMISSION_MICROPHONE), or by a
+// flutter-watchos that predates `defines`. Otherwise the microphone answers
+// as PHWUnknownStrategy, and none of this is in the app.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_MICROPHONE
 
 #import <AVFAudio/AVFAudio.h>
 #import <objc/message.h>
@@ -21,6 +28,9 @@ static PHWStatus _recordStatus(NSInteger permission) {
     }
     return PHWStatusDenied;
 }
+
+@interface PHWMicrophoneStrategy : NSObject <PHWStrategy>
+@end
 
 @implementation PHWMicrophoneStrategy
 
@@ -70,3 +80,15 @@ static PHWStatus _recordStatus(NSInteger permission) {
 }
 
 @end
+
+Class phw_microphone_strategy(void) {
+    return [PHWMicrophoneStrategy class];
+}
+
+#else
+
+Class phw_microphone_strategy(void) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

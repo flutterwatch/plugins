@@ -8,15 +8,31 @@
 // CoreLocation is loaded at runtime and only messaged: no class of it is
 // referenced by symbol, so an app that never asks for location links none
 // of it.
+//
+// Compiled in only when the app's Info.plist sets a location usage
+// description, or by a flutter-watchos that predates `defines`:
+// - NSLocationWhenInUseUsageDescription (PERMISSION_LOCATION_WHENINUSE)
+//   compiles in location and locationWhenInUse;
+// - NSLocationAlwaysAndWhenInUseUsageDescription or
+//   NSLocationAlwaysUsageDescription (PERMISSION_LOCATION) compiles in
+//   locationAlways too.
+// A permission left out answers as PHWUnknownStrategy. Without "always", its
+// request and the NSUserDefaults flag below are not in the app; with neither
+// key, none of this is.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION || \
+    PERMISSION_LOCATION_WHENINUSE
 
 #import <CoreLocation/CoreLocation.h>
 #import <WatchKit/WatchKit.h>
 
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
 // Set once "always" was asked for: watchOS shows that prompt once, and a
 // second request must answer without waiting for a prompt that never comes.
 static NSString* const kAskedAlwaysKey = @"dev.flutterwatch.permission_handler.askedAlways";
+#endif
 
 // How long after the app becomes active a status still "not determined"
 // waits for the delegate before it counts as a prompt closed unanswered.
@@ -39,7 +55,7 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     return PHWStatusDenied;
 }
 
-@interface PHWLocationStrategy () <CLLocationManagerDelegate>
+@interface PHWLocationStrategy : NSObject <PHWStrategy, CLLocationManagerDelegate>
 @end
 
 @implementation PHWLocationStrategy {
@@ -96,10 +112,12 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
         return;
     }
     CLAuthorizationStatus status = manager.authorizationStatus;
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
     if (permission == PHWPermissionLocationAlways) {
         [self requestAlways:status done:done failed:failed];
         return;
     }
+#endif
     if (status != kCLAuthorizationStatusNotDetermined) {
         done(_locationStatus(permission, status));
         return;
@@ -118,6 +136,7 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     [manager requestWhenInUseAuthorization];
 }
 
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
 - (void)requestAlways:(CLAuthorizationStatus)status
                  done:(PHWStatusHandler)done
                failed:(PHWErrorHandler)failed {
@@ -146,6 +165,7 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     [self observeActive];
     [_manager requestAlwaysAuthorization];
 }
+#endif
 
 // Answers the waiting requests when the app becomes active again after the
 // prompt took the screen (it resigned active first), with what the status is
@@ -228,3 +248,22 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
 }
 
 @end
+
+Class phw_location_strategy(PHWPermission permission) {
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
+    return [PHWLocationStrategy class];
+#else
+    // "When in use" alone: "always" answers as a permission watchOS does not
+    // have.
+    return permission == PHWPermissionLocationAlways ? [PHWUnknownStrategy class]
+                                                     : [PHWLocationStrategy class];
+#endif
+}
+
+#else
+
+Class phw_location_strategy(PHWPermission permission) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

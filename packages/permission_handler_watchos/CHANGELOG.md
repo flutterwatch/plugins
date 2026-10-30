@@ -10,13 +10,20 @@ physical watch.
   and Siri (`assistant`, for an app that sets `PermissionHandlerWatchosSiri`
   in its Info.plist), with the iOS implementation's statuses and error
   codes. `storage` is granted, as on iOS.
-* Each framework but UserNotifications is loaded at runtime instead of
-  linked. Every group's class names and selectors are still in the binary,
-  unlike the iOS implementation, whose build macros leave a group out;
-  whether App Store Connect's usage-description check reads them is not yet
+* Each group is compiled into the app only when the watch app's Info.plist
+  sets one of its keys, as the iOS implementation's `PERMISSION_*` macros
+  do: the pubspec maps the same macros to the keys under `defines`, which
+  the first flutter-watchos release after 0.1.1 applies. A group left out
+  answers as an unknown permission does, and none of its class names,
+  selectors or keys are in the binary. Under flutter-watchos 0.1.1 or
+  earlier, every group is compiled in, and whether App Store Connect's
+  usage-description check reads the groups an app does not use is not yet
   known (see the README).
-* The location strategy keeps one flag in `NSUserDefaults`, so apps declare
-  `NSPrivacyAccessedAPICategoryUserDefaults` (`CA92.1`) in their privacy
+* Each framework but UserNotifications is loaded at runtime instead of
+  linked.
+* The location strategy keeps one flag in `NSUserDefaults`, for "always",
+  so an app that compiles "always" in declares
+  `NSPrivacyAccessedAPICategoryUserDefaults` (`CA92.1`) in its privacy
   manifest.
 * A request whose usage description is missing fails with
   `MISSING_USAGE_DESCRIPTION` instead of the app being terminated. A request

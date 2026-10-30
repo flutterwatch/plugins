@@ -5,10 +5,25 @@
 // Calendar (full access and write only) and reminders, through
 // EKEventStore, answered as the iOS 17 implementation answers them. EventKit
 // is loaded at runtime and only messaged.
+//
+// Each kind of access is compiled in only when the app's Info.plist sets
+// its usage description, as the iOS implementation's macros decide:
+// - full access to events (calendar, calendarFullAccess):
+//   NSCalendarsFullAccessUsageDescription, PERMISSION_EVENTS_FULL_ACCESS;
+// - write-only access to events (calendarWriteOnly):
+//   NSCalendarsWriteOnlyAccessUsageDescription, PERMISSION_EVENTS;
+// - reminders: NSRemindersFullAccessUsageDescription, PERMISSION_REMINDERS.
+// A kind left out answers as PHWUnknownStrategy, and its key and request are
+// not in the app; with none of them, none of this is. A flutter-watchos that
+// predates `defines` compiles every kind in.
 
 #import "phw_internal.h"
 
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_EVENTS_FULL_ACCESS || \
+    PERMISSION_EVENTS || PERMISSION_REMINDERS
+
 #import <EventKit/EventKit.h>
+#import <objc/message.h>
 
 static EKEntityType _entityType(PHWPermission permission) {
     return permission == PHWPermissionReminders ? EKEntityTypeReminder : EKEntityTypeEvent;
@@ -33,17 +48,40 @@ static PHWStatus _eventsStatus(PHWPermission permission, NSInteger status) {
     return PHWStatusDenied;
 }
 
-// The usage description the prompt for `permission` needs.
-static NSString* _usageKey(PHWPermission permission) {
+// What asks for one kind of access: the usage description its prompt needs,
+// and the EKEventStore request.
+typedef struct {
+    __unsafe_unretained NSString* key;
+    SEL request;
+} PHWEventsKind;
+
+// The kind `permission` asks for; its key is nil for a kind this build left
+// out.
+static PHWEventsKind _kind(PHWPermission permission) {
     switch (permission) {
-        case PHWPermissionReminders:
-            return @"NSRemindersFullAccessUsageDescription";
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_EVENTS_FULL_ACCESS
+        case PHWPermissionCalendar:
+        case PHWPermissionCalendarFullAccess:
+            return (PHWEventsKind){@"NSCalendarsFullAccessUsageDescription",
+                                   @selector(requestFullAccessToEventsWithCompletion:)};
+#endif
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_EVENTS
         case PHWPermissionCalendarWriteOnly:
-            return @"NSCalendarsWriteOnlyAccessUsageDescription";
+            return (PHWEventsKind){@"NSCalendarsWriteOnlyAccessUsageDescription",
+                                   @selector(requestWriteOnlyAccessToEventsWithCompletion:)};
+#endif
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_REMINDERS
+        case PHWPermissionReminders:
+            return (PHWEventsKind){@"NSRemindersFullAccessUsageDescription",
+                                   @selector(requestFullAccessToRemindersWithCompletion:)};
+#endif
         default:
-            return @"NSCalendarsFullAccessUsageDescription";
+            return (PHWEventsKind){nil, NULL};
     }
 }
+
+@interface PHWEventsStrategy : NSObject <PHWStrategy>
+@end
 
 @implementation PHWEventsStrategy {
     // Kept until its request answers.
@@ -85,9 +123,10 @@ static NSString* _usageKey(PHWPermission permission) {
         done(status);
         return;
     }
-    NSString* key = _usageKey(permission);
-    if (!phw_has_key(key)) {
-        phw_missing_key(key, failed);
+    // phw_events_strategy() sends only the kinds compiled in here.
+    PHWEventsKind kind = _kind(permission);
+    if (!phw_has_key(kind.key)) {
+        phw_missing_key(kind.key, failed);
         return;
     }
     _store = [[storeClass alloc] init];
@@ -97,17 +136,19 @@ static NSString* _usageKey(PHWPermission permission) {
             done(granted ? PHWStatusGranted : PHWStatusPermanentlyDenied);
         });
     };
-    switch (permission) {
-        case PHWPermissionReminders:
-            [_store requestFullAccessToRemindersWithCompletion:answer];
-            break;
-        case PHWPermissionCalendarWriteOnly:
-            [_store requestWriteOnlyAccessToEventsWithCompletion:answer];
-            break;
-        default:
-            [_store requestFullAccessToEventsWithCompletion:answer];
-            break;
-    }
+    ((void (*)(id, SEL, void (^)(BOOL, NSError*)))objc_msgSend)(_store, kind.request, answer);
 }
 
 @end
+
+Class phw_events_strategy(PHWPermission permission) {
+    return _kind(permission).key != nil ? [PHWEventsStrategy class] : [PHWUnknownStrategy class];
+}
+
+#else
+
+Class phw_events_strategy(PHWPermission permission) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif
