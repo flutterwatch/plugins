@@ -5,8 +5,8 @@
 // The part of SQLite's C API this package uses, bound over dart:ffi.
 //
 // On the watch these resolve from the process: watchOS ships libsqlite3 and
-// the CLI links it. Host tests pass the macOS system library instead, so the
-// same code runs real SQL there.
+// the CLI links it. Host tests open the host's system library instead, so
+// the same code runs real SQL there.
 
 import 'dart:convert';
 import 'dart:ffi';

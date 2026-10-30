@@ -49,10 +49,23 @@ await db.insert('lap', <String, Object?>{'at': DateTime.now().millisecondsSinceE
 | `readDatabaseBytes` / `writeDatabaseBytes` | supported |
 | `DatabaseException` helpers | `isUniqueConstraintError`, `isNoSuchTableError`, `isSyntaxError`, `isOpenFailedError`, `isReadOnlyError`, `isDatabaseClosedError`; `getResultCode()` is SQLite's extended result code |
 
-SQL runs on the isolate that calls it, synchronously inside each `Future`.
-On iOS sqflite runs it on a native background thread; on the watch a long
-query holds up the frame it runs in, so keep heavy work small or move it to
-an isolate of its own.
+SQL runs on a background isolate, as `sqflite_common_ffi` runs it on
+desktop, so a long query does not hold up a frame. The first call starts
+the isolate, and every database shares it: the open databases, their
+transactions and their cursors live there, and each call reaches it as a
+message, with its arguments and results copied. Each isolate that uses
+sqflite gets a background isolate of its own, which closes its databases
+and ends when that isolate ends. Errors come back intact, as a
+`DatabaseException` with SQLite's message and result code.
+
+The 2-second wait for another connection's lock blocks that isolate, not
+the UI, and calls to every other database wait behind it. Two connections
+to one file opened from the same isolate cannot wait each other out: the
+background isolate that would commit the first is the one waiting, so the
+second waits the full 2 seconds and fails with `SQLITE_BUSY` (result code
+5). Keep one connection per file, as sqflite's default
+`singleInstance: true` does. On iOS each database has a queue of its own,
+so there the second connection gets the lock once the first commits.
 
 `SqfliteWatchos.sqliteVersion` reports the system SQLite's version.
 
@@ -72,6 +85,6 @@ are accepted and ignored.
 
 ## License
 
-BSD-2-Clause, as upstream sqflite's. `lib/src/handler.dart` is adapted from
-sqflite_common_ffi and carries its copyright notice. See `LICENSE` for the
-full text.
+BSD-2-Clause, as upstream sqflite's. `lib/src/handler.dart` and
+`lib/src/worker.dart` are adapted from sqflite_common_ffi and carry its
+copyright notice. See `LICENSE` for the full text.
