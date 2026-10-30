@@ -21,10 +21,12 @@ physical watch.
   when-in-use key, `locationAlways` is left out too. Siri opts in only when
   `PermissionHandlerWatchosSiri` is the Boolean YES or a string YES, true or
   1: any non-empty string compiles Siri's code in, but `NO` leaves Siri off.
-  Under flutter-watchos 0.1.1 or earlier, or when the CLI cannot read the
-  Info.plist, every group is compiled in, and whether App Store Connect's
-  usage-description check reads the groups an app does not use is not yet
-  known (see the README).
+* A notifications-only app built this way references the same privacy API
+  as a native watch app that only asks for notifications. Under
+  flutter-watchos 0.1.1 or earlier, or when the CLI cannot read the
+  Info.plist, every group is compiled in, and its names stay in the binary
+  as strings, which App Store Connect's usage-description check may read
+  (see the README).
 * Each framework but UserNotifications is loaded at runtime instead of
   linked.
 * The location strategy keeps one flag in `NSUserDefaults`, for "always",

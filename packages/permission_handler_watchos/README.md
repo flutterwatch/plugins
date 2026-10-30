@@ -99,15 +99,18 @@ App Store Connect asks for the usage description of each privacy-sensitive
 API a binary references (ITMS-90683). With the first flutter-watchos release
 after 0.1.1, a group the app's Info.plist leaves out is not in the binary:
 none of its framework's class names, selectors or usage-description keys
-are. So an app needs only the keys of the groups it uses, as on iOS.
+are. A watch app that only asks for notifications then references the same
+privacy API as a native watch app that does only that,
+`UNUserNotificationCenter`, and nothing else. So an app needs only the keys
+of the groups it uses, as on iOS.
 
 With flutter-watchos 0.1.1 or earlier, every group's code is in every app
 that uses this package. The frameworks other than UserNotifications are not
 linked and are loaded only when a permission of their group is asked about,
-but each group's class names, selectors and delegate metadata are still in
-the binary. Whether App Store Connect's check reads those is not documented,
-and no upload has checked it yet: until one has, expect such an app to need
-the usage description of every group, the ones it never asks for included.
+but each group's class names, request selectors and usage-description keys
+stay in the binary as strings. Whether App Store Connect's check reads those
+is not documented, so expect such an app to need the usage description of
+every group, the ones it never asks for included.
 
 The location strategy keeps one flag in `NSUserDefaults`, whether "always"
 was asked for, since watchOS shows that prompt once. `NSUserDefaults` is a

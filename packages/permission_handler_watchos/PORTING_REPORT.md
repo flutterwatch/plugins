@@ -12,7 +12,7 @@
 | System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. In upstream's example: calendar (full access) allowed → granted |
 | Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
 | Compile-time groups | ✅ `tool/check_native_sources.sh` compiles the sources with no `-D` (flutter-watchos 0.1.1 or earlier), with the marker and every macro, with the marker alone, and with the marker and each macro alone, for a watch and the Simulator; each pair of the events macros was compiled too (Xcode 27.1, no warning). Objects compiled with the marker alone hold none of the groups' class names, selectors or keys (`strings`), and none of their frameworks' link entries; with `PERMISSION_LOCATION_WHENINUSE` alone, no "always" request and no `NSUserDefaults` reference (`nm -u`). The events strategy, built for macOS with EventKit's status and requests stubbed, answered every combination of its three macros as the iOS implementation does: each status read, the service not applicable, a request whose prompt is left out answering its status without a prompt |
-| App Store Connect upload | not yet done. With the first flutter-watchos release after 0.1.1, a group the app does not use is left out (see "Design"); whether ITMS-90683 reads the class names of such groups under 0.1.1 or earlier is unchecked |
+| Privacy footprint against a native app (in place of an App Store Connect upload) | ✅ 2026-10-30, with `nm -u`, `otool` and `strings -a`. A native SwiftUI watch app that only calls `UNUserNotificationCenter.requestAuthorization` references one privacy API, `UNUserNotificationCenter`. A Flutter watch app that only requests `Permission.notification` through this package, with no usage keys, built as a debug Simulator app by a flutter-watchos that applies `defines` (`-v`: none of the 10 on), references the same and nothing else: no other group's class names, request selectors or usage keys. Both link the Swift CoreLocation overlay that SwiftUI pulls in, and reference no location class. So no upload is needed (the owner's decision). Built by a flutter-watchos without `defines`, as 0.1.1, the same app links no other framework and references no other class, but every group's class names, request selectors and usage keys are in it as strings |
 | Example deviations | `example/pubspec.yaml` adds `url_launcher_watchos`, for the links of `baseflow_plugin_template`, which go through `url_launcher`. `example/lib/main.dart` is otherwise upstream's, formatted as this repo's CI checks |
 | Physical watch | not yet checked |
 
@@ -65,10 +65,10 @@ linked. `nm -u` on the compiled objects shows no class symbol of
 CoreLocation, CoreMotion, AVFAudio, Contacts, EventKit, CoreBluetooth or
 Intents. That is not the iOS result: the class names, selectors and delegate
 protocol metadata are still in the binary, and Apple does not document
-whether its check reads those. Until an App Store Connect upload of an app
-that uses only notifications shows no ITMS-90683, the README tells apps
-built with such a flutter-watchos to expect to need every group's usage
-description.
+whether its check reads those, so the README tells apps built with such a
+flutter-watchos to expect to need every group's usage description. Built
+with `defines`, a notifications-only app has the privacy footprint of a
+native one (see "Verification status").
 
 The location strategy keeps one flag in `NSUserDefaults` (whether "always"
 was asked for), a required-reason API; the iOS implementation ships a
