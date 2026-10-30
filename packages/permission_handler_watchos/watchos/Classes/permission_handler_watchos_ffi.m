@@ -39,6 +39,15 @@ BOOL phw_has_key(NSString* key) {
     return [[NSBundle mainBundle] objectForInfoDictionaryKey:key] != nil;
 }
 
+BOOL phw_turns_on(id value) {
+    if ([value isKindOfClass:[NSString class]]) {
+        return [value length] > 0;
+    }
+    // A plist Boolean is a CFBoolean; an integer is a CFNumber, even 1.
+    return value != nil && CFGetTypeID((__bridge CFTypeRef)value) == CFBooleanGetTypeID() &&
+           CFBooleanGetValue((__bridge CFBooleanRef)value);
+}
+
 void phw_missing_key(NSString* key, PHWErrorHandler failed) {
     failed(@"MISSING_USAGE_DESCRIPTION",
            [NSString stringWithFormat:@"The app's Info.plist has no %@, which the system "
@@ -137,7 +146,7 @@ static id<PHWStrategy> _strategy(int32_t permission) {
         case PHWPermissionCalendarWriteOnly:
         case PHWPermissionCalendarFullAccess:
         case PHWPermissionReminders:
-            kind = phw_events_strategy((PHWPermission)permission);
+            kind = phw_events_strategy();
             break;
         case PHWPermissionBluetooth:
             kind = phw_bluetooth_strategy();

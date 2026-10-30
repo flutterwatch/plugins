@@ -6,12 +6,12 @@
 |---|---|
 | Implementation | ✅ Working (FFI; one strategy per permission group, as in the iOS implementation) |
 | watchOS capability | ◐ The permissions watchOS has: location (when in use and always), notifications, critical alerts, sensors, microphone, contacts, calendar (full access and write only), reminders, Bluetooth, Siri; storage is granted as on iOS. The others answer as iOS answers for a permission it does not know |
-| Host unit tests (`flutter test`) | ✅ 11 pass, 3 of them that the pubspec's `defines` and the native guards name the same macros and keys |
+| Host unit tests (`flutter test`) | ✅ 12 pass; 4 of them check that the pubspec's `defines` and the native guards pair each key with the macro of the guard around the code that reads it |
 | Upstream integration test | ○ none upstream (Baseflow's example is a manual demo) |
 | watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ 5 pass on the watchOS 27.0 Simulator |
 | System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. In upstream's example: calendar (full access) allowed → granted |
 | Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
-| Compile-time groups | ✅ `tool/check_native_sources.sh` compiles the sources with no `-D` (flutter-watchos 0.1.1 or earlier), with the marker and every macro, and with the marker alone, for a watch and the Simulator; each partial set of the location and events macros was compiled too (Xcode 27.1, no warning). Objects compiled with the marker alone hold none of the groups' class names, selectors or keys (`strings`), and none of their frameworks' link entries; with `PERMISSION_LOCATION_WHENINUSE` alone, no "always" request and no `NSUserDefaults` reference (`nm -u`) |
+| Compile-time groups | ✅ `tool/check_native_sources.sh` compiles the sources with no `-D` (flutter-watchos 0.1.1 or earlier), with the marker and every macro, with the marker alone, and with the marker and each macro alone, for a watch and the Simulator; each pair of the events macros was compiled too (Xcode 27.1, no warning). Objects compiled with the marker alone hold none of the groups' class names, selectors or keys (`strings`), and none of their frameworks' link entries; with `PERMISSION_LOCATION_WHENINUSE` alone, no "always" request and no `NSUserDefaults` reference (`nm -u`). The events strategy, built for macOS with EventKit's status and requests stubbed, answered every combination of its three macros as the iOS implementation does: each status read, the service not applicable, a request whose prompt is left out answering its status without a prompt |
 | App Store Connect upload | not yet done. With the first flutter-watchos release after 0.1.1, a group the app does not use is left out (see "Design"); whether ITMS-90683 reads the class names of such groups under 0.1.1 or earlier is unchecked |
 | Example deviations | `example/pubspec.yaml` adds `url_launcher_watchos`, for the links of `baseflow_plugin_template`, which go through `url_launcher`. `example/lib/main.dart` is otherwise upstream's, formatted as this repo's CI checks |
 | Physical watch | not yet checked |
@@ -36,14 +36,28 @@ plugin with the macro of each group whose key is set, after
 `#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_X` and gives the
 dispatch table, through one function, either its strategy or
 `PHWUnknownStrategy`, which answers as the iOS implementation answers a group
-whose macro is off. A group left out takes its framework's class names,
-selectors, usage-description keys and import out of the binary. Location is
-split as on iOS: `PERMISSION_LOCATION_WHENINUSE` compiles in "when in use",
-and `PERMISSION_LOCATION` "always" too, with its `NSUserDefaults` flag. Each
-kind of EventKit access has its own key and macro.
+whose macros are all off. A group left out takes its framework's class names,
+selectors, usage-description keys and import out of the binary.
+
+The calendar and reminders group follows the iOS implementation exactly: any
+of `PERMISSION_EVENTS_FULL_ACCESS`, `PERMISSION_EVENTS` and
+`PERMISSION_REMINDERS` compiles its strategy in, which then reads the real
+EventKit status of all four permissions and answers the service as not
+applicable. Each macro adds the prompts its key allows; the full-access one
+allows the write-only prompt too. A request whose prompt is left out answers
+its status without a prompt.
+
+Location goes further than the iOS implementation. There,
+`PERMISSION_LOCATION_WHENINUSE` alone still compiles the whole location
+strategy, `locationAlways` included, and only the "always" request is left
+out. Here `PERMISSION_LOCATION_WHENINUSE` alone compiles in "when in use",
+and `locationAlways` answers as an unknown permission, without its request
+and its `NSUserDefaults` flag; `PERMISSION_LOCATION` compiles in "always"
+too.
 
 A flutter-watchos that predates `defines` passes neither the macros nor the
-marker, so every group is compiled into every app, as before. Each framework
+marker, and nor does a later one that cannot read the app's Info.plist, so
+every group is compiled into every app, as before. Each framework
 is loaded with `dlopen` and its classes looked up by name the first time a
 permission of its group is asked about, and only messaged; of the
 frameworks, only UserNotifications, which needs no usage description, is
@@ -59,8 +73,8 @@ description.
 The location strategy keeps one flag in `NSUserDefaults` (whether "always"
 was asked for), a required-reason API; the iOS implementation ships a
 privacy manifest for the same reason. The flag is compiled in with
-`PERMISSION_LOCATION` only. The README shows the entry an app's manifest
-needs.
+`PERMISSION_LOCATION` only, or with no `defines` applied. The README shows
+the entry an app's manifest needs.
 
 watchOS terminates an app that asks for a permission without its usage
 description. Before each prompt this package checks the Info.plist key the
@@ -99,10 +113,10 @@ watchOS would not show again.
 | `sensors` | ✅ CMMotionActivityManager, asked for with an activity query as on iOS; service status is `isActivityAvailable` |
 | `microphone` | ✅ AVAudioApplication's record permission (watchOS 10 and later) |
 | `contacts` | ✅ CNContactStore; the watchOS SDK has no limited access |
-| `calendarFullAccess`, `calendarWriteOnly`, `calendar`, `reminders` | ✅ EKEventStore, with the full-access and write-only requests |
+| `calendarFullAccess`, `calendarWriteOnly`, `calendar`, `reminders` | ✅ EKEventStore, with the full-access and write-only requests. With only some of the group's keys, each status is still read, and a request whose prompt is left out answers its status without a prompt, as on iOS |
 | `bluetooth` | ✅ CBCentralManager: creating it asks, its first state update answers; service status is whether it is powered on |
 | `criticalAlerts` | ✅ UNUserNotificationCenter's critical alert setting and request; needs the Critical Alerts entitlement |
-| `assistant` | ◐ INPreferences (watchOS 6+), Siri, for an app that opts in; needs the Siri capability. INPreferences throws in an app without it (seen on the Simulator), so the Info.plist key `PermissionHandlerWatchosSiri` (`YES`) is the opt-in, and from the first flutter-watchos release after 0.1.1 the same key turns the iOS implementation's `PERMISSION_ASSISTANT` macro on; `NSSiriUsageDescription`, which apps on an older flutter-watchos add with every other group's, does not switch it on. Without the opt-in Siri's code is left out and Siri answers as an unknown permission (a request `permanentlyDenied`), or, under 0.1.1 or earlier, the status is `denied` and so is a request; with it and no `NSSiriUsageDescription`, a request fails with `MISSING_USAGE_DESCRIPTION` |
+| `assistant` | ◐ INPreferences (watchOS 6+), Siri, for an app that opts in; needs the Siri capability. INPreferences throws in an app without it (seen on the Simulator), so the Info.plist key `PermissionHandlerWatchosSiri` (`YES`) is the opt-in, and from the first flutter-watchos release after 0.1.1 the same key turns the iOS implementation's `PERMISSION_ASSISTANT` macro on. The opt-in reads the key by the CLI's rule, so the two agree: a non-empty string, `NO` included, opts in as the Boolean `YES` does; `NSSiriUsageDescription`, which apps on an older flutter-watchos add with every other group's, does not switch it on. Without the opt-in Siri's code is left out and Siri answers as an unknown permission (a request `permanentlyDenied`), or, under 0.1.1 or earlier, the status is `denied` and so is a request; with it and no `NSSiriUsageDescription`, a request fails with `MISSING_USAGE_DESCRIPTION` |
 | `storage` | ✅ granted, service not applicable, as on iOS |
 | `camera`, `photos`, `photosAddOnly`, `mediaLibrary`, `speech`, `appTrackingTransparency`, `backgroundRefresh`, `phone` | ✗ not on watchOS: `denied`, a request `permanentlyDenied`, service `disabled`, as iOS answers for an unknown permission |
 | The Android-only permissions | answered as an unknown permission, as on iOS |

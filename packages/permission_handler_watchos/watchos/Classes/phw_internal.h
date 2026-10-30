@@ -74,6 +74,11 @@ PHW_HIDDEN Class phw_class(NSString* framework, NSString* className);
 // Whether the app's Info.plist has `key`.
 PHW_HIDDEN BOOL phw_has_key(NSString* key);
 
+// Whether `value`, from the app's Info.plist, turns a `defines` macro on by
+// the CLI's rule: a non-empty string, NO included, or the Boolean YES. A
+// number, even 1, does not.
+PHW_HIDDEN BOOL phw_turns_on(id value);
+
 // Fails with MISSING_USAGE_DESCRIPTION, naming `key`.
 PHW_HIDDEN void phw_missing_key(NSString* key, PHWErrorHandler failed);
 
@@ -111,13 +116,14 @@ PHW_HIDDEN BOOL phw_class_bool(Class cls, SEL selector);
 // pubspec.yaml maps them, along with FLUTTER_WATCHOS_PLUGIN_DEFINES. A group
 // left out is not in the binary at all, its framework's class names,
 // selectors and usage-description keys included, and answers as
-// PHWUnknownStrategy, as the iOS implementation's groups do when their macro
-// is off. A flutter-watchos that predates `defines` passes neither, so every
-// group is compiled in, as before.
+// PHWUnknownStrategy, as the iOS implementation's groups do when their macros
+// are off. A flutter-watchos that predates `defines`, or that cannot read the
+// app's Info.plist, passes neither, so every group is compiled in, as before.
 //
-// Each function returns the strategy class for `permission`: the group's own,
-// or PHWUnknownStrategy when that permission is left out. The group's file
-// defines it, next to the code it guards, so the two cannot disagree.
+// Each function returns the strategy class: the group's own, or
+// PHWUnknownStrategy when the group (for location, the permission) is left
+// out. The group's file defines it, next to the code it guards, so the two
+// cannot disagree.
 
 // location, locationWhenInUse and locationAlways (phw_location.m).
 PHW_HIDDEN Class phw_location_strategy(PHWPermission permission);
@@ -131,9 +137,9 @@ PHW_HIDDEN Class phw_microphone_strategy(void);
 // contacts (phw_contacts.m).
 PHW_HIDDEN Class phw_contacts_strategy(void);
 
-// calendar, calendarFullAccess, calendarWriteOnly and reminders
-// (phw_events.m).
-PHW_HIDDEN Class phw_events_strategy(PHWPermission permission);
+// calendar, calendarFullAccess, calendarWriteOnly and reminders, all four
+// together (phw_events.m).
+PHW_HIDDEN Class phw_events_strategy(void);
 
 // bluetooth (phw_bluetooth.m).
 PHW_HIDDEN Class phw_bluetooth_strategy(void);

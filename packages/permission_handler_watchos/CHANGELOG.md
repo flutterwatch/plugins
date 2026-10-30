@@ -15,10 +15,15 @@ physical watch.
   do: the pubspec maps the same macros to the keys under `defines`, which
   the first flutter-watchos release after 0.1.1 applies. A group left out
   answers as an unknown permission does, and none of its class names,
-  selectors or keys are in the binary. Under flutter-watchos 0.1.1 or
-  earlier, every group is compiled in, and whether App Store Connect's
-  usage-description check reads the groups an app does not use is not yet
-  known (see the README).
+  selectors or keys are in the binary. Calendar and reminders behave as on
+  iOS with only some of their keys: each status is still read, and a
+  request whose prompt is left out answers its status. With only
+  the when-in-use key, `locationAlways` is left out too. Siri's opt-in
+  reads `PermissionHandlerWatchosSiri` by the same rule as the CLI: a
+  non-empty string or the Boolean YES. Under flutter-watchos 0.1.1 or
+  earlier, or when the CLI cannot read the Info.plist, every group is
+  compiled in, and whether App Store Connect's usage-description check
+  reads the groups an app does not use is not yet known (see the README).
 * Each framework but UserNotifications is loaded at runtime instead of
   linked.
 * The location strategy keeps one flag in `NSUserDefaults`, for "always",

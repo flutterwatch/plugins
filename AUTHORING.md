@@ -300,15 +300,22 @@ neither, so guard each group to keep it in apps built by one:
 
 - Give a group that is left out an answer: `permission_handler_watchos`
   answers as the iOS implementation answers a permission it does not know.
-- Keep the macros and keys in the pubspec and in the sources the same: a
-  misspelled one leaves its group out of every app, and nothing fails to
-  compile. `permission_handler_watchos` has a test that compares them.
-- `tool/check_native_sources.sh` compiles such a plugin three ways: with no
-  `-D`, with the marker and every macro, and with the marker alone (see
-  `tool/README.md`).
-- The CLI compiles plugin sources on every `flutter-watchos build` and
-  `run`; an Xcode build or archive does not. After an Info.plist edit, an
-  app rebuilds with `flutter-watchos build` before it archives.
+  Where upstream compiles a group in with any of several macros, keep its
+  answers for the parts whose own macro is off, as
+  `permission_handler_watchos` does for calendar and reminders.
+- Keep the macros and keys in the pubspec and in the sources paired: a
+  misspelled macro, or a key filed under the wrong one, puts the wrong code
+  into every app, and nothing fails to compile.
+  `permission_handler_watchos` has tests that check each key the native code
+  reads against the macro of the guard around it.
+- `tool/check_native_sources.sh` compiles such a plugin with no `-D`, with
+  the marker and every macro, with the marker alone, and with the marker and
+  each macro alone (see `tool/README.md`).
+- The CLI compiles plugin sources on every `flutter-watchos build`, `run`
+  and `test`; an Xcode build or archive does not. After an Info.plist edit,
+  an app rebuilds with `flutter-watchos build` before it archives.
+- If the CLI cannot read the app's Info.plist, it warns and compiles the
+  plugin without its macros and without the marker, as an older CLI does.
 
 The rules, which values turn a macro on, what `-v` prints and why a plugin
 built through SwiftPM (§2d) is not covered, are in the CLI's

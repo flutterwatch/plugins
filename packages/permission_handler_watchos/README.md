@@ -56,22 +56,36 @@ pubspec maps them under `defines`.
 | Sensors | `sensors` | `PERMISSION_SENSORS` | `NSMotionUsageDescription` |
 | Microphone | `microphone` | `PERMISSION_MICROPHONE` | `NSMicrophoneUsageDescription` |
 | Contacts | `contacts` | `PERMISSION_CONTACTS` | `NSContactsUsageDescription` |
-| Calendar, full access | `calendarFullAccess`, `calendar` | `PERMISSION_EVENTS_FULL_ACCESS` | `NSCalendarsFullAccessUsageDescription` |
+| Calendar, full access | `calendarFullAccess`, `calendar`, `calendarWriteOnly` | `PERMISSION_EVENTS_FULL_ACCESS` | `NSCalendarsFullAccessUsageDescription` |
 | Calendar, write only | `calendarWriteOnly` | `PERMISSION_EVENTS` | `NSCalendarsWriteOnlyAccessUsageDescription` |
 | Reminders | `reminders` | `PERMISSION_REMINDERS` | `NSRemindersFullAccessUsageDescription` |
 | Bluetooth | `bluetooth` | `PERMISSION_BLUETOOTH` | `NSBluetoothAlwaysUsageDescription` |
 | Siri | `assistant` | `PERMISSION_ASSISTANT` | `PermissionHandlerWatchosSiri`, a Boolean set to `YES` |
 
-- A key counts when it holds a non-empty string, or the Boolean `YES`.
+- A key counts when it holds a non-empty string, `NO` included, or the
+  Boolean `YES`. Set `PermissionHandlerWatchosSiri` to the Boolean `YES`, and
+  leave it out of an app without the Siri capability: Siri's opt-in counts
+  any string as on too.
 - `notification`, `criticalAlerts` and `storage` need no key, and are always
   compiled in.
-- A group left out answers as a permission watchOS does not have, as the iOS
-  implementation answers a group whose macro is off: its status is `denied`,
-  a request answers `permanentlyDenied` without a prompt, and its service is
-  `disabled`.
-- After an Info.plist edit, rebuild with `flutter-watchos build` (or `run`)
-  before you archive: an Xcode build or archive alone does not compile the
-  groups again.
+- A group whose keys are all missing answers as a permission watchOS does
+  not have, as the iOS implementation answers a group whose macros are all
+  off: its status is `denied`, a request answers `permanentlyDenied` without
+  a prompt, and its service is `disabled`.
+- The calendar and reminders group is compiled in with any one of its three
+  keys, as on iOS. All four of its permissions then read their real status
+  and answer the service as not applicable. A request whose prompt the keys
+  do not allow answers that status without a prompt, as on iOS. The
+  full-access key allows the write-only prompt too.
+- With `NSLocationWhenInUseUsageDescription` alone, `locationAlways` is left
+  out and answers as a permission watchOS does not have, with no "always"
+  request and no `NSUserDefaults` flag in the app. The iOS implementation
+  keeps its location code for `locationAlways` there, and reads its status.
+- If flutter-watchos cannot read `watchos/Runner/Info.plist`, it warns and
+  compiles every group in, as an older flutter-watchos does.
+- After an Info.plist edit, rebuild with `flutter-watchos build` (or `run`,
+  or `test`) before you archive: an Xcode build or archive alone does not
+  compile the groups again.
 
 With flutter-watchos 0.1.1 or earlier, every group is compiled into every
 app, whatever its Info.plist says. Each permission you ask for still needs
@@ -101,8 +115,8 @@ required-reason API, so an app with this code declares
 privacy manifest (`PrivacyInfo.xcprivacy`). With the first flutter-watchos
 release after 0.1.1, that is an app whose Info.plist sets
 `NSLocationAlwaysAndWhenInUseUsageDescription` or
-`NSLocationAlwaysUsageDescription`; with an older one, every app that uses
-the package:
+`NSLocationAlwaysUsageDescription`, or whose Info.plist the CLI cannot read;
+with an older one, every app that uses the package:
 
 ```xml
 <key>NSPrivacyAccessedAPITypes</key>
@@ -130,7 +144,7 @@ the package:
 | `calendarFullAccess`, `calendarWriteOnly`, `reminders` | supported, with the full-access and write-only prompts |
 | `bluetooth` | supported, with the service status |
 | `criticalAlerts` | supported; needs the Critical Alerts entitlement (`com.apple.developer.usernotifications.critical-alerts`), which Apple grants on request |
-| `assistant` | Siri, supported for an app that opts in: watchOS ends an app without the Siri capability (`com.apple.developer.siri`) that asks about Siri, so the iOS implementation's build macro is an Info.plist key here, `PermissionHandlerWatchosSiri` set to `YES`, which only an app with the capability sets, with `NSSiriUsageDescription`. Without it Siri is never asked and the status is `denied`. A request answers `permanentlyDenied` with a flutter-watchos that leaves Siri's code out (see Compile-time groups), and `denied` with 0.1.1 or earlier |
+| `assistant` | Siri, supported for an app that opts in: watchOS ends an app without the Siri capability (`com.apple.developer.siri`) that asks about Siri, so the iOS implementation's build macro is an Info.plist key here, `PermissionHandlerWatchosSiri` set to `YES`, which only an app with the capability sets, with `NSSiriUsageDescription`. Any non-empty string opts in too, as the key turns Siri's code on by the same rule. Without the key Siri is never asked and the status is `denied`. A request answers `permanentlyDenied` with a flutter-watchos that leaves Siri's code out (see Compile-time groups), and `denied` with 0.1.1 or earlier |
 | `storage` | granted, as on iOS: the app's own container needs no permission |
 
 `shouldShowRequestPermissionRationale` is false, as on iOS. The statuses and
