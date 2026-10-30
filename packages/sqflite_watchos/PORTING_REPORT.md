@@ -6,8 +6,8 @@
 |---|---|
 | Implementation | ✅ Working (system SQLite over FFI) |
 | watchOS capability | Full — every method of sqflite's protocol. The deprecated `Sqflite.*` debug helpers call the method channel directly and throw (see the README). Not yet checked on a physical watch |
-| Host unit tests (`flutter test`) | ✅ pass on macOS — real SQL against the host's system SQLite (`/usr/lib/libsqlite3.dylib`; `libsqlite3.so.0` on CI's Linux runner), through sqflite_common's `Database` API on the background isolate, the protocol below it, and the isolate itself (order, errors, stopping) |
-| Upstream integration test | ✅ passed verbatim on the watchOS 27.0 Simulator (14 tests), against the watch's own `libsqlite3`, before SQL moved to a background isolate; not run since. Run it with `flutter-watchos test`: it uses `package:test`'s `test`, which `flutter-watchos drive` does not collect, so `drive` reports nothing and waits |
+| Host unit tests (`flutter test`) | ✅ pass on macOS — real SQL against the host's system SQLite (`/usr/lib/libsqlite3.dylib`; `libsqlite3.so.0` on CI's Linux runner), through sqflite_common's `Database` API on the background isolate, the protocol below it, and the isolate itself (start, order, errors, stopping, and its end with the isolate that started it) |
+| Upstream integration test | ✅ passes verbatim on the watchOS 27.0 Simulator (Series 12, 46 mm; 14 tests), against the watch's own `libsqlite3`, with SQL on the background isolate (2026-10-30). Upstream's example (PR #37) also ran its "Raw tests" page there with no failure in the console. Run it with `flutter-watchos test`: it uses `package:test`'s `test`, which `flutter-watchos drive` does not collect, so `drive` reports nothing and waits |
 | Internal unified demo | not in the internal test app yet |
 
 Marking: ✅ full / passes · ◐ partial — reason given · ○ not applicable (no upstream test) · ✗ unsupported on watchOS.
@@ -53,9 +53,12 @@ package keeps none of that native code:
   isolate, and every database shares it. The handler and what it holds
   (databases, transactions, cursors) live there; each call crosses as a
   message, and a `SqfliteDatabaseException` crosses back as its message,
-  details, result code and `transactionClosed`. So the 2-second lock wait
-  blocks that isolate, not the UI, and two connections to one file cannot
-  wait each other out (see the README). It is adapted from
+  details, result code and `transactionClosed`. The isolate closes its
+  databases and ends when the isolate that started it ends, and keeps that
+  isolate alive only while an answer is due. The 2-second lock wait blocks
+  the background isolate, not the UI; two connections to one file opened
+  from the same isolate share it, so they cannot wait each other out (see
+  the README). It is adapted from
   sqflite_common_ffi's `lib/src/isolate_io.dart` and `lib/src/method_call.dart`,
   and carries its copyright notice.
 - `watchos/Classes/sqflite_watchos_ffi.m` has two helpers: the Documents

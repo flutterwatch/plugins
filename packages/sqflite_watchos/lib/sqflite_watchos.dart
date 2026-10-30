@@ -41,7 +41,8 @@ class SqfliteWatchos extends SqflitePlatform {
   /// [SqflitePlatform.databaseFactoryMethodChannel] answers them on iOS.
   ///
   /// Its calls run on a background isolate, which the first call starts and
-  /// every database the factory opens shares.
+  /// every database the factory opens shares. Each isolate that uses the
+  /// factory has its own, which ends with it.
   static DatabaseFactory get databaseFactoryWatchos => _factory ??= () {
         final SqfliteWatchosWorker worker = _worker = SqfliteWatchosWorker(
           libraryPath: libraryPathOverride,

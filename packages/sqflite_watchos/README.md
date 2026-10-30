@@ -53,17 +53,19 @@ SQL runs on a background isolate, as `sqflite_common_ffi` runs it on
 desktop, so a long query does not hold up a frame. The first call starts
 the isolate, and every database shares it: the open databases, their
 transactions and their cursors live there, and each call reaches it as a
-message, with its arguments and results copied. Errors come back intact, as
-a `DatabaseException` with SQLite's message and result code.
+message, with its arguments and results copied. Each isolate that uses
+sqflite gets a background isolate of its own, which closes its databases
+and ends when that isolate ends. Errors come back intact, as a
+`DatabaseException` with SQLite's message and result code.
 
 The 2-second wait for another connection's lock blocks that isolate, not
 the UI, and calls to every other database wait behind it. Two connections
-to one file in the same app cannot wait each other out: the isolate that
-would commit the first is the one waiting, so the second waits the full 2
-seconds and fails with `SQLITE_BUSY` (result code 5). Keep one connection
-per file, as sqflite's default `singleInstance: true` does. On iOS each
-database has a queue of its own, so there the second connection gets the
-lock once the first commits.
+to one file opened from the same isolate cannot wait each other out: the
+background isolate that would commit the first is the one waiting, so the
+second waits the full 2 seconds and fails with `SQLITE_BUSY` (result code
+5). Keep one connection per file, as sqflite's default
+`singleInstance: true` does. On iOS each database has a queue of its own,
+so there the second connection gets the lock once the first commits.
 
 `SqfliteWatchos.sqliteVersion` reports the system SQLite's version.
 

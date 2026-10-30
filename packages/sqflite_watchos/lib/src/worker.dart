@@ -15,7 +15,10 @@
 // that cross as data and are built again on the caller's side. Here every
 // answer comes back on one port, matched by an id, an error that is not
 // sqflite's is copied as it is, as Isolate.run copies one, and a stop
-// closes every database before the isolate ends.
+// closes every database before the isolate ends. The isolate also stops
+// when the isolate that started it ends, and that one is kept alive only
+// while it waits for an answer, so an isolate done with its databases can
+// end and leaves no worker behind.
 //
 // A DynamicLibrary cannot be sent to another isolate, so the isolate binds
 // SQLite itself: from the process on the watch, or from a path in host
@@ -27,6 +30,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 // ignore: implementation_imports
 import 'package:sqflite_common/src/exception.dart'
     show SqfliteDatabaseException;
@@ -49,7 +53,7 @@ class SqfliteWatchosWorker {
   /// directory.
   final String? databasesPath;
 
-  ReceivePort? _answers;
+  RawReceivePort? _answers;
   SendPort? _calls;
 
   /// What was posted before the isolate sent its port, in order.
@@ -67,6 +71,11 @@ class SqfliteWatchosWorker {
 
   final Completer<void> _ended = Completer<void>();
 
+  /// Whether the isolate has started. The first call starts it, never the
+  /// constructor.
+  @visibleForTesting
+  bool get isStarted => _answers != null;
+
   /// Runs [method] with [arguments] on the isolate, starting it on the first
   /// call, and completes with what the handler answered.
   Future<Object?> invoke(String method, [Object? arguments]) {
@@ -78,6 +87,7 @@ class SqfliteWatchosWorker {
     final Completer<Object?> completer = Completer<Object?>();
     _pending[id] = completer;
     _post(_Call(id, method, arguments));
+    _keepAliveWhileWaiting();
     return completer.future;
   }
 
@@ -93,9 +103,19 @@ class SqfliteWatchosWorker {
         _ended.complete();
       } else {
         _post(const _Stop());
+        _keepAliveWhileWaiting();
       }
     }
     return _ended.future;
+  }
+
+  /// Ends the isolate with an error it does not catch, as a bug in it would:
+  /// it closes nothing, and the calls it has not answered fail as closed.
+  @visibleForTesting
+  void crashForTesting() {
+    if (_closed == null) {
+      _post(const _Crash());
+    }
   }
 
   void _post(Object message) {
@@ -112,9 +132,8 @@ class SqfliteWatchosWorker {
     if (_answers != null) {
       return;
     }
-    final ReceivePort answers =
-        _answers = ReceivePort('sqflite_watchos answers');
-    answers.listen(_receive);
+    final RawReceivePort answers =
+        _answers = RawReceivePort(_receive, 'sqflite_watchos answers');
     Isolate.spawn<_Start>(
       _main,
       _Start(answers.sendPort, libraryPath, databasesPath),
@@ -127,12 +146,26 @@ class SqfliteWatchosWorker {
     });
   }
 
+  /// Keeps this isolate alive while the worker owes it something: an answer,
+  /// a call not yet sent, or its end after a stop. Otherwise this isolate
+  /// may end once it has nothing else to do, and its end stops the worker.
+  void _keepAliveWhileWaiting() {
+    final RawReceivePort? answers = _answers;
+    if (answers != null && !_ended.isCompleted) {
+      answers.keepIsolateAlive = _pending.isNotEmpty ||
+          _unsent.isNotEmpty ||
+          (_closed != null && _calls != null);
+    }
+  }
+
   void _send(SendPort calls, Object message) {
     try {
       calls.send(message);
     } catch (error, stack) {
-      // An argument the VM cannot copy to another isolate. Its call fails as
-      // a call with an argument the handler cannot bind does.
+      // An argument the VM cannot copy to another isolate. The whole call
+      // fails before it reaches the isolate, as a method channel's codec
+      // fails it on iOS: a batch runs none of its operations, and
+      // continueOnError cannot apply.
       if (message is _Call) {
         _pending
             .remove(message.id)
@@ -145,6 +178,9 @@ class SqfliteWatchosWorker {
     switch (message) {
       case final SendPort calls:
         _calls = calls;
+        // When this isolate ends, by returning, Isolate.exit or a kill, the
+        // isolate gets a null exit message, which it takes as a stop.
+        Isolate.current.addOnExitListener(calls);
         for (final Object unsent in _unsent) {
           _send(calls, unsent);
         }
@@ -170,12 +206,18 @@ class SqfliteWatchosWorker {
       case null:
         // What Isolate.spawn's onExit sends, after every answer.
         _end();
+        return;
     }
+    _keepAliveWhileWaiting();
   }
 
   /// Fails every call the isolate did not answer, once it has ended.
   void _end() {
     _answers?.close();
+    final SendPort? calls = _calls;
+    if (calls != null) {
+      Isolate.current.removeOnExitListener(calls);
+    }
     _calls = null;
     _unsent.clear();
     final String closed = _closed ??= _uncaught == null
@@ -191,13 +233,17 @@ class SqfliteWatchosWorker {
     }
   }
 
-  /// The error of a call the isolate will not answer. Every database it had
-  /// open is closed, and isDatabaseClosedError() looks for database_closed.
+  /// The error of a call the isolate will not answer. None of the databases
+  /// it had open can be reached any more, and isDatabaseClosedError() looks
+  /// for database_closed. An isolate that ended by a stop closed them; one
+  /// that ended any other way left their connections open.
   static SqfliteDatabaseException _closedError(String reason) =>
       SqfliteDatabaseException('database_closed: $reason', null);
 
-  /// The error of a call whose arguments cannot be sent, with the details
-  /// the handler gives a call it cannot bind.
+  /// The error of a call whose arguments cannot be sent: the VM's message,
+  /// with the call's SQL and arguments as details when it has them. Unlike
+  /// the handler's error for an argument it cannot bind, it names no
+  /// database, which only the isolate knows, and a batch's has no details.
   static SqfliteDatabaseException _unsendable(Object error, Object? arguments) {
     final Map<String, Object?> details = <String, Object?>{
       if (arguments is Map<Object?, Object?> && arguments['sql'] != null)
@@ -230,6 +276,12 @@ final class _Call {
 /// Asks the isolate to close its databases and end.
 final class _Stop {
   const _Stop();
+}
+
+/// Makes the isolate throw an error it does not catch, for
+/// [SqfliteWatchosWorker.crashForTesting].
+final class _Crash {
+  const _Crash();
 }
 
 /// What a call answered: its result, or the error it failed with.
@@ -307,8 +359,13 @@ void _main(_Start start) {
   ) = _bind(start);
   final ReceivePort calls = ReceivePort('sqflite_watchos calls');
   calls.listen((Object? message) {
+    if (message is _Crash) {
+      throw StateError('crashForTesting');
+    }
     if (message is! _Call) {
-      // The stop, which comes after every call made before it.
+      // A stop, which comes after every call made before it, or the exit
+      // message of the isolate that started this one, null: close every
+      // database and let this isolate end.
       handler?.closeAll();
       calls.close();
       return;

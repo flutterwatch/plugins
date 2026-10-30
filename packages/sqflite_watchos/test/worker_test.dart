@@ -2,11 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
-// Host-side tests of the background isolate that runs the handler: calls
-// keep their order, errors arrive as the handler threw them, and a stop
-// closes the isolate's databases. Where it matters, the same calls also run
-// through a handler on the test isolate, to compare.
+// Host-side tests of the background isolate that runs the handler: it starts
+// on the first call, calls keep their order, errors arrive as the handler
+// threw them, a stop closes its databases, and it ends with the isolate that
+// started it. Where it matters, the same calls also run through a handler on
+// the test isolate, to compare.
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -25,6 +27,43 @@ import 'host_sqlite.dart';
 
 /// One way to make a method call: a worker's, or a handler's.
 typedef Invoke = Future<Object?> Function(String method, [Object? arguments]);
+
+/// A recursive count that keeps SQLite busy for a few hundred milliseconds:
+/// 0.4 s on an M-series Mac.
+const String longCount = 'WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL '
+    'SELECT i + 1 FROM n WHERE i < 3000000) SELECT count(*) AS c FROM n';
+
+/// Work on the factory in an isolate of its own, which ends without closing
+/// anything: it opens `session.db`, takes its write lock and returns.
+final class LockAndEnd {
+  /// A session on the SQLite at [libraryPath], with databases under
+  /// [databasesPath], that sends `locked` to [report] once it holds the lock.
+  const LockAndEnd(this.libraryPath, this.databasesPath, [this.report]);
+
+  /// The SQLite library the factory's isolate opens.
+  final String libraryPath;
+
+  /// Where `session.db` lives.
+  final String databasesPath;
+
+  /// Told once the lock is held.
+  final SendPort? report;
+
+  /// Runs the session.
+  Future<void> run() async {
+    SqfliteWatchos.libraryPathOverride = libraryPath;
+    SqfliteWatchos.databasesPathOverride = databasesPath;
+    final Database db =
+        await SqfliteWatchos.databaseFactoryWatchos.openDatabase('session.db');
+    await db.execute('CREATE TABLE IF NOT EXISTS t (x)');
+    await db.execute('BEGIN IMMEDIATE');
+    report?.send('locked');
+  }
+}
+
+/// The entry point of a helper isolate that runs [session] and then has
+/// nothing left to do.
+void runAndEnd(LockAndEnd session) => unawaited(session.run());
 
 void main() {
   late Directory dir;
@@ -65,6 +104,41 @@ void main() {
     }
     throw StateError('the call did not fail');
   }
+
+  /// Inserts into `t` of [path] from this isolate, through a connection that
+  /// waits for no lock: it fails at once with SQLITE_BUSY while another
+  /// connection holds the write lock.
+  Future<Object?> writeAtOnce(String path) async {
+    final int id = await open(local.handle, path);
+    try {
+      await local.handle('execute',
+          <String, Object?>{'id': id, 'sql': 'PRAGMA busy_timeout = 0'});
+      return await local.handle('insert',
+          <String, Object?>{'id': id, 'sql': 'INSERT INTO t VALUES (1)'});
+    } finally {
+      await local.handle('closeDatabase', <String, Object?>{'id': id});
+    }
+  }
+
+  /// Waits, for 10 s at most, until [writeAtOnce] to [path] succeeds: until
+  /// the connection of another isolate that holds its lock has closed.
+  Future<void> expectWritableSoon(String path) async {
+    final Stopwatch waited = Stopwatch()..start();
+    while (true) {
+      try {
+        await writeAtOnce(path);
+        return;
+      } on DatabaseException catch (e) {
+        if (e.getResultCode() != 5 || waited.elapsed.inSeconds >= 10) {
+          rethrow;
+        }
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
+
+  final Matcher closed = throwsA(isA<DatabaseException>().having(
+      (DatabaseException e) => e.isDatabaseClosedError(), 'closed', true));
 
   test('calls made before the isolate starts run in the order made', () async {
     // The first call starts the isolate, and its first database is 1. None
@@ -134,6 +208,30 @@ void main() {
           <Object?>['inside'],
           <Object?>['outside'],
         ]);
+  });
+
+  group('starting', () {
+    test('the isolate starts on the first call, not before', () async {
+      expect(worker.isStarted, isFalse);
+      await worker.invoke('getDatabasesPath');
+      expect(worker.isStarted, isTrue);
+    });
+
+    test('building the factory starts no isolate', () async {
+      SqfliteWatchos.libraryPathOverride = hostSqlitePath;
+      SqfliteWatchos.databasesPathOverride = dir.path;
+      await SqfliteWatchos.resetForTesting();
+      expect(SqfliteWatchos.databaseFactoryWatchos, isNotNull);
+      // A worker that never started stops within the microtask queue. A
+      // started one stops on its isolate's exit message, which is an event,
+      // so it could not have stopped yet.
+      bool stopped = false;
+      unawaited(SqfliteWatchos.resetForTesting().then((_) {
+        stopped = true;
+      }));
+      await Future<void>.value();
+      expect(stopped, isTrue);
+    });
   });
 
   group('errors', () {
@@ -227,6 +325,8 @@ void main() {
       final ReceivePort port = ReceivePort();
       addTearDown(port.close);
       final int id = await open(worker.invoke);
+      // The details hold the SQL and its arguments, but no database: only
+      // the isolate knows it, and the call never reached the isolate.
       await expectLater(
         worker.invoke('query', <String, Object?>{
           'id': id,
@@ -236,9 +336,10 @@ void main() {
         throwsA(isA<SqfliteDatabaseException>().having(
             (SqfliteDatabaseException e) => e.result,
             'details',
-            containsPair('sql', 'SELECT ?'))),
+            allOf(
+                containsPair('sql', 'SELECT ?'), isNot(contains('database'))))),
       );
-      // The call never left this isolate, and the next one is answered.
+      // The isolate answers the next call.
       expect(
           await worker.invoke(
               'query', <String, Object?>{'id': id, 'sql': 'SELECT 1 AS one'}),
@@ -248,6 +349,37 @@ void main() {
               <Object?>[1],
             ],
           });
+    });
+
+    test('an argument that cannot be sent fails a whole batch', () async {
+      final ReceivePort port = ReceivePort();
+      addTearDown(port.close);
+      final int id = await open(worker.invoke);
+      await worker.invoke(
+          'execute', <String, Object?>{'id': id, 'sql': 'CREATE TABLE t (x)'});
+      Map<String, Object?> insert(Object value) => <String, Object?>{
+            'method': 'insert',
+            'sql': 'INSERT INTO t VALUES (?)',
+            'arguments': <Object?>[value],
+          };
+      // As a method channel's codec fails such a call on iOS: none of its
+      // operations runs, continueOnError cannot apply, and the error has no
+      // details.
+      await expectLater(
+        worker.invoke('batch', <String, Object?>{
+          'id': id,
+          'continueOnError': true,
+          'operations': <Object?>[insert(1), insert(port), insert(2)],
+        }),
+        throwsA(isA<SqfliteDatabaseException>().having(
+            (SqfliteDatabaseException e) => e.result, 'details', isNull)),
+      );
+      expect(
+          ((await worker.invoke('query', <String, Object?>{
+            'id': id,
+            'sql': 'SELECT x FROM t'
+          }))! as Map<Object?, Object?>)['rows'],
+          isEmpty);
     });
 
     test('a library that cannot be opened fails every call', () async {
@@ -276,31 +408,76 @@ void main() {
         'inTransaction': true,
         'transactionId': null,
       });
-      // Queued behind the open transaction, so the stop fails it.
-      final Future<void> queued = expectLater(
-          worker.invoke(
-              'query', <String, Object?>{'id': id, 'sql': 'SELECT x FROM t'}),
-          throwsA(isA<DatabaseException>()));
-      // stop() completes on the isolate's exit message.
+      // Queued behind the open transaction, so closing the database fails it.
+      Object? queuedError;
+      final Future<void> queued = worker.invoke('query', <String, Object?>{
+        'id': id,
+        'sql': 'SELECT x FROM t'
+      }).then<void>((_) {}, onError: (Object e) {
+        queuedError = e;
+      });
       await worker.stop();
-      await queued;
-      // The write lock went with the connection: one opened here writes at
-      // once, where it would otherwise fail with SQLITE_BUSY.
-      final int other = await open(local.handle, 'locked.db');
+      // stop() completes on the isolate's exit message, which comes after
+      // every answer: the handler's own error for the queued call is in.
       expect(
-          await local.handle('insert', <String, Object?>{
-            'id': other,
-            'sql': 'INSERT INTO t VALUES (1)',
-          }),
-          1);
+          queuedError,
+          isA<SqfliteDatabaseException>()
+              .having((SqfliteDatabaseException e) => e.message, 'message',
+                  'Bad state: Database has been closed')
+              .having((SqfliteDatabaseException e) => e.result, 'details',
+                  containsPair('sql', 'SELECT x FROM t')));
+      await queued;
+      // The write lock went with the connection.
+      expect(await writeAtOnce('locked.db'), 1);
       // Later calls fail as closed, and none of them hangs.
-      await expectLater(
-        worker.invoke('getDatabasesPath'),
-        throwsA(isA<DatabaseException>().having(
-            (DatabaseException e) => e.isDatabaseClosedError(),
-            'closed',
-            true)),
-      );
+      await expectLater(worker.invoke('getDatabasesPath'), closed);
+    });
+
+    test('stop lets the calls already made finish first', () async {
+      final int id = await open(worker.invoke);
+      await worker.invoke(
+          'execute', <String, Object?>{'id': id, 'sql': 'CREATE TABLE t (x)'});
+      final List<String> order = <String>[];
+      // Both still running or waiting in the isolate when the stop is posted.
+      final Future<Object?> count = worker.invoke('query', <String, Object?>{
+        'id': id,
+        'sql': longCount
+      }).whenComplete(() => order.add('count'));
+      final Future<Object?> insert = worker.invoke('insert', <String, Object?>{
+        'id': id,
+        'sql': 'INSERT INTO t VALUES (1)',
+      }).whenComplete(() => order.add('insert'));
+      await worker.stop().whenComplete(() => order.add('stop'));
+      expect(order, <String>['count', 'insert', 'stop']);
+      expect(
+          (await count)! as Map<Object?, Object?>,
+          containsPair('rows', <List<Object?>>[
+            <Object?>[3000000],
+          ]));
+      expect(await insert, 1);
+    });
+
+    test('a stop made before the isolate has sent its port follows the calls',
+        () async {
+      // The first call starts the isolate; the stop is posted before its
+      // port arrives, behind these three.
+      final List<Future<Object?>> calls = <Future<Object?>>[
+        worker.invoke('openDatabase', <String, Object?>{'path': 'early.db'}),
+        worker.invoke(
+            'execute', <String, Object?>{'id': 1, 'sql': 'CREATE TABLE t (x)'}),
+        worker.invoke(
+            'execute', <String, Object?>{'id': 1, 'sql': 'BEGIN IMMEDIATE'}),
+      ];
+      final Future<void> stopped = worker.stop();
+      expect(await Future.wait(calls), <Object?>[
+        <String, Object?>{'id': 1},
+        null,
+        null,
+      ]);
+      await stopped;
+      // The stop reached the isolate, which closed the database and so its
+      // write lock.
+      expect(await writeAtOnce('early.db'), 1);
     });
 
     test('resetForTesting stops the isolate of the factory', () async {
@@ -311,22 +488,25 @@ void main() {
       final Database db = await first.openDatabase('reset.db');
       await db.execute('CREATE TABLE t (x)');
       await db.execute('BEGIN IMMEDIATE');
+      // Posted to the old isolate, and still running there at the reset.
+      bool counted = false;
+      final Future<void> count = db.rawQuery(longCount).then((_) {
+        counted = true;
+      });
+      await Future<void>.delayed(Duration.zero);
       await SqfliteWatchos.resetForTesting();
-
+      // The reset completed once the old isolate had answered it and ended.
+      expect(counted, isTrue);
+      await count;
       final DatabaseFactory second = SqfliteWatchos.databaseFactoryWatchos;
       expect(identical(second, first), isFalse);
       // The old isolate closed its connection, and the write lock with it.
+      expect(await writeAtOnce('reset.db'), 1);
       final Database next = await second.openDatabase('reset.db');
-      expect(await next.insert('t', <String, Object?>{'x': 1}), 1);
+      expect(await next.query('t'), hasLength(1));
       await next.close();
       // The old factory's database answers as closed.
-      await expectLater(
-        db.query('t'),
-        throwsA(isA<DatabaseException>().having(
-            (DatabaseException e) => e.isDatabaseClosedError(),
-            'closed',
-            true)),
-      );
+      await expectLater(db.query('t'), closed);
       await SqfliteWatchos.resetForTesting();
     });
 
@@ -341,6 +521,60 @@ void main() {
       await expectLater(
           factory.getDatabasesPath(), throwsA(isA<ArgumentError>()));
       await SqfliteWatchos.resetForTesting();
+    });
+
+    test('an isolate that ends abnormally fails the calls it never answered',
+        () async {
+      final int id = await open(worker.invoke, 'ended.db');
+      await worker.invoke(
+          'execute', <String, Object?>{'id': id, 'sql': 'CREATE TABLE t (x)'});
+      await worker.invoke('execute', <String, Object?>{
+        'id': id,
+        'sql': 'BEGIN IMMEDIATE',
+        'inTransaction': true,
+        'transactionId': null,
+      });
+      // Queued behind the open transaction: only the isolate's end fails it,
+      // with the error the isolate reported before it ended.
+      final Future<void> queued = expectLater(
+        worker.invoke(
+            'query', <String, Object?>{'id': id, 'sql': 'SELECT x FROM t'}),
+        throwsA(isA<DatabaseException>()
+            .having((DatabaseException e) => e.isDatabaseClosedError(),
+                'closed', true)
+            .having((DatabaseException e) => '$e', 'text',
+                contains('crashForTesting'))),
+      );
+      worker.crashForTesting();
+      await queued;
+      await expectLater(worker.invoke('getDatabasesPath'), closed);
+    });
+  });
+
+  group('lifetime', () {
+    test('an Isolate.run session leaves no worker once it ends', () async {
+      await Isolate.run(LockAndEnd(hostSqlitePath, dir.path).run);
+      // The session ended with its database open and its write lock held.
+      // Its end stopped its worker, which closed the database, and only a
+      // stop does that, before it ended too.
+      await expectWritableSoon('session.db');
+    });
+
+    test('a helper isolate that used the factory ends on its own', () async {
+      final ReceivePort events = ReceivePort();
+      addTearDown(events.close);
+      await Isolate.spawn<LockAndEnd>(
+        runAndEnd,
+        LockAndEnd(hostSqlitePath, dir.path, events.sendPort),
+        onExit: events.sendPort,
+        onError: events.sendPort,
+      );
+      // Its session, then its exit (null): nothing keeps it alive once its
+      // last call is answered.
+      expect(await events.take(2).toList().timeout(const Duration(seconds: 10)),
+          <Object?>['locked', null]);
+      // Its end stopped its worker too.
+      await expectWritableSoon('session.db');
     });
   });
 }
