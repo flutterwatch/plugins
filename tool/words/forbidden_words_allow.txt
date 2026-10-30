@@ -38,6 +38,7 @@ packages/local_auth_watchos/**/*.dart | malloc.free( | package:ffi's malloc.free
 packages/shared_preferences_watchos/**/*.dart | malloc.free( | package:ffi's malloc.free, which releases native memory; a Dart API call.
 packages/flutter_secure_storage_watchos/lib/flutter_secure_storage_watchos.dart | ..free( | calloc.free as a cascade on package:ffi's calloc; a Dart API call.
 packages/firebase_*_watchos/**/*.m | free( | C's free(), which releases native memory; also the tail of each plugin's exported *_free function.
+packages/flutter_local_notifications_watchos/**/*.m | free( | C's free(), which releases native memory; here the body of the plugin's exported *_release function.
 packages/flutter_secure_storage_watchos/**/*.m | free( | C's free(), which releases native memory; also the tail of each plugin's exported *_free function.
 packages/flutter_watch_link/**/*.m | free( | C's free(), which releases native memory; also the tail of each plugin's exported *_free function.
 packages/games_services_watchos/**/*.m | free( | C's free(), which releases native memory; also the tail of each plugin's exported *_free function.
