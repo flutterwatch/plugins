@@ -197,8 +197,9 @@ jobs:
     # supports and its default; xcode-27 runs Xcode 27. A symbol one SDK lacks
     # (CLActivityTypeMaritime in #12) fails here, not in an app's build. A
     # plugin that declares `defines` is compiled with no -D, with the marker
-    # and every macro, and with the marker alone (#19), so both sides of each
-    # guard compile.
+    # and every macro, with the marker alone, and with the marker and each
+    # macro alone (#19), so each guard compiles with its macros all on, all
+    # off and one at a time.
     name: native sources (${{ matrix.label }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
@@ -242,9 +243,10 @@ jobs:
           exit "$status"
 
       # The check must be able to fail. Its fixtures hold an undeclared
-      # symbol, a warning and a guard that is wrong only for an app without
-      # its key, which fail, and a clean source with a deprecation and guards
-      # right on both sides, which pass.
+      # symbol, a warning, guards in C and Swift that are wrong only for an
+      # app without their key, and a nested guard wrong only for one macro
+      # alone, which fail, and a clean source with a deprecation and guards
+      # right in every pass, which pass.
       - name: Test the check
         working-directory: tool
         run: dart test test/check_native_sources_test.dart

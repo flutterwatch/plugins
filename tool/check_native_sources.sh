@@ -20,11 +20,13 @@
 #   SwiftPM build provides, and the CLI builds such a plugin with xcodebuild.
 # - A plugin that declares `defines` in its pubspec (macros the app's
 #   Info.plist turns on, from the first flutter-watchos release after 0.1.1)
-#   is compiled three ways: with no -D, as an older CLI compiles it; with
+#   is compiled with no -D, as an older CLI compiles it; with
 #   FLUTTER_WATCHOS_PLUGIN_DEFINES and every macro, as for an app that sets
-#   every key; and with the marker alone, as for an app that sets none. So
-#   both sides of each guard compile. clang gets each define as NAME=1, and
-#   swiftc as a bare NAME, as the CLI passes them.
+#   every key; with the marker alone, as for an app that sets none; and, when
+#   it declares more than one, with the marker and each macro alone, as for
+#   an app that sets one group's keys. So each guard compiles with its macros
+#   all on, all off and one at a time, nested guards included. clang gets
+#   each define as NAME=1, and swiftc a bare NAME, as the CLI passes them.
 #
 # The pubspecs are read by tool/bin/plugin_defines.dart, with package:yaml,
 # the parser the CLI uses, so dart must be on PATH and `dart pub get` must
@@ -60,6 +62,9 @@ done
 if [ -z "$root" ]; then
   root="$(git rev-parse --show-toplevel)"
 fi
+# Absolute, as the script moves into it and then hands it to the Dart tool,
+# which would read a relative root from inside itself.
+root="$(cd "$root" 2> /dev/null && pwd)" || { echo "--root: no directory there" >&2; exit 2; }
 tool="$(cd "$(dirname "$0")" && pwd)"
 shim="$tool/native/plugin_views_shim.swift"
 cd "$root"
@@ -166,11 +171,19 @@ for package_dir in $(printf '%s\n' "$tracked" | cut -d/ -f1-2 | sort -u); do
     esac
   done
   # Pass 0 compiles with no -D. A package with defines also gets pass 1, the
-  # marker and every macro, and pass 2, the marker alone.
+  # marker and every macro, pass 2, the marker alone, and, with more than one
+  # macro, a pass for each: the marker and that macro alone.
   macros="$(macros_of "$package_dir")"
+  macro_list=()
+  for macro in $macros; do
+    macro_list+=("$macro")
+  done
   passes=1
-  if [ -n "$macros" ]; then
+  if [ ${#macro_list[@]} -gt 0 ]; then
     passes=3
+    if [ ${#macro_list[@]} -gt 1 ]; then
+      passes=$((3 + ${#macro_list[@]}))
+    fi
     echo "defines $package: $macros"
   fi
   for target in $targets; do
@@ -185,10 +198,14 @@ for package_dir in $(printf '%s\n' "$tracked" | cut -d/ -f1-2 | sort -u); do
         swift_defines=("-D$marker")
       fi
       if [ "$pass" -eq 1 ]; then
-        for macro in $macros; do
+        for macro in "${macro_list[@]}"; do
           clang_defines+=("-D$macro=1")
           swift_defines+=("-D$macro")
         done
+      elif [ "$pass" -ge 3 ]; then
+        macro="${macro_list[$((pass - 3))]}"
+        clang_defines+=("-D$macro=1")
+        swift_defines+=("-D$macro")
       fi
       # The flags as --list shows them.
       clang_flags="${clang_defines[*]+${clang_defines[*]}}"
@@ -199,7 +216,8 @@ for package_dir in $(printf '%s\n' "$tracked" | cut -d/ -f1-2 | sort -u); do
         case "$pass" in
           0) label=" [no -D]" ;;
           1) label=" [marker, every macro]" ;;
-          *) label=" [marker alone]" ;;
+          2) label=" [marker alone]" ;;
+          *) label=" [marker, ${macro_list[$((pass - 3))]} alone]" ;;
         esac
       fi
       for source in ${c_sources[@]+"${c_sources[@]}"}; do

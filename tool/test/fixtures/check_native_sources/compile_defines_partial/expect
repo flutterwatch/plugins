@@ -1,0 +1,4 @@
+1
+FAILED
+packages/gp_watchos/watchos/Classes/gp_watchos_ffi.m [marker, GP_EXTRA alone]
+Native sources: some do not compile cleanly with

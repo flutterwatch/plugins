@@ -3,7 +3,11 @@ defines gd_watchos: GD_CAMERA GD_EXTRA
 packages/gd_watchos/watchos/Classes/gd_watchos_ffi.m [no -D]
 packages/gd_watchos/watchos/Classes/gd_watchos_ffi.m [marker, every macro]
 packages/gd_watchos/watchos/Classes/gd_watchos_ffi.m [marker alone]
+packages/gd_watchos/watchos/Classes/gd_watchos_ffi.m [marker, GD_CAMERA alone]
+packages/gd_watchos/watchos/Classes/gd_watchos_ffi.m [marker, GD_EXTRA alone]
 gd_watchos_views [no -D]
 gd_watchos_views [marker, every macro]
 gd_watchos_views [marker alone]
+gd_watchos_views [marker, GD_CAMERA alone]
+gd_watchos_views [marker, GD_EXTRA alone]
 Native sources: all compile cleanly with

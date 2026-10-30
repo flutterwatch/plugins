@@ -8,9 +8,10 @@
 /// `flutter.plugin.platforms.watchos.defines` in its pubspec. From the first
 /// flutter-watchos release after 0.1.1, the CLI compiles the plugin's native
 /// sources with `FLUTTER_WATCHOS_PLUGIN_DEFINES` and each macro whose key the
-/// app's Info.plist sets; an older CLI passes neither. So the check compiles
-/// such a plugin three ways: with no `-D`, with the marker and every macro,
-/// and with the marker alone.
+/// app's Info.plist sets; an older CLI passes neither, and nor does the CLI
+/// for a plugin that declares none. So the check compiles such a plugin with
+/// no `-D`, with the marker and every macro, with the marker alone, and with
+/// the marker and each macro alone.
 ///
 /// The pubspec is read with package:yaml, the parser the CLI reads it with,
 /// so a declaration means the same to both, and a declaration the CLI would
@@ -157,6 +158,10 @@ int runPluginDefines(String root, StringSink out) {
       for (final String problem in defines.problems) {
         out.writeln('  - $problem');
       }
+      out.writeln(
+        'Each entry maps a macro name, a C identifier, to an app Info.plist '
+        'key or to a list of keys.',
+      );
       status = 1;
     } else if (defines.macros.isNotEmpty) {
       out.writeln('defines $package ${defines.macros.join(' ')}');

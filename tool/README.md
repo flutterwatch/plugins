@@ -135,11 +135,14 @@ run on macOS, in the `native` job.
 
 A package that declares `defines` in its pubspec (macros that the app's
 Info.plist turns on, from the first flutter-watchos release after 0.1.1) is
-compiled three times per target, so both sides of each guard compile:
+compiled several times per target, so each guard compiles with its macros
+all on, all off and one at a time, nested guards included:
 - with no `-D`, as an older CLI compiles it;
 - with `FLUTTER_WATCHOS_PLUGIN_DEFINES` and every macro, as for an app that
   sets every key;
-- with the marker alone, as for an app that sets none.
+- with the marker alone, as for an app that sets none;
+- with more than one macro, with the marker and each macro alone, as for an
+  app that sets one group's keys.
 
 clang gets each define as `NAME=1` and swiftc as a bare `NAME`, as the CLI
 passes them. `bin/plugin_defines.dart` reads the pubspecs for the script,
@@ -148,8 +151,9 @@ what YAML allows (flow maps, quoting, comments), and the system Ruby and
 Python read YAML 1.1, where a bare `NO` is false. A declaration the CLI would
 refuse (`defines` not a map, a macro that is not a C identifier, a key that
 is not a non-empty string) fails before anything is compiled. The fixtures
-include a guard that is wrong only for an app without the key, which must
-fail in the marker-alone pass.
+include guards that are wrong only for an app without the key, in C and in
+Swift, which must fail in the marker-alone pass, and a nested guard that is
+wrong only for one macro alone, which must fail in that pass.
 
 ## Weekly upstream compatibility
 
