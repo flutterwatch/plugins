@@ -9,15 +9,22 @@
 // The macros decide as the iOS implementation's do. Any of the three below
 // compiles this strategy in, or a flutter-watchos that predates `defines`
 // does. All four permissions then read their status from EventKit, and the
-// service is not applicable. Each macro adds the prompts its key allows:
+// service is not applicable. Each macro adds requests:
 // - PERMISSION_EVENTS_FULL_ACCESS (NSCalendarsFullAccessUsageDescription):
-//   calendar and calendarFullAccess, and calendarWriteOnly too;
-// - PERMISSION_EVENTS (NSCalendarsWriteOnlyAccessUsageDescription):
-//   calendarWriteOnly;
+//   the full-access one of calendar and calendarFullAccess, and the
+//   write-only one of calendarWriteOnly too, as on iOS;
+// - PERMISSION_EVENTS (NSCalendarsWriteOnlyAccessUsageDescription): the
+//   write-only one;
 // - PERMISSION_REMINDERS (NSRemindersFullAccessUsageDescription): reminders.
 // A request whose prompt is left out answers its status and asks nothing;
 // that prompt's key and request are not in the app. With none of the three,
 // none of this is, and the four answer as PHWUnknownStrategy.
+//
+// Each prompt still needs its own key (phw_has_key below), which the iOS
+// implementation does not check. So with only the full-access key,
+// calendarWriteOnly is granted once full access is, but a request while it
+// is not determined fails with MISSING_USAGE_DESCRIPTION, where the iOS
+// implementation sends the write-only request.
 
 #import "phw_internal.h"
 

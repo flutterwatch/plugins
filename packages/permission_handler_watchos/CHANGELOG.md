@@ -15,12 +15,16 @@ physical watch.
   do: the pubspec maps the same macros to the keys under `defines`, which
   the first flutter-watchos release after 0.1.1 applies. A group left out
   answers as an unknown permission does, and none of its class names,
-  selectors or keys are in the binary. Calendar and reminders behave as on
-  iOS with only some of their keys: each status is still read, and a
-  request whose prompt is left out answers its status. With only the
-  when-in-use key, `locationAlways` is left out too. Siri opts in only when
-  `PermissionHandlerWatchosSiri` is the Boolean YES or a string YES, true or
-  1: any non-empty string compiles Siri's code in, but `NO` leaves Siri off.
+  selectors or keys are in the binary. Calendar and reminders are one
+  group, as on iOS: with only some of their keys, each status is still
+  read, and a request whose prompt is left out answers its status. The
+  write-only prompt still needs its own key: with only the full-access key,
+  a `calendarWriteOnly` request while it is not determined fails with
+  `MISSING_USAGE_DESCRIPTION`, where iOS sends the write-only request. With
+  only the when-in-use key, `locationAlways` is left out too. Siri opts in
+  only when `PermissionHandlerWatchosSiri` is the Boolean YES or a string
+  YES, true or 1: any non-empty string compiles Siri's code in, but `NO`
+  leaves Siri off.
 * A notifications-only app built this way references the same privacy API
   as a native watch app that only asks for notifications. Under
   flutter-watchos 0.1.1 or earlier, or when the CLI cannot read the

@@ -302,24 +302,37 @@ neither, so guard each group to keep it in apps built by one:
   answers as the iOS implementation answers a permission it does not know.
   Where upstream compiles a group in with any of several macros, keep its
   answers for the parts whose own macro is off, as
-  `permission_handler_watchos` does for calendar and reminders.
+  `permission_handler_watchos` does for calendar and reminders. Leave such a
+  part out instead only when keeping it would put into the app something
+  the app must then declare, and say so in the README. The one case in
+  `permission_handler_watchos` is location: under
+  `PERMISSION_LOCATION_WHENINUSE` alone it answers `locationAlways` as a
+  permission it does not know, where upstream reads its status, so that an
+  app that only asks for "when in use" has no `NSUserDefaults` flag, a
+  required-reason API its privacy manifest would have to declare.
 - Keep the macros and keys in the pubspec and in the sources paired: a
   misspelled macro, or a key filed under the wrong one, puts the wrong code
-  into every app, and nothing fails to compile.
-  `permission_handler_watchos` has tests that check each key the native code
-  reads against the macro of the guard around it.
+  into every app, and nothing fails to compile. File each key under one
+  macro. A key read in code that several macros compile in belongs to the
+  one no other key turns on: `NSLocationWhenInUseUsageDescription`, read
+  under `PERMISSION_LOCATION || PERMISSION_LOCATION_WHENINUSE`, belongs to
+  `PERMISSION_LOCATION_WHENINUSE`. `permission_handler_watchos` has tests
+  that check each key the native code reads against the guards around it
+  this way.
 - `tool/check_native_sources.sh` compiles such a plugin with no `-D`, with
   the marker and every macro, with the marker alone, and with the marker and
   each macro alone (see `tool/README.md`).
-- The CLI compiles plugin sources on every `flutter-watchos build`, `run`
-  and `test`; an Xcode build or archive does not. After an Info.plist edit,
-  an app rebuilds with `flutter-watchos build` before it archives.
+- The CLI compiles plugin sources on every `flutter-watchos build` and
+  `run` (and `drive`, and `test` with `-d`); an Xcode build or archive does
+  not. `run` and `test` stage a debug build for one SDK, and `test` without
+  `-d` compiles no plugin source, so after an Info.plist edit an app runs
+  `flutter-watchos build watchos --release` again before it archives.
 - If the CLI cannot read the app's Info.plist, it warns and compiles the
   plugin without its macros and without the marker, as an older CLI does.
 
 The rules, which values turn a macro on, what `-v` prints and why a plugin
 built through SwiftPM (§2d) is not covered, are in the CLI's
-[Compiling out what an app does not use](https://github.com/flutterwatch/flutter-watchos/blob/main/doc/plugins.md#compiling-out-what-an-app-does-not-use).
+`doc/plugins.md`, from the first flutter-watchos release after 0.1.1.
 `permission_handler_watchos` is the worked example.
 
 ## 3. Verify

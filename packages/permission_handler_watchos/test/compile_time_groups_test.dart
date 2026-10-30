@@ -9,6 +9,13 @@
 // compiles in. A macro or a key spelled differently, or a key filed under
 // the wrong macro, would put the wrong groups into every app that a
 // flutter-watchos with `defines` builds, and no compile would show it.
+//
+// The pubspec files each key under one macro, and the guards decide which.
+// A key read in code that several macros compile in, such as the
+// when-in-use key under PERMISSION_LOCATION || PERMISSION_LOCATION_WHENINUSE,
+// belongs to the one that no other key turns on. Filed under the other one
+// too, it would turn that one on as well, and put its code into apps that
+// do not use it.
 
 import 'dart:io';
 
@@ -26,6 +33,11 @@ final RegExp _markerGuard = RegExp(
 final RegExp _keyLiteral = RegExp(
   r'@"(NS\w+UsageDescription|PermissionHandlerWatchos\w*)"',
 );
+
+/// Siri's usage description is read in Siri's code, but it does not turn
+/// that code on: its opt-in does, as the usage description alone does not
+/// say that the app has the Siri capability.
+const String _siriUsageDescription = 'NSSiriUsageDescription';
 
 /// One Info.plist key literal in the native sources, with the macros of the
 /// innermost marker guard around it: empty outside any marker guard, and in
@@ -103,7 +115,8 @@ List<_KeyRead> _keyReads() {
   return reads;
 }
 
-/// The pubspec's `defines`: each macro with its Info.plist keys.
+/// The pubspec's `defines`: each macro with its Info.plist keys, none for an
+/// entry that lists none.
 Map<String, List<String>> _declared() {
   Object? node = loadYaml(File('pubspec.yaml').readAsStringSync());
   for (final String key in <String>[
@@ -117,18 +130,62 @@ Map<String, List<String>> _declared() {
   }
   return <String, List<String>>{
     for (final MapEntry<dynamic, dynamic> entry in (node as YamlMap).entries)
-      entry.key as String: entry.value is String
-          ? <String>[entry.value as String]
-          : (entry.value as YamlList).cast<String>().toList(),
+      entry.key as String: switch (entry.value) {
+        final String key => <String>[key],
+        final YamlList keys => keys.cast<String>().toList(),
+        _ => <String>[],
+      },
   };
 }
 
-/// The macro each declared key is filed under.
-Map<String, String> _macroOfKey() {
-  return <String, String>{
-    for (final MapEntry<String, List<String>> define in _declared().entries)
-      for (final String key in define.value) key: define.key,
-  };
+/// The macros the pubspec files each declared key under.
+Map<String, Set<String>> _macrosOfKey() {
+  final Map<String, Set<String>> macros = <String, Set<String>>{};
+  for (final MapEntry<String, List<String>> define in _declared().entries) {
+    for (final String key in define.value) {
+      (macros[key] ??= <String>{}).add(define.key);
+    }
+  }
+  return macros;
+}
+
+/// The macros the guards leave each key the native code reads, from the
+/// sources alone: those that compile in every read of the key. Where that
+/// is several, a macro that no other key is left takes the key, since each
+/// macro needs a key and a key turns one macro on. A key still left several
+/// is one the guards do not decide.
+Map<String, Set<String>> _macrosTheGuardsLeave() {
+  final Map<String, Set<String>> left = <String, Set<String>>{};
+  for (final _KeyRead read in _keyReads()) {
+    if (read.key != _siriUsageDescription) {
+      left[read.key] =
+          left[read.key]?.intersection(read.macros) ?? read.macros.toSet();
+    }
+  }
+  final Set<String> macros = _guardedMacros();
+  bool narrowed = true;
+  while (narrowed) {
+    narrowed = false;
+    for (final String macro in macros) {
+      final List<String> keys = <String>[
+        for (final MapEntry<String, Set<String>> entry in left.entries)
+          if (entry.value.contains(macro)) entry.key,
+      ];
+      if (keys.length == 1 && left[keys.single]!.length > 1) {
+        left[keys.single] = <String>{macro};
+        narrowed = true;
+      }
+    }
+  }
+  return left;
+}
+
+/// [macrosOfKey] as sorted `key: MACRO` lines, for a readable failure.
+List<String> _pairs(Map<String, Set<String>> macrosOfKey) {
+  return <String>[
+    for (final MapEntry<String, Set<String>> entry in macrosOfKey.entries)
+      '${entry.key}: ${(entry.value.toList()..sort()).join(', ')}',
+  ]..sort();
 }
 
 void main() {
@@ -136,20 +193,42 @@ void main() {
     expect(_guardedMacros(), _declared().keys.toSet());
   });
 
-  // Siri's usage description is read in Siri's code, but it does not turn
-  // that code on: its opt-in does, as the usage description alone does not
-  // say that the app has the Siri capability.
+  test('each macro lists a key, and each key is listed once', () {
+    final Map<String, List<String>> declared = _declared();
+    expect(
+      <String>[
+        for (final MapEntry<String, List<String>> define in declared.entries)
+          if (define.value.isEmpty) define.key,
+      ],
+      isEmpty,
+      reason: 'macros that list no key',
+    );
+    final List<String> keys = <String>[
+      for (final List<String> listed in declared.values) ...listed,
+    ];
+    expect(
+      <String>{
+        for (final String key in keys)
+          if (keys.where((String other) => other == key).length > 1) key,
+      },
+      isEmpty,
+      reason: 'keys listed more than once',
+    );
+  });
+
   test('each key the native code reads is filed under a macro its guard tests',
       () {
-    final Map<String, String> macroOfKey = _macroOfKey();
+    final Map<String, Set<String>> macrosOfKey = _macrosOfKey();
     for (final _KeyRead read in _keyReads()) {
-      if (read.key == 'NSSiriUsageDescription') {
-        expect(macroOfKey[read.key], isNull, reason: read.where);
+      if (read.key == _siriUsageDescription) {
+        expect(macrosOfKey[read.key], isNull, reason: read.where);
         expect(read.macros, contains('PERMISSION_ASSISTANT'),
             reason: read.where);
         continue;
       }
-      expect(read.macros, contains(macroOfKey[read.key]),
+      expect(macrosOfKey[read.key], isNotNull,
+          reason: '${read.key} at ${read.where} is filed under no macro');
+      expect(read.macros, containsAll(macrosOfKey[read.key]!),
           reason: '${read.key} at ${read.where}');
     }
   });
@@ -166,6 +245,27 @@ void main() {
         );
       }
     }
+  });
+
+  test('each key is filed under exactly the macro the guards leave it', () {
+    expect(_pairs(_macrosOfKey()), _pairs(_macrosTheGuardsLeave()));
+  });
+
+  // The iOS implementation compiles the write-only request in with
+  // PERMISSION_EVENTS or PERMISSION_EVENTS_FULL_ACCESS, and so does this
+  // package. A guard that tests PERMISSION_EVENTS alone leaves the key to the
+  // same macro, so the test above cannot tell the two apart.
+  test('the write-only request is compiled in with either calendar macro', () {
+    expect(
+      <List<String>>[
+        for (final _KeyRead read in _keyReads())
+          if (read.key == 'NSCalendarsWriteOnlyAccessUsageDescription')
+            read.macros.toList()..sort(),
+      ],
+      <List<String>>[
+        <String>['PERMISSION_EVENTS', 'PERMISSION_EVENTS_FULL_ACCESS'],
+      ],
+    );
   });
 
   test('the EventKit keys are among the keys read', () {
