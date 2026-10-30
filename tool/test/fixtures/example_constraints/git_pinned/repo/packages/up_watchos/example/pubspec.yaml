@@ -1,0 +1,16 @@
+name: example
+publish_to: none
+dependencies:
+  flutter:
+    sdk: flutter
+  up: ^2.1.0
+  up_common:
+    git:
+      url: https://example.com/up.git
+      path: up_common
+      ref: 0123456789abcdef0123456789abcdef01234567
+  up_watchos:
+    path: ../
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

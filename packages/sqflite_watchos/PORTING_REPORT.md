@@ -62,10 +62,29 @@ replaced by `Platform.operatingSystemVersion`.
 
 ## Example
 
-sqflite's own example app is built on `sqflite_example_common`, which is
-not published, so `example/lib/main.dart` is a small watch demo instead.
-`example/integration_test/sqflite_test.dart` is upstream's test, unchanged but for
-the formatting this repo's CI checks.
+`example/` is sqflite 2.4.5's own example (`sqflite/example` in
+tekartik/sqflite): `lib/main.dart` and `lib/compat_test_run.dart` are
+upstream's, unchanged. Its pages come from `sqflite_example_common`, which is
+not published on pub.dev. The watch deviations are both in
+`example/pubspec.yaml`:
+
+| Change | Why |
+|---|---|
+| `sqflite_example_common` is pinned with `ref` to tekartik/sqflite `21d2b8d` | it is not on pub.dev, and upstream's pubspec takes it from the repository's default branch, which can move under the example; `21d2b8d` is the commit of sqflite 2.4.5 |
+| `sqflite_watchos` is added | the watch implementation |
+
+The other dependencies are upstream's, each with a caret on the version it
+ran with here, as this repository's CI asks.
+`example/integration_test/sqflite_test.dart` is upstream's test, unchanged
+but for the formatting this repo's CI checks.
+
+On the watchOS 27.0 Simulator (Series 12, 46mm, 2026-10-30) the example
+started with no error in its console (first frame 0.8 s after the engine
+ran, built with `--dart-define=flutter.inspector.structuredErrors=false`),
+and its list of test pages fits the screen. Its "Raw tests" page ran
+upstream's SQL checks, against SQLite 3.54.0: every result seen while
+scrolling the page was a pass, and the console showed no failure. The
+official integration test passed (14 tests).
 
 ## Protocol coverage
 

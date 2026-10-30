@@ -293,6 +293,9 @@ watch deviations, each listed in the package `README.md` and
 - `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` where the call it
   guards reaches a plugin with no watchOS implementation.
 - A missing `*_watchos` package is added to the example's pubspec.
+- A dependency that upstream's example takes from upstream's repository,
+  because it is not on pub.dev, is pinned with `ref` to the commit of the
+  upstream release the package is tested against.
 - An upstream comment with a forbidden word is reworded.
 
 If upstream's example cannot launch on the watch even with these deviations
