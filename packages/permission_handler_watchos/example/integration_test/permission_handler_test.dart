@@ -37,9 +37,9 @@ void main() {
     expect(await Permission.storage.status, PermissionStatus.granted);
     expect(await Permission.storage.request(), PermissionStatus.granted);
     // The example has neither the Critical Alerts entitlement nor Siri, so
-    // neither has been asked for. Its Info.plist has no
-    // NSSiriUsageDescription, so Siri is not even asked about: INPreferences
-    // ends an app without the Siri entitlement.
+    // neither has been asked for. Its Info.plist does not set
+    // PermissionHandlerWatchosSiri, so Siri is not even asked about:
+    // INPreferences ends an app without the Siri entitlement.
     expect(await Permission.criticalAlerts.status, PermissionStatus.denied);
     expect(await Permission.assistant.status, PermissionStatus.denied);
   });
