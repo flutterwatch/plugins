@@ -195,7 +195,10 @@ jobs:
     # compiled the way the CLI compiles it, with -fsyntax-only, for a watch
     # and for the Simulator. macos-26 runs the oldest Xcode 26 the CLI
     # supports and its default; xcode-27 runs Xcode 27. A symbol one SDK lacks
-    # (CLActivityTypeMaritime in #12) fails here, not in an app's build.
+    # (CLActivityTypeMaritime in #12) fails here, not in an app's build. A
+    # plugin that declares `defines` is compiled with no -D, with the marker
+    # and every macro, and with the marker alone (#19), so both sides of each
+    # guard compile.
     name: native sources (${{ matrix.label }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
@@ -214,6 +217,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The check reads each plugin's `defines` with
+      # tool/bin/plugin_defines.dart, through package:yaml as the CLI reads
+      # them, so Dart and the tool's dependencies come before the compile.
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Fetch the tool dependencies
+        working-directory: tool
+        run: dart pub get
+
       - name: Compile with each Xcode
         env:
           DEVELOPER_DIRS: ${{ matrix.developer_dirs }}
@@ -230,12 +242,9 @@ jobs:
           exit "$status"
 
       # The check must be able to fail. Its fixtures hold an undeclared
-      # symbol and a warning, which fail, and a clean source with a
-      # deprecation, which passes.
-      - uses: dart-lang/setup-dart@v1
-
+      # symbol, a warning and a guard that is wrong only for an app without
+      # its key, which fail, and a clean source with a deprecation and guards
+      # right on both sides, which pass.
       - name: Test the check
         working-directory: tool
-        run: |
-          dart pub get
-          dart test test/check_native_sources_test.dart
+        run: dart test test/check_native_sources_test.dart

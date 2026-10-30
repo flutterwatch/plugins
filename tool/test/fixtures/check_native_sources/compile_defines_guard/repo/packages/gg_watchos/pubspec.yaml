@@ -1,0 +1,8 @@
+name: gg_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        defines:
+          GG_CAMERA: NSCameraUsageDescription

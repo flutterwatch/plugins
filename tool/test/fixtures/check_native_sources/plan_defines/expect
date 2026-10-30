@@ -1,0 +1,9 @@
+0
+defines d_watchos: D_CAMERA D_EXTRA
+plan   clang   watchos arm64-apple-watchos26.0 packages/d_watchos/watchos/Classes/d_watchos_ffi.m [no -D]
+plan   clang   watchos arm64-apple-watchos26.0 packages/d_watchos/watchos/Classes/d_watchos_ffi.m [marker, every macro] -DFLUTTER_WATCHOS_PLUGIN_DEFINES=1 -DD_CAMERA=1 -DD_EXTRA=1
+plan   clang   watchos arm64-apple-watchos26.0 packages/d_watchos/watchos/Classes/d_watchos_ffi.m [marker alone] -DFLUTTER_WATCHOS_PLUGIN_DEFINES=1
+plan   swiftc  watchsimulator arm64-apple-watchos26.0-simulator d_watchos_views [no -D]: packages/d_watchos/watchos/Views/d_watchos_views.swift
+plan   swiftc  watchsimulator arm64-apple-watchos26.0-simulator d_watchos_views [marker, every macro] -DFLUTTER_WATCHOS_PLUGIN_DEFINES -DD_CAMERA -DD_EXTRA: packages/d_watchos/watchos/Views/d_watchos_views.swift
+plan   swiftc  watchsimulator arm64-apple-watchos26.0-simulator d_watchos_views [marker alone] -DFLUTTER_WATCHOS_PLUGIN_DEFINES: packages/d_watchos/watchos/Views/d_watchos_views.swift
+plan   clang   watchos arm64-apple-watchos26.0 packages/e_watchos/watchos/Classes/e_watchos_ffi.m

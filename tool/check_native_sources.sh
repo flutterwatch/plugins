@@ -18,6 +18,20 @@
 # - A plugin whose watchos/Package.swift names a SwiftPM package is skipped
 #   and listed: its sources import that package's modules, which only a
 #   SwiftPM build provides, and the CLI builds such a plugin with xcodebuild.
+# - A plugin that declares `defines` in its pubspec (macros the app's
+#   Info.plist turns on, from the first flutter-watchos release after 0.1.1)
+#   is compiled three ways: with no -D, as an older CLI compiles it; with
+#   FLUTTER_WATCHOS_PLUGIN_DEFINES and every macro, as for an app that sets
+#   every key; and with the marker alone, as for an app that sets none. So
+#   both sides of each guard compile. clang gets each define as NAME=1, and
+#   swiftc as a bare NAME, as the CLI passes them.
+#
+# The pubspecs are read by tool/bin/plugin_defines.dart, with package:yaml,
+# the parser the CLI uses, so dart must be on PATH and `dart pub get` must
+# have run in tool/. A YAML reader in shell would miss what YAML allows (flow
+# maps and lists, quoting, comments), and the system Ruby and Python read
+# YAML 1.1, where a bare NO is false. A declaration the CLI would refuse
+# fails here before anything is compiled.
 #
 # Only git-tracked files are read. A warning fails like an error, as in the
 # CLI's own host typecheck, except a deprecation: those are counted and left
@@ -30,6 +44,9 @@ set -euo pipefail
 # The deployment target `flutter-watchos create` writes.
 readonly deployment_target="26.0"
 readonly targets="watchos:arm64-apple-watchos${deployment_target} watchsimulator:arm64-apple-watchos${deployment_target}-simulator"
+# The define the CLI passes to every source of a plugin that declares
+# `defines`, with the macros the app's Info.plist turns on.
+readonly marker="FLUTTER_WATCHOS_PLUGIN_DEFINES"
 
 root=""
 list=0
@@ -43,7 +60,8 @@ done
 if [ -z "$root" ]; then
   root="$(git rev-parse --show-toplevel)"
 fi
-shim="$(cd "$(dirname "$0")" && pwd)/native/plugin_views_shim.swift"
+tool="$(cd "$(dirname "$0")" && pwd)"
+shim="$tool/native/plugin_views_shim.swift"
 cd "$root"
 
 # The tracked files under each package's own watchos/ directory. In a
@@ -57,6 +75,38 @@ includes=()
 for dir in $(printf '%s\n' "$tracked" | grep '\.h$' | xargs -n1 dirname | sort -u); do
   includes+=("-I$dir")
 done
+
+# One line per package that declares `defines`:
+# "defines <package directory> <MACRO>…".
+defines=""
+if [ -n "$(git ls-files -- 'packages/*/pubspec.yaml')" ]; then
+  if ! command -v dart > /dev/null; then
+    echo "dart is not on PATH: tool/bin/plugin_defines.dart reads each pubspec's defines." >&2
+    exit 2
+  fi
+  code=0
+  defines="$(dart "$tool/bin/plugin_defines.dart" --root "$root")" || code=$?
+  case "$code" in
+    0) ;;
+    1)
+      echo "$defines"
+      echo "Native sources: a plugin's defines are invalid, so nothing was compiled."
+      exit 1
+      ;;
+    *)
+      echo "tool/bin/plugin_defines.dart did not run; has \`dart pub get\` run in tool/?" >&2
+      exit 2
+      ;;
+  esac
+fi
+
+# Prints the macros the package [1] declares, space-separated.
+macros_of() {
+  printf '%s\n' "$defines" | awk -v package="$1" '
+    $1 == "defines" && $2 == package {
+      for (i = 3; i <= NF; i++) printf "%s%s", $i, (i < NF ? " " : "")
+    }'
+}
 
 # True for a view source: not the manifest, and nothing under Flutter/ or a
 # dot-directory (CLI build output and SwiftPM state).
@@ -115,32 +165,69 @@ for package_dir in $(printf '%s\n' "$tracked" | cut -d/ -f1-2 | sort -u); do
       *) if is_view_source "$file"; then view_sources+=("$file"); fi ;;
     esac
   done
+  # Pass 0 compiles with no -D. A package with defines also gets pass 1, the
+  # marker and every macro, and pass 2, the marker alone.
+  macros="$(macros_of "$package_dir")"
+  passes=1
+  if [ -n "$macros" ]; then
+    passes=3
+    echo "defines $package: $macros"
+  fi
   for target in $targets; do
     sdk="${target%%:*}"
     triple="${target#*:}"
-    for source in ${c_sources[@]+"${c_sources[@]}"}; do
-      checked=$((checked + 1))
-      if [ "$list" -eq 1 ]; then
-        echo "plan   clang   $sdk $triple $source"
-        continue
+    pass=0
+    while [ "$pass" -lt "$passes" ]; do
+      clang_defines=()
+      swift_defines=()
+      if [ "$pass" -gt 0 ]; then
+        clang_defines=("-D$marker=1")
+        swift_defines=("-D$marker")
       fi
-      code=0
-      output="$(xcrun -sdk "$sdk" clang -fsyntax-only -target "$triple" \
-          -fobjc-arc -fmodules ${includes[@]+"${includes[@]}"} "$source" 2>&1)" || code=$?
-      report "$source" "$code" "$output"
+      if [ "$pass" -eq 1 ]; then
+        for macro in $macros; do
+          clang_defines+=("-D$macro=1")
+          swift_defines+=("-D$macro")
+        done
+      fi
+      # The flags as --list shows them.
+      clang_flags="${clang_defines[*]+${clang_defines[*]}}"
+      swift_flags="${swift_defines[*]+${swift_defines[*]}}"
+      # Which pass a line is about, for a package with defines.
+      label=""
+      if [ "$passes" -gt 1 ]; then
+        case "$pass" in
+          0) label=" [no -D]" ;;
+          1) label=" [marker, every macro]" ;;
+          *) label=" [marker alone]" ;;
+        esac
+      fi
+      for source in ${c_sources[@]+"${c_sources[@]}"}; do
+        checked=$((checked + 1))
+        if [ "$list" -eq 1 ]; then
+          echo "plan   clang   $sdk $triple $source$label${clang_flags:+ $clang_flags}"
+          continue
+        fi
+        code=0
+        output="$(xcrun -sdk "$sdk" clang -fsyntax-only -target "$triple" \
+            -fobjc-arc -fmodules ${clang_defines[@]+"${clang_defines[@]}"} \
+            ${includes[@]+"${includes[@]}"} "$source" 2>&1)" || code=$?
+        report "$source$label" "$code" "$output"
+      done
+      if [ ${#view_sources[@]} -gt 0 ]; then
+        checked=$((checked + 1))
+        if [ "$list" -eq 1 ]; then
+          echo "plan   swiftc  $sdk $triple ${package}_views$label${swift_flags:+ $swift_flags}: ${view_sources[*]}"
+        else
+          code=0
+          output="$(xcrun -sdk "$sdk" swiftc -typecheck -target "$triple" \
+              -parse-as-library ${swift_defines[@]+"${swift_defines[@]}"} \
+              -module-name "${package}_views" "$shim" "${view_sources[@]}" 2>&1)" || code=$?
+          report "${package}_views$label" "$code" "$output"
+        fi
+      fi
+      pass=$((pass + 1))
     done
-    if [ ${#view_sources[@]} -gt 0 ]; then
-      checked=$((checked + 1))
-      if [ "$list" -eq 1 ]; then
-        echo "plan   swiftc  $sdk $triple ${package}_views: ${view_sources[*]}"
-        continue
-      fi
-      code=0
-      output="$(xcrun -sdk "$sdk" swiftc -typecheck -target "$triple" \
-          -parse-as-library -module-name "${package}_views" \
-          "$shim" "${view_sources[@]}" 2>&1)" || code=$?
-      report "${package}_views" "$code" "$output"
-    fi
   done
 done
 

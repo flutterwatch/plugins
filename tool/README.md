@@ -19,7 +19,8 @@ tool/check_generated_ignored.sh
 ```
 
 The `native` job of `ci.yml` runs one more on macOS, once per Xcode, as
-`DEVELOPER_DIR` picks it. It needs Xcode, so the Ubuntu jobs leave it out:
+`DEVELOPER_DIR` picks it. It needs Xcode, so the Ubuntu jobs leave it out.
+It also runs `dart`, after the `dart pub get` above:
 
 ```sh
 tool/check_native_sources.sh
@@ -131,6 +132,24 @@ in_app_purchase_watchos uses StoreKit 1 on purpose. A package whose
 a SwiftPM build provides its modules. `--list` prints the plan without
 compiling, and the Ubuntu tool tests run it on fixtures. The compile fixtures
 run on macOS, in the `native` job.
+
+A package that declares `defines` in its pubspec (macros that the app's
+Info.plist turns on, from the first flutter-watchos release after 0.1.1) is
+compiled three times per target, so both sides of each guard compile:
+- with no `-D`, as an older CLI compiles it;
+- with `FLUTTER_WATCHOS_PLUGIN_DEFINES` and every macro, as for an app that
+  sets every key;
+- with the marker alone, as for an app that sets none.
+
+clang gets each define as `NAME=1` and swiftc as a bare `NAME`, as the CLI
+passes them. `bin/plugin_defines.dart` reads the pubspecs for the script,
+with package:yaml, the parser the CLI uses. A YAML reader in shell would miss
+what YAML allows (flow maps, quoting, comments), and the system Ruby and
+Python read YAML 1.1, where a bare `NO` is false. A declaration the CLI would
+refuse (`defines` not a map, a macro that is not a C identifier, a key that
+is not a non-empty string) fails before anything is compiled. The fixtures
+include a guard that is wrong only for an app without the key, which must
+fail in the marker-alone pass.
 
 ## Weekly upstream compatibility
 

@@ -1,0 +1,6 @@
+name: e_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true

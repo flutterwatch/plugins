@@ -1,0 +1,5 @@
+1
+The watchOS plugin bad_watchos has an invalid `defines` in packages/bad_watchos/pubspec.yaml:
+  - `1BAD_CAMERA` is not a C identifier.
+  - `BAD_EXTRA` lists no Info.plist key.
+Native sources: a plugin's defines are invalid, so nothing was compiled.

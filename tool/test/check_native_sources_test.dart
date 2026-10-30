@@ -73,6 +73,34 @@ void main() {
       final Fixture fixture = named('no_sources');
       expectFixture(fixture, run(fixture, <String>['--list']));
     });
+
+    // A plugin's `defines` turn its macros on per app, so its sources are
+    // compiled with no -D (an older CLI), with the marker and every macro,
+    // and with the marker alone. A plugin without them is compiled once.
+    test('plans three passes for a plugin with defines, one for the rest', () {
+      final Fixture fixture = named('plan_defines');
+      final ProcessResult result = run(fixture, <String>['--list']);
+      expectFixture(fixture, result);
+      final List<String> lines = '${result.stdout}'.split('\n');
+      expect(
+        lines.where((String l) => l.contains('d_watchos_ffi.m')),
+        hasLength(6),
+        reason: 'three passes, for a watch and the Simulator',
+      );
+      expect(lines.where((String l) => l.contains('e_watchos_ffi.m')), <String>[
+        'plan   clang   watchos arm64-apple-watchos26.0 '
+            'packages/e_watchos/watchos/Classes/e_watchos_ffi.m',
+        'plan   clang   watchsimulator arm64-apple-watchos26.0-simulator '
+            'packages/e_watchos/watchos/Classes/e_watchos_ffi.m',
+      ]);
+    });
+
+    test('a declaration the CLI refuses fails before anything is planned', () {
+      final Fixture fixture = named('defines_invalid');
+      final ProcessResult result = run(fixture, <String>['--list']);
+      expectFixture(fixture, result);
+      expect('${result.stdout}', isNot(contains('plan ')));
+    });
   });
 
   group('compiles', () {
@@ -90,5 +118,32 @@ void main() {
       final Fixture fixture = named('compile_warning');
       expectFixture(fixture, run(fixture, <String>[]));
     });
+
+    test('guards right on both sides pass in every pass', () {
+      final Fixture fixture = named('compile_defines');
+      expectFixture(fixture, run(fixture, <String>[]));
+    });
+
+    // The guarded function is called from outside its guard: that compiles
+    // with no -D and with every macro, and fails for an app without the key.
+    test(
+      'a guard wrong only without its macro fails in the marker-alone pass',
+      () {
+        final Fixture fixture = named('compile_defines_guard');
+        final ProcessResult result = run(fixture, <String>[]);
+        expectFixture(fixture, result);
+        final List<String> lines = '${result.stdout}'.split('\n');
+        final List<String> failed = lines
+            .where((String l) => l.startsWith('FAILED'))
+            .toList();
+        expect(failed, hasLength(2), reason: 'a watch and the Simulator');
+        expect(failed, everyElement(endsWith('[marker alone]')));
+        expect(
+          lines.where((String l) => l.startsWith('ok ')),
+          hasLength(4),
+          reason: 'no -D, and the marker with every macro, for each target',
+        );
+      },
+    );
   }, skip: Platform.isMacOS ? false : 'needs Xcode');
 }
