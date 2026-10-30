@@ -1,0 +1,36 @@
+name: permission_handler_example
+description: "watchOS example for permission_handler_watchos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+
+dependencies:
+  # lib/ is permission_handler_apple's own example, which imports these two.
+  baseflow_plugin_template: ^2.2.1
+  flutter:
+    sdk: flutter
+  permission_handler: ^13.0.2
+  permission_handler_platform_interface: ^4.4.1
+  permission_handler_watchos:
+    path: ../
+  # The template's links go through url_launcher, which this package
+  # answers on the watch.
+  url_launcher_watchos:
+    path: ../../url_launcher_watchos
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # The template's logos, as upstream's example lists them.
+  assets:
+    - res/images/baseflow_logo_def_light-02.png
+    - res/images/poweredByBaseflowLogoLight@3x.png
