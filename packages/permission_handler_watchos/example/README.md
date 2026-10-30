@@ -1,7 +1,8 @@
 # permission_handler_example
 
-A watch demo of `permission_handler_watchos`: every permission watchOS has,
-with its status. Tapping one asks for it.
+`permission_handler_apple`'s own example app, on watchOS: it lists every
+permission with its status and asks for one when tapped. Run it, and its
+integration test, on an Apple Watch simulator with:
 
 ```sh
 flutter-watchos run -d <watch-sim>
