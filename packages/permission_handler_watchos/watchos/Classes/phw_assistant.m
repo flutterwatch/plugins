@@ -16,10 +16,12 @@
 // The same key turns PERMISSION_ASSISTANT on under a flutter-watchos that
 // applies `defines`, so without it none of this is in the app and Siri
 // answers as PHWUnknownStrategy. An older flutter-watchos compiles this in
-// for every app, so the key is still read here. It is read by the CLI's rule,
-// so the two always agree: any non-empty string, NO included, opts in, as the
-// Boolean YES does. Without the opt-in, Siri is never asked about, the status
-// is denied, and so is a request.
+// for every app, so the key is still read here, and only a yes opts in: the
+// Boolean YES, or a string YES, true or 1 (phw_says_yes). The CLI compiles
+// this in for any non-empty string, so a string NO compiles it in but leaves
+// Siri off, and an app without the Siri capability keeps running. Without
+// the opt-in, Siri is never asked about, the status is denied, and so is a
+// request.
 
 #import "phw_internal.h"
 
@@ -32,7 +34,7 @@
 static NSString* const kSiriOptIn = @"PermissionHandlerWatchosSiri";
 
 static BOOL _optedIn(void) {
-    return phw_turns_on([[NSBundle mainBundle] objectForInfoDictionaryKey:kSiriOptIn]);
+    return phw_says_yes([[NSBundle mainBundle] objectForInfoDictionaryKey:kSiriOptIn]);
 }
 
 static PHWStatus _assistantStatus(NSInteger status) {

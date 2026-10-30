@@ -74,10 +74,10 @@ PHW_HIDDEN Class phw_class(NSString* framework, NSString* className);
 // Whether the app's Info.plist has `key`.
 PHW_HIDDEN BOOL phw_has_key(NSString* key);
 
-// Whether `value`, from the app's Info.plist, turns a `defines` macro on by
-// the CLI's rule: a non-empty string, NO included, or the Boolean YES. A
-// number, even 1, does not.
-PHW_HIDDEN BOOL phw_turns_on(id value);
+// Whether `value`, from the app's Info.plist, says yes: the Boolean YES, or a
+// string equal to YES, true or 1, ignoring case. Anything else does not: NO,
+// an empty string, any other string, a number (even 1), or no value.
+PHW_HIDDEN BOOL phw_says_yes(id value);
 
 // Fails with MISSING_USAGE_DESCRIPTION, naming `key`.
 PHW_HIDDEN void phw_missing_key(NSString* key, PHWErrorHandler failed);

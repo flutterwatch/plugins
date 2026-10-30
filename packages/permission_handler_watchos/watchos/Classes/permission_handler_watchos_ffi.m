@@ -39,9 +39,14 @@ BOOL phw_has_key(NSString* key) {
     return [[NSBundle mainBundle] objectForInfoDictionaryKey:key] != nil;
 }
 
-BOOL phw_turns_on(id value) {
+BOOL phw_says_yes(id value) {
     if ([value isKindOfClass:[NSString class]]) {
-        return [value length] > 0;
+        for (NSString* yes in @[ @"YES", @"true", @"1" ]) {
+            if ([value caseInsensitiveCompare:yes] == NSOrderedSame) {
+                return YES;
+            }
+        }
+        return NO;
     }
     // A plist Boolean is a CFBoolean; an integer is a CFNumber, even 1.
     return value != nil && CFGetTypeID((__bridge CFTypeRef)value) == CFBooleanGetTypeID() &&

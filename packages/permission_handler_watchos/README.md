@@ -63,9 +63,10 @@ pubspec maps them under `defines`.
 | Siri | `assistant` | `PERMISSION_ASSISTANT` | `PermissionHandlerWatchosSiri`, a Boolean set to `YES` |
 
 - A key counts when it holds a non-empty string, `NO` included, or the
-  Boolean `YES`. Set `PermissionHandlerWatchosSiri` to the Boolean `YES`, and
-  leave it out of an app without the Siri capability: Siri's opt-in counts
-  any string as on too.
+  Boolean `YES`. Set `PermissionHandlerWatchosSiri` to the Boolean `YES`. A
+  string compiles Siri's code in too, but only `YES`, `true` or `1`, in any
+  case, opts in when the app runs: `<string>NO</string>` compiles the code in
+  and leaves Siri off.
 - `notification`, `criticalAlerts` and `storage` need no key, and are always
   compiled in.
 - A group whose keys are all missing answers as a permission watchOS does
@@ -144,7 +145,7 @@ with an older one, every app that uses the package:
 | `calendarFullAccess`, `calendarWriteOnly`, `reminders` | supported, with the full-access and write-only prompts |
 | `bluetooth` | supported, with the service status |
 | `criticalAlerts` | supported; needs the Critical Alerts entitlement (`com.apple.developer.usernotifications.critical-alerts`), which Apple grants on request |
-| `assistant` | Siri, supported for an app that opts in: watchOS ends an app without the Siri capability (`com.apple.developer.siri`) that asks about Siri, so the iOS implementation's build macro is an Info.plist key here, `PermissionHandlerWatchosSiri` set to `YES`, which only an app with the capability sets, with `NSSiriUsageDescription`. Any non-empty string opts in too, as the key turns Siri's code on by the same rule. Without the key Siri is never asked and the status is `denied`. A request answers `permanentlyDenied` with a flutter-watchos that leaves Siri's code out (see Compile-time groups), and `denied` with 0.1.1 or earlier |
+| `assistant` | Siri, supported for an app that opts in: watchOS ends an app without the Siri capability (`com.apple.developer.siri`) that asks about Siri, so the iOS implementation's build macro is an Info.plist key here, `PermissionHandlerWatchosSiri` set to `YES`, which only an app with the capability sets, with `NSSiriUsageDescription`. A string compiles Siri's code in, but only `YES`, `true` or `1`, in any case, opts in; any other value, `NO` included, leaves Siri off. Without the opt-in Siri is never asked and the status is `denied`. A request answers `permanentlyDenied` with a flutter-watchos that leaves Siri's code out (see Compile-time groups), and `denied` with 0.1.1 or earlier |
 | `storage` | granted, as on iOS: the app's own container needs no permission |
 
 `shouldShowRequestPermissionRationale` is false, as on iOS. The statuses and
