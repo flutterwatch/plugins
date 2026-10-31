@@ -54,8 +54,8 @@ flutter:
           - permission_handler_watchos_take_result
           - permission_handler_watchos_release
         # Each permission group's native code is compiled in only when the
-        # app's Info.plist sets one of its keys: from the first
-        # flutter-watchos release after 0.1.1, the CLI then defines the
+        # app's Info.plist sets one of its keys: from flutter-watchos
+        # 0.1.2, the CLI then defines the
         # group's macro, and an older one compiles every group in. The names
         # are the iOS implementation's PERMISSION_* macros, each keyed to the
         # usage descriptions its prompts check. Notifications, critical
