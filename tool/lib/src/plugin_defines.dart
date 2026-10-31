@@ -5,8 +5,8 @@
 /// The per-app defines each plugin declares, for `check_native_sources.sh`.
 ///
 /// A plugin maps preprocessor macros to app Info.plist keys under
-/// `flutter.plugin.platforms.watchos.defines` in its pubspec. From the first
-/// flutter-watchos release after 0.1.1, the CLI compiles the plugin's native
+/// `flutter.plugin.platforms.watchos.defines` in its pubspec. From
+/// flutter-watchos 0.1.2, the CLI compiles the plugin's native
 /// sources with `FLUTTER_WATCHOS_PLUGIN_DEFINES` and each macro whose key the
 /// app's Info.plist sets; an older CLI passes neither, and nor does the CLI
 /// for a plugin that declares none. So the check compiles such a plugin with

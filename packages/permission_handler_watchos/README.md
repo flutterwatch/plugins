@@ -44,8 +44,8 @@ would terminate the app.
 
 As in the iOS implementation, a permission group's code is compiled into the
 app only when the app uses the group, which it says by setting one of the
-group's keys in the watch app's Info.plist. This takes the first
-flutter-watchos release after 0.1.1: on every build, it reads
+group's keys in the watch app's Info.plist. This takes flutter-watchos
+0.1.2: on every build, it reads
 `watchos/Runner/Info.plist` and defines the macro of each key the app
 sets, as the package's pubspec maps them under `defines`.
 
@@ -103,8 +103,7 @@ every group it never asks for too (see App Review).
 ### App Review
 
 App Store Connect asks for the usage description of each privacy-sensitive
-API a binary references (ITMS-90683). With the first flutter-watchos release
-after 0.1.1, a group the app's Info.plist leaves out is not in the binary:
+API a binary references (ITMS-90683). With flutter-watchos 0.1.2, a group the app's Info.plist leaves out is not in the binary:
 none of its framework's class names, selectors or usage-description keys
 are. A watch app that only asks for notifications then references the same
 privacy API as a native watch app that does only that,
@@ -123,8 +122,7 @@ The location strategy keeps one flag in `NSUserDefaults`, whether "always"
 was asked for, since watchOS shows that prompt once. `NSUserDefaults` is a
 required-reason API, so an app with this code declares
 `NSPrivacyAccessedAPICategoryUserDefaults` with reason `CA92.1` in its
-privacy manifest (`PrivacyInfo.xcprivacy`). With the first flutter-watchos
-release after 0.1.1, that is an app whose Info.plist sets
+privacy manifest (`PrivacyInfo.xcprivacy`). With flutter-watchos 0.1.2, that is an app whose Info.plist sets
 `NSLocationAlwaysAndWhenInUseUsageDescription` or
 `NSLocationAlwaysUsageDescription`, or whose Info.plist the CLI cannot read;
 with an older one, every app that uses the package:

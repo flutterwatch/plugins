@@ -13,7 +13,7 @@ physical watch.
 * Each group is compiled into the app only when the watch app's Info.plist
   sets one of its keys, as the iOS implementation's `PERMISSION_*` macros
   do: the pubspec maps the same macros to the keys under `defines`, which
-  the first flutter-watchos release after 0.1.1 applies. A group left out
+  flutter-watchos 0.1.2 applies. A group left out
   answers as an unknown permission does, and none of its class names,
   selectors or keys are in the binary. Calendar and reminders are one
   group, as on iOS: with only some of their keys, each status is still
