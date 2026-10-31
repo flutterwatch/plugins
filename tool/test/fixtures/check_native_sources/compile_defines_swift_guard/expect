@@ -1,0 +1,4 @@
+1
+FAILED
+gs_watchos_views [marker alone]
+Native sources: some do not compile cleanly with

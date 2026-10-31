@@ -5,8 +5,15 @@
 // Sensors: Motion & Fitness access, through CMMotionActivityManager, asked
 // for with a query as the iOS implementation asks. CoreMotion is loaded at
 // runtime and only messaged.
+//
+// Compiled in only when the app's Info.plist sets NSMotionUsageDescription
+// (PERMISSION_SENSORS), or by a flutter-watchos that predates `defines`.
+// Otherwise sensors answers as PHWUnknownStrategy, and none of this is in
+// the app.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_SENSORS
 
 #import <CoreMotion/CoreMotion.h>
 
@@ -23,6 +30,9 @@ static PHWStatus _motionStatus(NSInteger status) {
     }
     return PHWStatusGranted;
 }
+
+@interface PHWMotionStrategy : NSObject <PHWStrategy>
+@end
 
 @implementation PHWMotionStrategy {
     // Kept until its query answers.
@@ -80,3 +90,15 @@ static PHWStatus _motionStatus(NSInteger status) {
 }
 
 @end
+
+Class phw_motion_strategy(void) {
+    return [PHWMotionStrategy class];
+}
+
+#else
+
+Class phw_motion_strategy(void) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

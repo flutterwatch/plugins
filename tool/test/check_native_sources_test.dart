@@ -33,6 +33,13 @@ void main() {
     ]);
   }
 
+  /// The lines of [result] that report one compile, with their [prefix].
+  List<String> reports(ProcessResult result, String prefix) =>
+      '${result.stdout}'
+          .split('\n')
+          .where((String l) => l.startsWith(prefix))
+          .toList();
+
   /// Checks [result] against [fixture]'s `expect` file.
   void expectFixture(Fixture fixture, ProcessResult result) {
     final String output = '${result.stdout}${result.stderr}';
@@ -73,6 +80,56 @@ void main() {
       final Fixture fixture = named('no_sources');
       expectFixture(fixture, run(fixture, <String>['--list']));
     });
+
+    // A plugin's `defines` turn its macros on per app, so its sources are
+    // compiled with no -D (an older CLI), with the marker and every macro,
+    // with the marker alone, and with the marker and each macro alone. A
+    // plugin without them is compiled once.
+    test(
+      'plans a pass per macro set for a plugin with defines, one for the rest',
+      () {
+        final Fixture fixture = named('plan_defines');
+        final ProcessResult result = run(fixture, <String>['--list']);
+        expectFixture(fixture, result);
+        final List<String> lines = '${result.stdout}'.split('\n');
+        expect(
+          lines.where((String l) => l.contains('d_watchos_ffi.m')),
+          hasLength(10),
+          reason: 'five passes, for a watch and the Simulator',
+        );
+        expect(
+          lines.where((String l) => l.contains('e_watchos_ffi.m')),
+          <String>[
+            'plan   clang   watchos arm64-apple-watchos26.0 '
+                'packages/e_watchos/watchos/Classes/e_watchos_ffi.m',
+            'plan   clang   watchsimulator arm64-apple-watchos26.0-simulator '
+                'packages/e_watchos/watchos/Classes/e_watchos_ffi.m',
+          ],
+        );
+      },
+    );
+
+    test('a declaration the CLI refuses fails before anything is planned', () {
+      final Fixture fixture = named('defines_invalid');
+      final ProcessResult result = run(fixture, <String>['--list']);
+      expectFixture(fixture, result);
+      expect('${result.stdout}', isNot(contains('plan ')));
+    });
+
+    // The script moves into the root and hands it to the Dart tool, which
+    // must not read a relative root from inside it a second time.
+    test('a relative --root plans the same as an absolute one', () {
+      final Fixture fixture = named('plan_defines');
+      final String root = fixture.createRepository();
+      addTearDown(() => Directory(root).deleteSync(recursive: true));
+      final ProcessResult result = Process.runSync('bash', <String>[
+        script,
+        '--root',
+        p.basename(root),
+        '--list',
+      ], workingDirectory: p.dirname(root));
+      expectFixture(fixture, result);
+    });
   });
 
   group('compiles', () {
@@ -89,6 +146,70 @@ void main() {
     test('a warning that is not a deprecation fails', () {
       final Fixture fixture = named('compile_warning');
       expectFixture(fixture, run(fixture, <String>[]));
+    });
+
+    test('guards right on both sides pass in every pass', () {
+      final Fixture fixture = named('compile_defines');
+      expectFixture(fixture, run(fixture, <String>[]));
+    });
+
+    // The guarded function is called from outside its guard: that compiles
+    // with no -D and with every macro, and fails for an app without the key.
+    test(
+      'a guard wrong only without its macro fails in the marker-alone pass',
+      () {
+        final Fixture fixture = named('compile_defines_guard');
+        final ProcessResult result = run(fixture, <String>[]);
+        expectFixture(fixture, result);
+        final List<String> lines = '${result.stdout}'.split('\n');
+        final List<String> failed = lines
+            .where((String l) => l.startsWith('FAILED'))
+            .toList();
+        expect(failed, hasLength(2), reason: 'a watch and the Simulator');
+        expect(failed, everyElement(endsWith('[marker alone]')));
+        expect(
+          lines.where((String l) => l.startsWith('ok ')),
+          hasLength(4),
+          reason: 'no -D, and the marker with every macro, for each target',
+        );
+      },
+    );
+
+    // An inner guard inside an outer one that two macros open: only the
+    // marker with the other macro alone compiles the outer block without
+    // the inner one.
+    test(
+      'a nested guard wrong only for one macro alone fails in that pass',
+      () {
+        final Fixture fixture = named('compile_defines_partial');
+        final ProcessResult result = run(fixture, <String>[]);
+        expectFixture(fixture, result);
+        final List<String> failed = reports(result, 'FAILED');
+        expect(failed, hasLength(2), reason: 'a watch and the Simulator');
+        expect(failed, everyElement(endsWith('[marker, GP_EXTRA alone]')));
+        expect(
+          reports(result, 'ok '),
+          hasLength(8),
+          reason: 'the four other passes, for each target',
+        );
+      },
+    );
+
+    // swiftc must get the defines as conditions: without them, the
+    // marker-alone pass would compile the guarded value in and pass.
+    test('a Swift guard wrong only without its macro fails in the marker-alone '
+        'pass', () {
+      final Fixture fixture = named('compile_defines_swift_guard');
+      final ProcessResult result = run(fixture, <String>[]);
+      expectFixture(fixture, result);
+      final List<String> failed = reports(result, 'FAILED');
+      expect(failed, hasLength(2), reason: 'a watch and the Simulator');
+      expect(failed, everyElement(endsWith('gs_watchos_views [marker alone]')));
+      expect(
+        reports(result, 'ok '),
+        hasLength(4),
+        reason: 'no -D, and the marker with every macro, for each target',
+      );
     });
   }, skip: Platform.isMacOS ? false : 'needs Xcode');
 }

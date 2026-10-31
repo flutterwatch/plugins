@@ -1,0 +1,10 @@
+name: bad_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        defines:
+          1BAD_CAMERA: NSCameraUsageDescription
+          BAD_EXTRA: []
+          BAD_OK: NSMotionUsageDescription

@@ -1,0 +1,10 @@
+name: gd_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        defines:
+          GD_CAMERA: NSCameraUsageDescription
+          GD_EXTRA:
+            - GdExtra

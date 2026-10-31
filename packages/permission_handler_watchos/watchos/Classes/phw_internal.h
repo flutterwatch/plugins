@@ -67,13 +67,17 @@ typedef void (^PHWErrorHandler)(NSString* code, NSString* message);
 // The class `className` of the system framework `framework`, loaded on first
 // use, or nil when this watchOS has neither. No framework but
 // UserNotifications is linked, so an app does not load the frameworks of the
-// permissions it never asks about. The class names and selectors are still
-// in the binary: unlike the iOS implementation's opt-in macros, this does
-// not take a group's code out of the app.
+// permissions it never asks about. What keeps a group's class names and
+// selectors out of the binary is its macro (see below), not this.
 PHW_HIDDEN Class phw_class(NSString* framework, NSString* className);
 
 // Whether the app's Info.plist has `key`.
 PHW_HIDDEN BOOL phw_has_key(NSString* key);
+
+// Whether `value`, from the app's Info.plist, says yes: the Boolean YES, or a
+// string equal to YES, true or 1, ignoring case. Anything else does not: NO,
+// an empty string, any other string, a number (even 1), or no value.
+PHW_HIDDEN BOOL phw_says_yes(id value);
 
 // Fails with MISSING_USAGE_DESCRIPTION, naming `key`.
 PHW_HIDDEN void phw_missing_key(NSString* key, PHWErrorHandler failed);
@@ -87,40 +91,60 @@ PHW_HIDDEN NSInteger phw_class_integer_with(Class cls, SEL selector, NSInteger a
 // Sends a class method with no argument that returns a BOOL.
 PHW_HIDDEN BOOL phw_class_bool(Class cls, SEL selector);
 
-// What answers for the permissions watchOS does not have: as the iOS
-// implementation answers for an unknown permission.
+// What answers for the permissions watchOS does not have, and for a group
+// left out of the build: as the iOS implementation answers for an unknown
+// permission.
 @interface PHWUnknownStrategy : NSObject <PHWStrategy>
 @end
 
+// Notifications and critical alerts need no usage description, so they are
+// always compiled in.
 @interface PHWNotificationStrategy : NSObject <PHWStrategy>
 @end
 
-@interface PHWLocationStrategy : NSObject <PHWStrategy>
-@end
-
-@interface PHWMotionStrategy : NSObject <PHWStrategy>
-@end
-
-@interface PHWMicrophoneStrategy : NSObject <PHWStrategy>
-@end
-
-@interface PHWContactsStrategy : NSObject <PHWStrategy>
-@end
-
-@interface PHWEventsStrategy : NSObject <PHWStrategy>
-@end
-
-@interface PHWBluetoothStrategy : NSObject <PHWStrategy>
+@interface PHWCriticalAlertsStrategy : NSObject <PHWStrategy>
 @end
 
 // Storage, granted as on iOS: the app's own container needs no permission.
 @interface PHWStorageStrategy : NSObject <PHWStrategy>
 @end
 
-@interface PHWCriticalAlertsStrategy : NSObject <PHWStrategy>
-@end
+// ---- Groups the app's Info.plist chooses ------------------------------------
+//
+// Each group below is compiled in only when the app's Info.plist sets one of
+// its keys: flutter-watchos then defines the group's macro, as `defines` in
+// pubspec.yaml maps them, along with FLUTTER_WATCHOS_PLUGIN_DEFINES. A group
+// left out is not in the binary at all, its framework's class names,
+// selectors and usage-description keys included, and answers as
+// PHWUnknownStrategy, as the iOS implementation's groups do when their macros
+// are off. A flutter-watchos that predates `defines`, or that cannot read the
+// app's Info.plist, passes neither, so every group is compiled in, as before.
+//
+// Each function returns the strategy class: the group's own, or
+// PHWUnknownStrategy when the group (for location, the permission) is left
+// out. The group's file defines it, next to the code it guards, so the two
+// cannot disagree.
 
-@interface PHWAssistantStrategy : NSObject <PHWStrategy>
-@end
+// location, locationWhenInUse and locationAlways (phw_location.m).
+PHW_HIDDEN Class phw_location_strategy(PHWPermission permission);
+
+// sensors (phw_motion.m).
+PHW_HIDDEN Class phw_motion_strategy(void);
+
+// microphone (phw_microphone.m).
+PHW_HIDDEN Class phw_microphone_strategy(void);
+
+// contacts (phw_contacts.m).
+PHW_HIDDEN Class phw_contacts_strategy(void);
+
+// calendar, calendarFullAccess, calendarWriteOnly and reminders, all four
+// together (phw_events.m).
+PHW_HIDDEN Class phw_events_strategy(void);
+
+// bluetooth (phw_bluetooth.m).
+PHW_HIDDEN Class phw_bluetooth_strategy(void);
+
+// assistant (phw_assistant.m).
+PHW_HIDDEN Class phw_assistant_strategy(void);
 
 #endif  // PHW_INTERNAL_H

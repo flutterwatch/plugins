@@ -10,11 +10,22 @@
 // cannot be caught and asked again. The iOS implementation only compiles this
 // in when the app sets PERMISSION_ASSISTANT. Here the opt-in is the
 // Info.plist key below, set to YES, which an app adds only with the Siri
-// capability; a usage description alone does not switch it on, since apps
-// are told to add every group's. Without the opt-in, Siri is never asked
-// about: the status is denied, and so is a request.
+// capability. A usage description alone does not switch it on: an app built
+// by a flutter-watchos that predates `defines` adds every group's.
+//
+// The same key turns PERMISSION_ASSISTANT on under a flutter-watchos that
+// applies `defines`, so without it none of this is in the app and Siri
+// answers as PHWUnknownStrategy. An older flutter-watchos compiles this in
+// for every app, so the key is still read here, and only a yes opts in: the
+// Boolean YES, or a string YES, true or 1 (phw_says_yes). The CLI compiles
+// this in for any non-empty string, so a string NO compiles it in but leaves
+// Siri off, and an app without the Siri capability keeps running. Without
+// the opt-in, Siri is never asked about, the status is denied, and so is a
+// request.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_ASSISTANT
 
 #import <Intents/Intents.h>
 #import <objc/message.h>
@@ -23,8 +34,7 @@
 static NSString* const kSiriOptIn = @"PermissionHandlerWatchosSiri";
 
 static BOOL _optedIn(void) {
-    id value = [[NSBundle mainBundle] objectForInfoDictionaryKey:kSiriOptIn];
-    return [value isKindOfClass:[NSNumber class]] && [value boolValue];
+    return phw_says_yes([[NSBundle mainBundle] objectForInfoDictionaryKey:kSiriOptIn]);
 }
 
 static PHWStatus _assistantStatus(NSInteger status) {
@@ -40,6 +50,9 @@ static PHWStatus _assistantStatus(NSInteger status) {
     }
     return PHWStatusDenied;
 }
+
+@interface PHWAssistantStrategy : NSObject <PHWStrategy>
+@end
 
 @implementation PHWAssistantStrategy
 
@@ -89,3 +102,15 @@ static PHWStatus _assistantStatus(NSInteger status) {
 }
 
 @end
+
+Class phw_assistant_strategy(void) {
+    return [PHWAssistantStrategy class];
+}
+
+#else
+
+Class phw_assistant_strategy(void) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

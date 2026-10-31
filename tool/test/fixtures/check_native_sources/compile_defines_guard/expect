@@ -1,0 +1,4 @@
+1
+FAILED
+packages/gg_watchos/watchos/Classes/gg_watchos_ffi.m [marker alone]
+Native sources: some do not compile cleanly with

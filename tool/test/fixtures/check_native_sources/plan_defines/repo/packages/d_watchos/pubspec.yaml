@@ -1,0 +1,11 @@
+name: d_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        defines:
+          D_CAMERA: NSCameraUsageDescription
+          D_EXTRA:
+            - DExtra
+            - DExtraToo

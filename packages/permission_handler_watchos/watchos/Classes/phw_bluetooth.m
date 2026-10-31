@@ -5,8 +5,15 @@
 // Bluetooth, through a CBCentralManager the strategy keeps: creating it is
 // what asks the wearer, and its first state update is the answer, as in the
 // iOS implementation. CoreBluetooth is loaded at runtime and only messaged.
+//
+// Compiled in only when the app's Info.plist sets
+// NSBluetoothAlwaysUsageDescription (PERMISSION_BLUETOOTH), or by a
+// flutter-watchos that predates `defines`. Otherwise Bluetooth answers as
+// PHWUnknownStrategy, and none of this is in the app.
 
 #import "phw_internal.h"
+
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_BLUETOOTH
 
 #import <CoreBluetooth/CoreBluetooth.h>
 
@@ -24,7 +31,7 @@ static PHWStatus _bluetoothStatus(NSInteger authorization) {
     return PHWStatusDenied;
 }
 
-@interface PHWBluetoothStrategy () <CBCentralManagerDelegate>
+@interface PHWBluetoothStrategy : NSObject <PHWStrategy, CBCentralManagerDelegate>
 @end
 
 @implementation PHWBluetoothStrategy {
@@ -122,3 +129,15 @@ static PHWStatus _bluetoothStatus(NSInteger authorization) {
 }
 
 @end
+
+Class phw_bluetooth_strategy(void) {
+    return [PHWBluetoothStrategy class];
+}
+
+#else
+
+Class phw_bluetooth_strategy(void) {
+    return [PHWUnknownStrategy class];
+}
+
+#endif

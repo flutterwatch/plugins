@@ -1,0 +1,9 @@
+name: gp_watchos
+flutter:
+  plugin:
+    platforms:
+      watchos:
+        ffiPlugin: true
+        defines:
+          GP_CAMERA: NSCameraUsageDescription
+          GP_EXTRA: GpExtra

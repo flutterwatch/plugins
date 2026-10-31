@@ -39,6 +39,20 @@ BOOL phw_has_key(NSString* key) {
     return [[NSBundle mainBundle] objectForInfoDictionaryKey:key] != nil;
 }
 
+BOOL phw_says_yes(id value) {
+    if ([value isKindOfClass:[NSString class]]) {
+        for (NSString* yes in @[ @"YES", @"true", @"1" ]) {
+            if ([value caseInsensitiveCompare:yes] == NSOrderedSame) {
+                return YES;
+            }
+        }
+        return NO;
+    }
+    // A plist Boolean is a CFBoolean; an integer is a CFNumber, even 1.
+    return value != nil && CFGetTypeID((__bridge CFTypeRef)value) == CFBooleanGetTypeID() &&
+           CFBooleanGetValue((__bridge CFBooleanRef)value);
+}
+
 void phw_missing_key(NSString* key, PHWErrorHandler failed) {
     failed(@"MISSING_USAGE_DESCRIPTION",
            [NSString stringWithFormat:@"The app's Info.plist has no %@, which the system "
@@ -107,7 +121,8 @@ static PHWErrorHandler _failer(int64_t request) {
 
 // ---- Strategies -------------------------------------------------------------
 
-// Main queue only.
+// Main queue only. A group the build left out answers through
+// PHWUnknownStrategy: its file's function says which (phw_internal.h).
 static id<PHWStrategy> _strategy(int32_t permission) {
     static NSMutableDictionary<NSString*, id<PHWStrategy>>* strategies;
     if (strategies == nil) {
@@ -121,25 +136,25 @@ static id<PHWStrategy> _strategy(int32_t permission) {
         case PHWPermissionLocation:
         case PHWPermissionLocationAlways:
         case PHWPermissionLocationWhenInUse:
-            kind = [PHWLocationStrategy class];
+            kind = phw_location_strategy((PHWPermission)permission);
             break;
         case PHWPermissionSensors:
-            kind = [PHWMotionStrategy class];
+            kind = phw_motion_strategy();
             break;
         case PHWPermissionMicrophone:
-            kind = [PHWMicrophoneStrategy class];
+            kind = phw_microphone_strategy();
             break;
         case PHWPermissionContacts:
-            kind = [PHWContactsStrategy class];
+            kind = phw_contacts_strategy();
             break;
         case PHWPermissionCalendar:
         case PHWPermissionCalendarWriteOnly:
         case PHWPermissionCalendarFullAccess:
         case PHWPermissionReminders:
-            kind = [PHWEventsStrategy class];
+            kind = phw_events_strategy();
             break;
         case PHWPermissionBluetooth:
-            kind = [PHWBluetoothStrategy class];
+            kind = phw_bluetooth_strategy();
             break;
         case PHWPermissionStorage:
             kind = [PHWStorageStrategy class];
@@ -148,7 +163,7 @@ static id<PHWStrategy> _strategy(int32_t permission) {
             kind = [PHWCriticalAlertsStrategy class];
             break;
         case PHWPermissionAssistant:
-            kind = [PHWAssistantStrategy class];
+            kind = phw_assistant_strategy();
             break;
         default:
             kind = [PHWUnknownStrategy class];
