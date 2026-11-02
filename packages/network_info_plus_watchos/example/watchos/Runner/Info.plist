@@ -22,6 +22,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>FlutterWatchOSContentScale</key>
 	<real>0.4</real>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Obtain WIFI Name</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKWatchOnly</key>

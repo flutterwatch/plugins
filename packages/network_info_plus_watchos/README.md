@@ -46,16 +46,22 @@ both unchanged except for these watchOS deviations:
 
 | Where | Change | Why |
 |---|---|---|
-| `example/lib/main.dart`, both permission requests | `Platform.isIOS` becomes `FlutterWatchosPlatform.isIos` | `Platform.isIOS` is true on the watch, and `permission_handler` has no watchOS implementation, so the request failed with `MissingPluginException` at start |
-| `example/pubspec.yaml` | adds `flutter_watchos: ^0.1.0` | for `FlutterWatchosPlatform` |
+| `example/pubspec.yaml` | adds `permission_handler_watchos` | the example asks `permission_handler` for location at start, behind `Platform.isIOS`, which is true on the watch; this package answers it there |
 | `example/watchos/Runner/Info.plist` | sets `FlutterWatchOSContentScale` to `0.4` | the app is designed for a phone and overflowed the watch screen (by 107 pixels on a 46 mm Simulator); the scale makes it lay out in a logical space 2.5 times the screen's size and draws it smaller, without touching the Dart code |
 
+`example/watchos/Runner/Info.plist` has upstream's
+`NSLocationWhenInUseUsageDescription`, which the location prompt shows.
+
 `example/integration_test/watchos_example_start_test.dart` is a watchOS test
-beside the upstream one: it starts the example and checks that it shows its
-network info without an error. The watchOS widget test
-`example/test/watchos_content_scale_test.dart` lays the app out at its content
-scale on every watch screen size, with a global IPv6 address on screen, and
-fails on any overflow.
+beside the upstream one: it starts the example and checks that it starts
+without an error and then shows its network info. The network info waits for
+the answer to the location prompt, so on a fresh install with no one to
+answer it that check is skipped; run with `--dart-define=NIP_PROMPT=true` and
+answer the prompt, or grant location first with `xcrun simctl privacy`.
+
+The watchOS widget test `example/test/watchos_content_scale_test.dart` lays
+the app out at its content scale on every watch screen size, with a global
+IPv6 address on screen, and fails on any overflow.
 
 ## Not supported on watchOS
 

@@ -1,3 +1,17 @@
+## 0.1.1
+
+* Example: `lib/main.dart` is network_info_plus 8.2.2's own again. Its
+  location request at start, behind `Platform.isIOS`, which is true on the
+  watch, is now answered by `permission_handler_watchos`, which the
+  example's pubspec adds in place of `flutter_watchos` and the
+  `FlutterWatchosPlatform.isIos` guard. The pubspec names
+  `permission_handler: ^13.0.2`, as upstream's, and the Info.plist has
+  upstream's `NSLocationWhenInUseUsageDescription`.
+* Example: the start test checks a start without an error, and then the
+  network info, which waits for the location prompt: it is skipped on a
+  fresh install with no one to answer the prompt, unless the run passes
+  `--dart-define=NIP_PROMPT=true`.
+
 ## 0.1.0
 
 * The version moves from 0.0.1 to 0.1.0, so that a `^0.1.0` constraint
