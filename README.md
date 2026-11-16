@@ -50,11 +50,10 @@ companion app — one `main.dart`, running on both devices.
 ## List of plugins
 
 Every plugin below has a watchOS implementation, and each package's example
-builds and starts on the watchOS 27.0 Simulator. Three of those examples
+builds and starts on the watchOS 27.0 Simulator. Two of those examples
 start with an error: `sensors_plus_watchos` (the barometer is not
-implemented), `in_app_purchase_watchos` (the StoreKit platform addition it
-asks for fails) and `network_info_plus_watchos` (the example's
-`permission_handler` has no watchOS implementation). What each package
+implemented) and `in_app_purchase_watchos` (the StoreKit platform addition
+it asks for fails). What each package
 covers and what it leaves out are in its `README.md`. Its
 `PORTING_REPORT.md` records how the package was ported and what was checked
 at the time; the last full run on the Simulator is under

@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 //
 // A watchOS supplement, not an upstream test. The example is network_info_plus's
-// own phone app, kept verbatim but for the watchOS guard on its permission
-// request; it fits a watch only through the FlutterWatchOSContentScale in
+// own phone app, kept verbatim; it fits a watch only through the
+// FlutterWatchOSContentScale in
 // watchos/Runner/Info.plist. This lays the app out in the logical space that
 // scale gives each watch screen, with room for the system insets, and fails on
 // any overflow.
