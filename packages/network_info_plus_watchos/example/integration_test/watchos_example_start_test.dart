@@ -42,8 +42,8 @@ void main() {
         await Permission.locationWhenInUse.status != PermissionStatus.denied;
 
     app.main();
-    final Stopwatch elapsed = Stopwatch()..start();
-    while (elapsed.elapsed < const Duration(seconds: 3)) {
+    final Stopwatch startup = Stopwatch()..start();
+    while (startup.elapsed < const Duration(seconds: 3)) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(tester.takeException(), isNull);
@@ -55,11 +55,13 @@ void main() {
       return;
     }
 
-    // The info arrives after the answer and seven native reads.
+    // The info arrives after the answer and seven native reads. The wait is
+    // timed on its own, so the startup pump above does not shorten it.
     final Duration limit =
         answered ? const Duration(seconds: 10) : const Duration(seconds: 60);
     final Finder info = find.textContaining('Wifi IPv4:');
-    while (info.evaluate().isEmpty && elapsed.elapsed < limit) {
+    final Stopwatch waited = Stopwatch()..start();
+    while (info.evaluate().isEmpty && waited.elapsed < limit) {
       await tester.pump(const Duration(milliseconds: 100));
     }
 

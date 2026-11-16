@@ -10,7 +10,9 @@
 * Example: the start test checks a start without an error, and then the
   network info, which waits for the location prompt: it is skipped on a
   fresh install with no one to answer the prompt, unless the run passes
-  `--dart-define=NIP_PROMPT=true`.
+  `--dart-define=NIP_PROMPT=true`. The wait for the network info is timed
+  apart from the 3-second startup check, so it keeps its full 10 seconds
+  (a minute while someone answers the prompt).
 
 ## 0.1.0
 
