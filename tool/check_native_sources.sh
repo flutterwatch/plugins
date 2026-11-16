@@ -19,7 +19,7 @@
 #   and listed: its sources import that package's modules, which only a
 #   SwiftPM build provides, and the CLI builds such a plugin with xcodebuild.
 # - A plugin that declares `defines` in its pubspec (macros the app's
-#   Info.plist turns on, from the first flutter-watchos release after 0.1.1)
+#   Info.plist turns on, from flutter-watchos 0.1.2)
 #   is compiled with no -D, as an older CLI compiles it; with
 #   FLUTTER_WATCHOS_PLUGIN_DEFINES and every macro, as for an app that sets
 #   every key; with the marker alone, as for an app that sets none; and, when

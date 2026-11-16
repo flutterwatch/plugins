@@ -284,7 +284,7 @@ flutter:
             - NSLocationAlwaysAndWhenInUseUsageDescription
 ```
 
-From the first flutter-watchos release after 0.1.1, the CLI compiles the
+From flutter-watchos 0.1.2, the CLI compiles the
 plugin's native sources with `-D<MACRO>=1` (in Swift, `-D<MACRO>`) for each
 macro whose key the watch app's Info.plist sets. A plugin that declares
 `defines` also gets the marker, `FLUTTER_WATCHOS_PLUGIN_DEFINES`, on every
@@ -332,7 +332,8 @@ neither, so guard each group to keep it in apps built by one:
 
 The rules, which values turn a macro on, what `-v` prints and why a plugin
 built through SwiftPM (§2d) is not covered, are in the CLI's
-`doc/plugins.md`, from the first flutter-watchos release after 0.1.1.
+[Compiling out what an app does not use](https://github.com/flutterwatch/flutter-watchos/blob/main/doc/plugins.md#compiling-out-what-an-app-does-not-use),
+from flutter-watchos 0.1.2.
 `permission_handler_watchos` is the worked example.
 
 ## 3. Verify

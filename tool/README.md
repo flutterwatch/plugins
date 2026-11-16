@@ -134,7 +134,7 @@ compiling, and the Ubuntu tool tests run it on fixtures. The compile fixtures
 run on macOS, in the `native` job.
 
 A package that declares `defines` in its pubspec (macros that the app's
-Info.plist turns on, from the first flutter-watchos release after 0.1.1) is
+Info.plist turns on, from flutter-watchos 0.1.2) is
 compiled several times per target, so each guard compiles with its macros
 all on, all off and one at a time, nested guards included:
 - with no `-D`, as an older CLI compiles it;
