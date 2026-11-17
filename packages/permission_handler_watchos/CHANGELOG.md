@@ -37,6 +37,10 @@ physical watch.
   so an app that compiles "always" in declares
   `NSPrivacyAccessedAPICategoryUserDefaults` (`CA92.1`) in its privacy
   manifest.
+* With "when in use" granted, `locationAlways` reads `denied` until it is
+  asked for, as in permission_handler_apple 9.6.4, so an app can still ask
+  for it; once asked for and kept at "while using", it reads
+  `permanentlyDenied`.
 * A request whose usage description is missing fails with
   `MISSING_USAGE_DESCRIPTION` instead of the app being terminated. A request
   while another waits fails with `ERROR_ALREADY_REQUESTING_PERMISSIONS`, as

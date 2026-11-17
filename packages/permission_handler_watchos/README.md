@@ -146,7 +146,7 @@ with an older one, every app that uses the package:
 | Permission | watchOS |
 |---|---|
 | `notification` | supported, provisional included |
-| `location`, `locationWhenInUse`, `locationAlways` | supported, with the service status; "always" needs "when in use" first, as on iOS |
+| `location`, `locationWhenInUse`, `locationAlways` | supported, with the service status; "always" needs "when in use" first, and with "when in use" granted it reads `denied` until it is asked for, as on iOS |
 | `sensors` | supported (Motion & Fitness), with the service status |
 | `microphone` | supported |
 | `contacts` | supported; watchOS has no limited access |

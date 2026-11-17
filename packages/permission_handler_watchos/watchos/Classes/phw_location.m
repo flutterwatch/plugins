@@ -29,8 +29,9 @@
 #import <WatchKit/WatchKit.h>
 
 #if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
-// Set once "always" was asked for: watchOS shows that prompt once, and a
-// second request must answer without waiting for a prompt that never comes.
+// Set once "always" was asked for: watchOS shows that prompt once. Until
+// then "always" can still be asked for; after it, a second request must
+// answer without waiting for a prompt that never comes.
 static NSString* const kAskedAlwaysKey = @"dev.flutterwatch.permission_handler.askedAlways";
 #endif
 
@@ -84,8 +85,23 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
 
 - (void)checkPermission:(PHWPermission)permission done:(PHWStatusHandler)done {
     CLLocationManager* manager = [self manager];
-    done(manager == nil ? PHWStatusDenied
-                        : _locationStatus(permission, manager.authorizationStatus));
+    if (manager == nil) {
+        done(PHWStatusDenied);
+        return;
+    }
+    CLAuthorizationStatus status = manager.authorizationStatus;
+#if !defined(FLUTTER_WATCHOS_PLUGIN_DEFINES) || PERMISSION_LOCATION
+    // "When in use" granted and "always" never asked for: it can still be
+    // asked for, so it reads denied, not permanently denied, as in
+    // permission_handler_apple 9.6.4.
+    if (permission == PHWPermissionLocationAlways &&
+        status == kCLAuthorizationStatusAuthorizedWhenInUse &&
+        ![[NSUserDefaults standardUserDefaults] boolForKey:kAskedAlwaysKey]) {
+        done(PHWStatusDenied);
+        return;
+    }
+#endif
+    done(_locationStatus(permission, status));
 }
 
 - (void)checkService:(PHWPermission)permission

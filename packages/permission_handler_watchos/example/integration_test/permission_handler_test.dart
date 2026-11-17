@@ -8,6 +8,11 @@
 // with the app installed afresh (flutter-watchos test does that):
 //   flutter-watchos test integration_test/permission_handler_test.dart \
 //     -d <watch-sim>
+// Two cases depend on location and check nothing otherwise: one needs it
+// not determined, as installed; the other needs it allowed "while using"
+// beforehand:
+//   xcrun simctl privacy <watch-sim> grant location \
+//     com.example.permissionHandlerExample.watchkitapp
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,5 +64,17 @@ void main() {
       throwsA(isA<PlatformException>().having((PlatformException e) => e.code,
           'code', 'MISSING_WHENINUSE_PERMISSION')),
     );
+  });
+
+  testWidgets('"always" can still be asked for after "when in use"',
+      (WidgetTester _) async {
+    // Only meaningful with location allowed "while using" beforehand. A fresh
+    // install has not asked for "always", so it reads denied, not permanently
+    // denied, as in permission_handler_apple 9.6.4.
+    if (await Permission.locationWhenInUse.status != PermissionStatus.granted ||
+        await Permission.locationAlways.status == PermissionStatus.granted) {
+      return;
+    }
+    expect(await Permission.locationAlways.status, PermissionStatus.denied);
   });
 }
