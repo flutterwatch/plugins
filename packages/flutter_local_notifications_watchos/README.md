@@ -17,7 +17,7 @@ package alongside it:
 
 ```yaml
 dependencies:
-  flutter_local_notifications: ^22.3.2
+  flutter_local_notifications: ^23.0.2
   flutter_local_notifications_watchos: ^0.0.1
 ```
 
@@ -85,7 +85,8 @@ This class extends upstream's concrete `IOSFlutterLocalNotificationsPlugin`,
 as flutter_local_notifications requires on iOS-reporting platforms. A method
 an upstream release adds to that class, a minor release included, reaches
 its method channel here and throws `MissingPluginException` until this
-package overrides it too. 23.0.0 is in development.
+package overrides it too. This version follows 23.0.2, whose
+`IOSFlutterLocalNotificationsPlugin` has the same members as 22.3.2's.
 
 ## License
 

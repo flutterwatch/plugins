@@ -56,7 +56,7 @@ void main() {
 
   testWidgets('show completes without permission', (WidgetTester _) async {
     // watchOS 27 reports a missing permission as a UNErrorDomain error from
-    // adding the request, which upstream 22.3.2 ignores; so does this
+    // adding the request, which upstream ignores since 22.3.2; so does this
     // package. Runs on an unattended run, where nothing was allowed.
     final NotificationsEnabledOptions? options = await plugin
         .resolvePlatformSpecificImplementation<
@@ -129,4 +129,25 @@ void main() {
     expect(active.singleWhere((ActiveNotification n) => n.id == 1002).title,
         'Lap 1');
   }, skip: !_prompt);
+
+  // Last: once granted, the provisional authorization stays for the rest of
+  // the run.
+  testWidgets('a provisional request alone is granted without a prompt',
+      (WidgetTester _) async {
+    final IOSFlutterLocalNotificationsPlugin ios =
+        plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()!;
+    final NotificationsEnabledOptions? before = await ios.checkPermissions();
+    if (before!.isEnabled || before.isProvisionalEnabled) {
+      // Decided on an earlier run that kept the install: nothing to ask.
+      markTestSkipped('notifications are already allowed, so none is asked');
+      return;
+    }
+    // As upstream 23.0.2: asked for alone, provisional authorization is
+    // requested, and the system grants it without a prompt. Before, the
+    // answer was false and nothing was asked. A run where notifications were
+    // refused earlier answers false too: uninstall the app first.
+    expect(await ios.requestPermissions(provisional: true), isTrue);
+    expect((await ios.checkPermissions())!.isProvisionalEnabled, isTrue);
+  }, skip: _prompt);
 }

@@ -18,12 +18,16 @@ physical watch.
   background actions and those dismissals reach
   `onDidReceiveNotificationResponse`, since the watch has no background
   isolate.
-* As upstream 22.3.2, an error in `UNErrorDomain` from adding a request is
-  ignored: watchOS 27, like iOS 27, reports a missing permission that way.
+* As upstream since 22.3.2, an error in `UNErrorDomain` from adding a
+  request is ignored: watchOS 27, like iOS 27, reports a missing permission
+  that way.
 * As upstream on iOS 14 and later, `presentAlert` is not read: the banner
   and the list have flags of their own. `checkPermissions` reports
   provisional authorization apart from `isEnabled`, and `initialize` answers
   false when it asks for nothing.
+* On flutter_local_notifications 23 (`^23.0.2`), whose iOS-facing API is
+  22.3.2's. As upstream 23.0.2, a provisional request alone is asked for,
+  and granted without a prompt, instead of answering false.
 * `providesAppNotificationSettings` is asked for and reported;
   `criticalSoundVolume` plays the default critical sound at that volume.
 * LICENSE carries Michael Bui's notice, as upstream's does.

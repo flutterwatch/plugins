@@ -194,7 +194,8 @@ class FlutterLocalNotificationsWatchos
   /// whichever isolate it names.
   ///
   /// As on iOS, the result is false when [settings] ask for none of the
-  /// alert, sound, badge, critical and app-settings permissions.
+  /// alert, sound, badge, provisional, critical and app-settings
+  /// permissions.
   @override
   Future<bool?> initialize({
     required DarwinInitializationSettings settings,

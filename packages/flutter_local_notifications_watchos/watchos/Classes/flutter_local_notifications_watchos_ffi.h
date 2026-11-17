@@ -44,7 +44,8 @@ void flutter_local_notifications_watchos_set_callback(flnw_signal_callback callb
 // "presentBanner", "presentList"}, "request": {"alert", "sound", "badge",
 // "provisional", "critical", "providesAppNotificationSettings"}}.
 // Result: {"granted": <bool>}; false, without asking, when none of alert,
-// sound, badge, critical and providesAppNotificationSettings is asked for.
+// sound, badge, provisional, critical and providesAppNotificationSettings is
+// asked for.
 FLNW_EXPORT
 int64_t flutter_local_notifications_watchos_initialize(const char* json);
 
