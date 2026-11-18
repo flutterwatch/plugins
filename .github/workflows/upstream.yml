@@ -37,7 +37,7 @@ jobs:
         with:
           channel: stable
           # The same Flutter release as ci.yml.
-          flutter-version: 3.47.5
+          flutter-version: 3.50.0
           cache: true
 
       - name: Fetch the tool dependencies
@@ -62,7 +62,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.47.5
+          flutter-version: 3.50.0
           cache: true
 
       - name: Fetch the tool dependencies
