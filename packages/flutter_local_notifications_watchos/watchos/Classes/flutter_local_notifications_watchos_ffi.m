@@ -152,10 +152,13 @@ static UNAuthorizationOptions _authorizationOptions(NSDictionary* request) {
 }
 
 static void _requestAuthorization(int64_t request, UNAuthorizationOptions options) {
-    // As upstream: with none of alert, sound, badge, critical and app
-    // notification settings asked for, nothing is asked and the answer is no.
+    // As upstream: with none of alert, sound, badge, provisional, critical
+    // and app notification settings asked for, nothing is asked and the
+    // answer is no. Provisional counts from upstream 23.0.2 on: asked for
+    // alone, it is granted without a prompt.
     UNAuthorizationOptions asked = UNAuthorizationOptionAlert | UNAuthorizationOptionSound |
                                    UNAuthorizationOptionBadge |
+                                   UNAuthorizationOptionProvisional |
                                    UNAuthorizationOptionCriticalAlert |
                                    UNAuthorizationOptionProvidesAppNotificationSettings;
     if ((options & asked) == 0) {
@@ -560,7 +563,7 @@ int64_t flutter_local_notifications_watchos_add(const char* json) {
     [[UNUserNotificationCenter currentNotificationCenter]
         addNotificationRequest:unRequest
          withCompletionHandler:^(NSError* addError) {
-        // As upstream 22.3.2: watchOS 27, like iOS 27, reports in
+        // As upstream since 22.3.2: watchOS 27, like iOS 27, reports in
         // UNErrorDomain what earlier versions let pass silently, such as
         // notifications not being allowed, so those errors are ignored.
         if (addError != nil && ![addError.domain isEqualToString:UNErrorDomain]) {
