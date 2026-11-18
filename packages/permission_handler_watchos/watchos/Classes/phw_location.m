@@ -33,6 +33,10 @@
 // then "always" can still be asked for; after it, a second request must
 // answer without waiting for a prompt that never comes.
 static NSString* const kAskedAlwaysKey = @"dev.flutterwatch.permission_handler.askedAlways";
+
+// How long after an "always" request the app waits to resign active, as the
+// prompt taking the screen makes it, before it counts as no prompt shown.
+static const NSTimeInterval kNoPromptDelay = 2.0;
 #endif
 
 // How long after the app becomes active a status still "not determined"
@@ -180,6 +184,21 @@ static PHWStatus _locationStatus(PHWPermission permission, CLAuthorizationStatus
     // app becoming active again after the prompt is the answer then.
     [self observeActive];
     [_manager requestAlwaysAuthorization];
+    // watchOS shows no prompt when "always" was asked for before without
+    // this flag knowing: by other code in the app, or before a reinstall
+    // that kept location but not NSUserDefaults. Then nothing answers, no
+    // delegate call and no return to active, so if the app has not resigned
+    // active by then, the status at that moment is the answer. An answer in
+    // between stands this down, as it does the re-read in observeActive.
+    NSUInteger answers = _answers;
+    __weak PHWLocationStrategy* weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kNoPromptDelay * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        PHWLocationStrategy* later = weakSelf;
+        if (later != nil && later->_answers == answers && !later->_resigned) {
+            [later answer:later->_manager.authorizationStatus];
+        }
+    });
 }
 #endif
 

@@ -8,8 +8,8 @@
 | watchOS capability | ◐ The permissions watchOS has: location (when in use and always), notifications, critical alerts, sensors, microphone, contacts, calendar (full access and write only), reminders, Bluetooth, Siri; storage is granted as on iOS. The others answer as iOS answers for a permission it does not know |
 | Host unit tests (`flutter test`) | ✅ 15 pass; 7 of them check the pubspec's `defines` against the native guards: each macro lists a key, and each key is filed under one macro, the one the guards around the code that reads it leave it; and the write-only request is compiled in with either calendar macro, as on iOS |
 | Upstream integration test | ○ none upstream (Baseflow's example is a manual demo) |
-| watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ 6 pass on the watchOS 27.0 Simulator, run as installed and again with location allowed "while using" beforehand |
-| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. With "when in use" allowed and "always" not yet asked for, `locationAlways` read `denied`; asked for and kept at "while using" → permanentlyDenied, its status then permanentlyDenied, and a second request answered without a prompt. In upstream's example: calendar (full access) allowed → granted |
+| watchOS integration test (`example/integration_test/permission_handler_test.dart`) | ✅ on the watchOS 27.0 Simulator, 5 pass and 1 skips with location reset, and 5 pass and 1 skips with it allowed "while using": each location case runs in one of the two |
+| System prompts | ✅ asked for on the Simulator, each answered as on iOS: notification granted; location when in use granted; location always kept at "while using" → permanentlyDenied; sensors granted; microphone granted; contacts refused → permanentlyDenied; reminders granted; calendar write only granted. Bluetooth reads granted on the Simulator, which has no Bluetooth. After the review fixes, location when in use again: the prompt closed with the crown → answered, and a second request prompted again; allowed → granted; "always" asked for right after → its prompt stayed up until answered, kept at "while using" → permanentlyDenied. With "when in use" allowed and "always" not yet asked for, `locationAlways` read `denied`; asked for and kept at "while using" → permanentlyDenied, its status then permanentlyDenied, and a second request answered without a prompt. With that prompt up for over two seconds, the request still waited for the answer: kept at "while using" → permanentlyDenied, changed to "always" → granted. After a reinstall that kept location, watchOS showed no "always" prompt; the request answered permanentlyDenied after two seconds, where it had waited with no answer before. In upstream's example: calendar (full access) allowed → granted |
 | Critical alerts and Siri prompts | not yet asked for: each needs an entitlement the example does not have |
 | Compile-time groups | ✅ `tool/check_native_sources.sh` compiles the sources with no `-D` (flutter-watchos 0.1.1 or earlier), with the marker and every macro, with the marker alone, and with the marker and each macro alone, for a watch and the Simulator; each pair of the events macros was compiled too (Xcode 27.1, no warning). Objects compiled with the marker alone hold none of the groups' class names, selectors or keys (`strings`), and none of their frameworks' link entries; with `PERMISSION_LOCATION_WHENINUSE` alone, no "always" request and no `NSUserDefaults` reference (`nm -u`). The events strategy, built for macOS with EventKit's status and requests stubbed, answered every combination of its three macros as the iOS implementation does when the Info.plist has every key: each status read, the service not applicable, a request whose prompt is left out answering its status without a prompt. When the Info.plist has only the keys of the macros that are on, it differs in one case: with the full-access key and no write-only key, a `calendarWriteOnly` request while it is not determined fails with `MISSING_USAGE_DESCRIPTION`, where iOS sends the write-only request (see Design) |
 | Privacy footprint against a native app (in place of an App Store Connect upload) | ✅ 2026-10-30, with `nm -u`, `otool` and `strings -a`. A native SwiftUI watch app that only calls `UNUserNotificationCenter.requestAuthorization` references one privacy API, `UNUserNotificationCenter`. A Flutter watch app that only requests `Permission.notification` through this package, with no usage keys, built as a debug Simulator app by a flutter-watchos that applies `defines` (`-v`: none of the 10 on), references the same and nothing else: no other group's class names, request selectors or usage keys. Both link the Swift CoreLocation overlay that SwiftUI pulls in, and reference no location class. So no upload is needed. Built by a flutter-watchos without `defines`, as 0.1.1, the same app links no other framework and references no other framework's class (`NSUserDefaults` is referenced, for the location flag), but every group's class names, request selectors and usage keys are in it as strings |
@@ -109,6 +109,14 @@ becoming active again after the prompt (`WKApplicationDidBecomeActiveNotificatio
 is the answer then, and a second request answers without a prompt that
 watchOS would not show again.
 
+watchOS shows that prompt once, and the Simulator remembers it across a
+reinstall, which clears the flag; other code in the app may have asked for
+"always" too. A request watchOS shows no prompt for gets no delegate call
+and no return to active, so if the app has not resigned active two seconds
+after the request, the status then is the answer: `permanentlyDenied` while
+"when in use" stands. The iOS implementation answers only from the delegate
+or `UIApplicationDidBecomeActiveNotification`.
+
 ## Permission coverage
 
 | Permission | watchOS |
@@ -154,7 +162,7 @@ imports only `permission_handler`.
 
 Generated by `flutter-watchos plugin port` on 2026-10-21.
 
-Source: `permission_handler_apple` 9.6.2 (path: `/Users/iamoguzhanarslantas/.pub-cache/hosted/pub.dev/permission_handler_apple-9.6.2`)
+Source: `permission_handler_apple` 9.6.2, compared through 9.6.5
 Base platform: ios (Objective-C)
 Output: `./permission_handler_watchos`
 
