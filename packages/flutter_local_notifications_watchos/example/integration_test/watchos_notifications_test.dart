@@ -8,8 +8,9 @@
 // The cases that need permission to notify ask for it, which shows a system
 // prompt with no one to answer it on an unattended run, so they run only with
 // --dart-define=FLNW_PROMPT=true, where someone allows the prompt (a run
-// installs the app afresh, so it comes back each time). Without it the suite
-// asks for nothing and those cases are skipped.
+// installs the app afresh, so it comes back each time). Without it those cases
+// are skipped, and the one case that asks, the provisional request at the end,
+// shows no prompt, so an unattended run cannot hang.
 //
 // Native hands every answer to Dart as JSON, and a flag that reaches JSON as
 // 1 instead of true reads as false in Dart. These tests read the flags from
@@ -62,9 +63,10 @@ void main() {
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()!
         .checkPermissions();
-    if (options!.isEnabled) {
-      // Allowed on an earlier run that kept the install: nothing to check.
-      markTestSkipped('notifications are allowed, so none is refused');
+    if (options!.isEnabled || options.isProvisionalEnabled) {
+      // Allowed, or provisionally allowed, on an earlier run that kept the
+      // install: show then succeeds, so the UNErrorDomain path is not reached.
+      markTestSkipped('notifications are already allowed, so none is refused');
       return;
     }
     // With iOS details but no attachments, whose null once ended the app.
