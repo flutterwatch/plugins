@@ -79,9 +79,11 @@ checks what upstream's does not reach on the watch: the permission flags,
 the launch details, and scheduling, listing and cancelling against the real
 notification center. The cases that need permission ask for it only with
 `--dart-define=FLNW_PROMPT=true`, when someone answers the prompt; without it
-they are skipped and the suite asks for nothing, so it cannot hang. That
-unattended run instead shows a notification without permission, which
-checks the `UNErrorDomain` case above. The demo's "With actions" and
+they are skipped. The one case that asks on an unattended run is the
+provisional request, and provisional authorization shows no prompt, so it
+cannot hang. That run also shows a notification without permission, which
+checks the `UNErrorDomain` case above; it is skipped when the install already
+holds full or provisional authorization, since `show` then succeeds. The demo's "With actions" and
 "Actions, no dismissal" buttons schedule the `lap` notifications the routing
 table above was checked with; its status line shows the last response.
 
